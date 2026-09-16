@@ -480,7 +480,7 @@ body {
 .recent-name-en {
   font-size: 15px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .recent-name-kh {
@@ -1120,7 +1120,7 @@ body {
 .card-name-en {
   font-size: 19px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: -0.2px;
   line-height: 1.25;
 }
@@ -1357,18 +1357,18 @@ body {
   background: var(--bg-card);
   z-index: 10;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .modal-close-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   width: 32px;
   height: 32px;
@@ -1381,6 +1381,6 @@ body {
 }
 
 .modal-close-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
