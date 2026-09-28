@@ -56,8 +56,8 @@ async function loadProduceDictionary() {
       const customItems = JSON.parse(savedCustom);
       if (Array.isArray(customItems)) {
         customItems.forEach(custom => {
-          const exists = PRODUCE_DICTIONARY.some(p => 
-            (p.ru && custom.ru && p.ru.toLowerCase() === custom.ru.toLowerCase()) || 
+          const exists = PRODUCE_DICTIONARY.some(p =>
+            (p.ru && custom.ru && p.ru.toLowerCase() === custom.ru.toLowerCase()) ||
             (p.en && custom.en && p.en.toLowerCase() === custom.en.toLowerCase())
           );
           if (!exists) {
@@ -84,8 +84,8 @@ function saveCustomProduceToDictionary(product) {
   const kh = product.name_kh.trim();
   if (!ru || !en || !kh) return;
 
-  const exists = PRODUCE_DICTIONARY.some(p => 
-    (p.ru && p.ru.toLowerCase() === ru.toLowerCase()) || 
+  const exists = PRODUCE_DICTIONARY.some(p =>
+    (p.ru && p.ru.toLowerCase() === ru.toLowerCase()) ||
     (p.en && p.en.toLowerCase() === en.toLowerCase())
   );
 
@@ -300,8 +300,8 @@ class LookupService {
       const enNorm = this.normalize(item.en);
       const khNorm = this.normalize(item.kh);
       return ruNorm.includes(clean) || clean.includes(ruNorm) ||
-             enNorm.includes(clean) || clean.includes(enNorm) ||
-             khNorm.includes(clean);
+        enNorm.includes(clean) || clean.includes(enNorm) ||
+        khNorm.includes(clean);
     });
 
     if (match) return match;
@@ -332,9 +332,9 @@ class LookupService {
       const enNorm = this.normalize(item.en);
       const khNorm = this.normalize(item.kh);
 
-      return searchTokens.every(token => 
-        ruNorm.includes(token) || 
-        enNorm.includes(token) || 
+      return searchTokens.every(token =>
+        ruNorm.includes(token) ||
+        enNorm.includes(token) ||
         khNorm.includes(token)
       );
     });
@@ -582,9 +582,6 @@ class App {
     this.customModelWrap = document.getElementById('customModelWrap');
     this.settingCustomModel = document.getElementById('settingCustomModel');
 
-    // Form buttons
-    this.btnSaveAndMore = document.getElementById('btnSaveAndMore');
-
     // List Screen Elements
     this.searchInput = document.getElementById('searchInput');
     this.searchClearBtn = document.getElementById('searchClearBtn');
@@ -701,11 +698,7 @@ class App {
     // Form Submit
     this.productForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleSubmit(false);
-    });
-
-    this.btnSaveAndMore.addEventListener('click', () => {
-      this.handleSubmit(true);
+      this.handleSubmit();
     });
 
     // Search input
@@ -795,9 +788,6 @@ class App {
       this.selectCategoryByName(this.activeFilterCategory);
     }
     this.addModal.style.display = 'flex';
-    setTimeout(() => {
-      this.fieldNameEn.focus();
-    }, 150);
   }
 
   closeAddModal() {
@@ -858,7 +848,7 @@ class App {
 
   renderCategoryFilterPills() {
     this.categoryFilterPills.innerHTML = '';
-    
+
     // "All" Pill
     const allPill = document.createElement('button');
     allPill.type = 'button';
@@ -949,9 +939,6 @@ class App {
     this.toggleCustomModelInput();
 
     this.settingsModal.style.display = 'flex';
-    if (this.settingApiKey) {
-      setTimeout(() => this.settingApiKey.focus(), 100);
-    }
 
     if (isTriggeredByPhoto) {
       this.showToast('ℹ️ Введите Gemini API Key для автозаполнения по фото');
@@ -1001,7 +988,7 @@ class App {
   // ------------------------------------------------------------------------
   // Gemini Vision Analysis
   // ------------------------------------------------------------------------
-  async analyzeImageWithGemini(base64Image) {
+  async analyzeImageWithGemini(base64Image, isEdit = false, editCtx = null) {
     const apiKey = localStorage.getItem('freshmarket_gemini_api_key');
     if (!apiKey) {
       this.openSettingsModal(true);
@@ -1012,8 +999,10 @@ class App {
     const customModel = localStorage.getItem('freshmarket_gemini_custom_model');
     const modelToUse = (selectedModel === 'custom' && customModel) ? customModel.trim() : selectedModel;
 
-    if (this.aiScanOverlay) {
-      this.aiScanOverlay.style.display = 'flex';
+    const overlay = isEdit ? (editCtx?.editAiScanOverlay || document.getElementById('editAiScanOverlay')) : this.aiScanOverlay;
+
+    if (overlay) {
+      overlay.style.display = 'flex';
     }
 
     try {
@@ -1090,19 +1079,58 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         }
       }
 
-      this.applyAiRecognitionResults(parsed);
+      this.applyAiRecognitionResults(parsed, isEdit, editCtx);
       this.showToast(`✨ Распознано: ${parsed.name_ru || parsed.name_en}`);
     } catch (err) {
       console.error('Gemini Vision error:', err);
       this.showToast(`⚠️ AI анализ: ${err.message}`);
     } finally {
-      if (this.aiScanOverlay) {
-        this.aiScanOverlay.style.display = 'none';
+      if (overlay) {
+        overlay.style.display = 'none';
       }
     }
   }
 
-  applyAiRecognitionResults(data) {
+  applyAiRecognitionResults(data, isEdit = false, editCtx = null) {
+    if (isEdit && editCtx) {
+      if (data.name_en && editCtx.editNameEn) {
+        editCtx.editNameEn.value = data.name_en;
+        this.highlightField(editCtx.editNameEn);
+      }
+      if (data.name_ru && editCtx.editNameRu) {
+        editCtx.editNameRu.value = data.name_ru;
+        this.highlightField(editCtx.editNameRu);
+      }
+      if (data.name_kh && editCtx.editNameKh) {
+        editCtx.editNameKh.value = data.name_kh;
+        this.highlightField(editCtx.editNameKh);
+      }
+      if (data.category && editCtx.editCategory) {
+        editCtx.editCategory.value = data.category;
+        this.highlightField(editCtx.editCategory);
+      }
+      if (data.form && editCtx.editFormSelect) {
+        let exists = false;
+        for (let opt of editCtx.editFormSelect.options) {
+          if (opt.value === data.form) {
+            opt.selected = true;
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          const newOpt = new Option(data.form, data.form, true, true);
+          editCtx.editFormSelect.add(newOpt);
+        }
+        this.highlightField(editCtx.editFormSelect);
+      }
+      if (data.description && editCtx.editDescription) {
+        editCtx.editDescription.value = data.description;
+        this.highlightField(editCtx.editDescription);
+      }
+      return;
+    }
+
     if (data.name_en) {
       this.fieldNameEn.value = data.name_en;
       this.highlightField(this.fieldNameEn);
@@ -1315,40 +1343,71 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   // ------------------------------------------------------------------------
   // Smart Lookup
   // ------------------------------------------------------------------------
-  async handleLookup() {
-    const enVal = this.fieldNameEn.value.trim();
-    const ruVal = this.fieldNameRu.value.trim();
-    const khVal = this.fieldNameKh.value.trim();
+  async handleLookup(isEdit = false, editCtx = null) {
+    const enInput = isEdit ? editCtx?.editNameEn : this.fieldNameEn;
+    const ruInput = isEdit ? editCtx?.editNameRu : this.fieldNameRu;
+    const khInput = isEdit ? editCtx?.editNameKh : this.fieldNameKh;
+    const descInput = isEdit ? editCtx?.editDescription : this.fieldDescription;
+    const btn = isEdit ? editCtx?.btnEditLookup : this.btnLookup;
+
+    const enVal = enInput?.value.trim() || '';
+    const ruVal = ruInput?.value.trim() || '';
+    const khVal = khInput?.value.trim() || '';
     const term = enVal || ruVal || khVal;
 
     if (!term) {
       this.showToast('Введите название на EN или RU для поиска');
-      this.fieldNameEn.focus();
+      if (enInput) enInput.focus();
       return;
     }
 
-    this.btnLookup.classList.add('loading');
+    if (btn) btn.classList.add('loading');
 
     try {
       const result = await LookupService.lookup(term);
       if (result) {
-        if (!this.fieldNameEn.value.trim() && result.name_en) {
-          this.fieldNameEn.value = result.name_en;
+        if (!enInput.value.trim() && result.name_en) {
+          enInput.value = result.name_en;
+          this.highlightField(enInput);
         }
-        if (!this.fieldNameRu.value.trim() && result.name_ru) {
-          this.fieldNameRu.value = result.name_ru;
+        if (!ruInput.value.trim() && result.name_ru) {
+          ruInput.value = result.name_ru;
+          this.highlightField(ruInput);
         }
-        if (result.name_kh) {
-          this.fieldNameKh.value = result.name_kh;
+        if (result.name_kh && khInput) {
+          khInput.value = result.name_kh;
+          this.highlightField(khInput);
         }
         if (result.category) {
-          this.selectCategoryByName(result.category);
+          if (isEdit && editCtx?.editCategory) {
+            editCtx.editCategory.value = result.category;
+            this.highlightField(editCtx.editCategory);
+          } else {
+            this.selectCategoryByName(result.category);
+          }
         }
         if (result.form) {
-          this.selectFormByName(result.form);
+          if (isEdit && editCtx?.editFormSelect) {
+            let exists = false;
+            for (let opt of editCtx.editFormSelect.options) {
+              if (opt.value === result.form) {
+                opt.selected = true;
+                exists = true;
+                break;
+              }
+            }
+            if (!exists) {
+              const newOpt = new Option(result.form, result.form, true, true);
+              editCtx.editFormSelect.add(newOpt);
+            }
+            this.highlightField(editCtx.editFormSelect);
+          } else {
+            this.selectFormByName(result.form);
+          }
         }
-        if (result.description && !this.fieldDescription.value.trim()) {
-          this.fieldDescription.value = result.description;
+        if (result.description && (!descInput.value.trim())) {
+          descInput.value = result.description;
+          this.highlightField(descInput);
         }
         this.showToast(`✨ Найдено: ${result.name_en || result.name_ru}`);
       } else {
@@ -1358,7 +1417,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       console.error(e);
       this.showToast('Ошибка при поиске');
     } finally {
-      this.btnLookup.classList.remove('loading');
+      if (btn) btn.classList.remove('loading');
     }
   }
 
@@ -1415,7 +1474,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     }
   }
 
-  async handleSubmit(keepAdding = false) {
+  async handleSubmit() {
     const nameEn = this.fieldNameEn.value.trim();
     const nameRu = this.fieldNameRu.value.trim();
     const nameKh = this.fieldNameKh.value.trim();
@@ -1455,13 +1514,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.showToast(`✅ «${nameEn}» добавлен!`);
 
       this.resetForm();
-
-      if (!keepAdding) {
-        this.closeAddModal();
-        this.switchView('viewList');
-      } else {
-        this.fieldNameEn.focus();
-      }
+      this.closeAddModal();
+      this.switchView('viewList');
     } catch (e) {
       console.error(e);
       this.showToast('Не удалось сохранить продукт');
@@ -1600,7 +1654,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
     // Filter by Search Query
     if (this.searchQuery) {
-      list = list.filter(p => 
+      list = list.filter(p =>
         (p.name_en && p.name_en.toLowerCase().includes(this.searchQuery)) ||
         (p.name_ru && p.name_ru.toLowerCase().includes(this.searchQuery)) ||
         (p.name_kh && p.name_kh.toLowerCase().includes(this.searchQuery)) ||
@@ -1642,36 +1696,32 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
             <!-- Header with prominent EN Name and Minimalist Collapse Arrow -->
             <div class="card-header-row">
               <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
-              ${(item.img_url || item.description) ? `
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              ` : ''}
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
             </div>
 
             ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
             <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
-            
-            <!-- Badges -->
+          </div>
+
+          <div class="card-collapsible-body">
+            <!-- Badges (Category & Form - hidden in collapsed state) -->
             <div class="card-badges">
               <span class="badge badge-category">${catIcon} ${this.escapeHtml(item.category)}</span>
               ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
             </div>
+
+            ${item.img_url ? `
+              <div class="card-photo-container">
+                <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+              </div>
+            ` : ''}
+
+            ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
           </div>
-
-          ${(item.img_url || item.description) ? `
-            <div class="card-collapsible-body">
-              ${item.img_url ? `
-                <div class="card-photo-container">
-                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
-                </div>
-              ` : ''}
-
-              ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
-            </div>
-          ` : ''}
         </div>
       `;
 
@@ -1702,7 +1752,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       }
 
       const namesBlock = container.querySelector('.card-names-block');
-      if (namesBlock && (item.img_url || item.description)) {
+      if (namesBlock) {
         namesBlock.addEventListener('click', toggleCollapse);
       }
 
@@ -1832,7 +1882,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     card.addEventListener('pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button === 0) {
         handleStart(e.clientX, e.clientY);
-        
+
         const onPointerMove = (moveEvent) => {
           handleMove(moveEvent.clientX, moveEvent.clientY, moveEvent);
         };
@@ -1872,83 +1922,133 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     }
 
     this.modalBody.innerHTML = `
-      <form id="editForm" class="product-form">
-        <!-- Category Dropdown -->
-        <div class="form-group">
-          <label class="field-label">Категория <span class="req-star">*</span></label>
-          <select id="editCategory" class="text-input select-input" required>
-            ${CATEGORIES.map(c => `<option value="${c.name}" ${c.name === item.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
-          </select>
-        </div>
-
-        <!-- Name EN with Suggestions -->
-        <div class="form-group">
-          <label class="field-label">Name (EN) <span class="req-star">*</span></label>
-          <div class="input-wrap has-suggestions" style="position:relative;">
-            <input type="text" id="editNameEn" class="text-input" value="${this.escapeHtml(item.name_en)}" style="padding-left:14px;" required autocomplete="off" />
-            <div class="suggestions-popup edit-suggestions-popup" id="editSuggestionsEn" style="display:none;"></div>
+      <form id="editForm" class="product-form" novalidate>
+        <!-- 1. PHOTO / IMAGE (First - triggers visual AI analysis) -->
+        <div class="form-group photo-block">
+          <div class="photo-block-header">
+            <label class="field-label">1. Фото продукта</label>
+            <span class="ai-badge">✨ AI Автозаполнение</span>
           </div>
-        </div>
-
-        <!-- Name RU with Suggestions -->
-        <div class="form-group">
-          <label class="field-label">Название (RU) <span class="req-star">*</span></label>
-          <div class="input-wrap has-suggestions" style="position:relative;">
-            <input type="text" id="editNameRu" class="text-input" value="${this.escapeHtml(item.name_ru)}" style="padding-left:14px;" required autocomplete="off" />
-            <div class="suggestions-popup edit-suggestions-popup" id="editSuggestionsRu" style="display:none;"></div>
-          </div>
-        </div>
-
-        <!-- Name KH with transcription in brackets -->
-        <div class="form-group">
-          <label class="field-label">ឈ្មោះ (KH) с транскрипцией в скобках</label>
-          <input type="text" id="editNameKh" class="text-input khmer-input" placeholder="напр. ស្លឹកគ្រៃ (Sloek Krey)" style="padding-left:14px;" value="${this.escapeHtml(item.name_kh || '')}" />
-        </div>
-
-        <!-- Form Dropdown (С дропдауном существующих значений) -->
-        <div class="form-group">
-          <label class="field-label">Форма / Состояние продукта</label>
-          <select id="editFormSelect" class="text-input select-input">
-            ${formOptions.map(f => `<option value="${f}" ${f === item.form ? 'selected' : ''}>${f}</option>`).join('')}
-          </select>
-        </div>
-
-        <!-- Photo Editing in Edit Modal -->
-        <div class="form-group">
-          <label class="field-label">Фото продукта</label>
           <div class="image-picker-zone" id="editImagePickerZone">
             <input type="file" id="editImageFile" accept="image/*" class="file-input-hidden" />
             <div class="image-placeholder" id="editImagePlaceholder" style="display: ${this.editModalImageBase64 ? 'none' : 'flex'};">
               <div class="cam-icon">📷</div>
-              <span class="picker-text">Нажмите, чтобы добавить или сделать фото</span>
+              <span class="picker-text">Сделайте фото или выберите из галереи</span>
+              <span class="picker-subtext">ИИ автоматически определит продукт и заполнит поля</span>
             </div>
             <div class="image-preview-container" id="editImagePreviewContainer" style="display: ${this.editModalImageBase64 ? 'block' : 'none'};">
               <img id="editImagePreview" src="${this.editModalImageBase64}" alt="Превью" />
+              <div class="ai-scan-overlay" id="editAiScanOverlay" style="display: none;">
+                <div class="ai-scan-line"></div>
+                <div class="ai-scan-status">
+                  <span class="spinner ai-spinner"></span>
+                  <span class="ai-scan-text">Распознаём продукт...</span>
+                </div>
+              </div>
               <button type="button" class="btn-remove-photo" id="editBtnRemovePhoto" title="Удалить фото">✕</button>
             </div>
           </div>
         </div>
 
-        <!-- Description -->
-        <div class="form-group">
-          <label class="field-label">Описание / Заметки</label>
-          <textarea id="editDescription" class="text-input textarea-input" rows="3">${this.escapeHtml(item.description || '')}</textarea>
+        <!-- 2. NAMES BLOCK (EN, RU mandatory, KH Khmer with (transcription) + Online Lookup) -->
+        <div class="form-group names-block">
+          <div class="names-block-header">
+            <label class="field-label">2. Названия <span class="req-star">*</span></label>
+            <button type="button" class="btn-lookup" id="btnEditLookup"
+              title="Автоматически найти перевод и кхмерское название с транскрипцией">
+              <span class="lookup-icon">✨</span>
+              <span class="lookup-text">Автопоиск (EN/RU/KH)</span>
+              <span class="spinner" id="editLookupSpinner"></span>
+            </button>
+          </div>
+
+          <!-- EN Name (Mandatory) -->
+          <div class="input-wrap has-suggestions" style="position:relative;">
+            <span class="input-lang-badge">EN *</span>
+            <input type="text" id="editNameEn" class="text-input" value="${this.escapeHtml(item.name_en)}"
+              placeholder="e.g. Chicken, Lemongrass, Garlic" autocomplete="off" required />
+            <div class="suggestions-popup edit-suggestions-popup" id="editSuggestionsEn" style="display:none;"></div>
+          </div>
+
+          <!-- RU Name (Mandatory) -->
+          <div class="input-wrap has-suggestions" style="position:relative;">
+            <span class="input-lang-badge">RU *</span>
+            <input type="text" id="editNameRu" class="text-input" value="${this.escapeHtml(item.name_ru)}"
+              placeholder="напр. Курица, Лемонграсс, Чеснок" autocomplete="off" required />
+            <div class="suggestions-popup edit-suggestions-popup" id="editSuggestionsRu" style="display:none;"></div>
+          </div>
+
+          <!-- KH Name (Khmer script + English transcription in brackets) -->
+          <div class="input-wrap khmer-wrap">
+            <span class="input-lang-badge kh-badge">KH</span>
+            <input type="text" id="editNameKh" class="text-input khmer-input"
+              placeholder="напр. សាច់មាន់ (Sach Moan), ស្លឹកគ្រៃ (Sloek Krey)"
+              value="${this.escapeHtml(item.name_kh || '')}" autocomplete="off" />
+          </div>
+          <div class="field-hint">Подсказки появляются автоматически при вводе или анализе фото.</div>
         </div>
 
+        <!-- 3. CATEGORY -->
+        <div class="form-group">
+          <label class="field-label">3. Категория <span class="req-star">*</span></label>
+          <select id="editCategory" class="text-input select-input" required>
+            ${CATEGORIES.map(c => `<option value="${c.name}" ${c.name === item.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- 4. FORM / STATE -->
+        <div class="form-group">
+          <label class="field-label">4. Форма / Состояние продукта</label>
+          <select id="editFormSelect" class="text-input select-input">
+            ${formOptions.map(f => `<option value="${f}" ${f === item.form ? 'selected' : ''}>${f}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- 5. DESCRIPTION / NOTES -->
+        <div class="form-group">
+          <label class="field-label">5. Описание / Заметки</label>
+          <textarea id="editDescription" class="text-input textarea-input" rows="3"
+            placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять...">${this.escapeHtml(item.description || '')}</textarea>
+        </div>
+
+        <!-- FORM ACTIONS -->
         <div class="form-actions" style="margin-top:14px;">
-          <button type="submit" class="btn btn-primary">💾 Сохранить изменения</button>
+          <button type="submit" class="btn btn-primary">Сохранить изменения</button>
         </div>
       </form>
     `;
 
-    // Hook photo events inside edit modal
+    // Elements inside edit modal
     const editImagePickerZone = document.getElementById('editImagePickerZone');
     const editImageFile = document.getElementById('editImageFile');
     const editImagePlaceholder = document.getElementById('editImagePlaceholder');
     const editImagePreviewContainer = document.getElementById('editImagePreviewContainer');
     const editImagePreview = document.getElementById('editImagePreview');
+    const editAiScanOverlay = document.getElementById('editAiScanOverlay');
     const editBtnRemovePhoto = document.getElementById('editBtnRemovePhoto');
 
+    const editNameEn = document.getElementById('editNameEn');
+    const editNameRu = document.getElementById('editNameRu');
+    const editNameKh = document.getElementById('editNameKh');
+    const editSuggestionsEn = document.getElementById('editSuggestionsEn');
+    const editSuggestionsRu = document.getElementById('editSuggestionsRu');
+    const btnEditLookup = document.getElementById('btnEditLookup');
+    const editCategory = document.getElementById('editCategory');
+    const editFormSelect = document.getElementById('editFormSelect');
+    const editDescription = document.getElementById('editDescription');
+
+    const editCtx = {
+      editNameEn,
+      editNameRu,
+      editNameKh,
+      editCategory,
+      editFormSelect,
+      editDescription,
+      editAiScanOverlay,
+      btnEditLookup
+    };
+
+    // Hook photo events inside edit modal
     editImagePickerZone.addEventListener('click', (e) => {
       if (e.target !== editBtnRemovePhoto) {
         editImageFile.click();
@@ -1964,6 +2064,9 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           editImagePreview.src = base64;
           editImagePlaceholder.style.display = 'none';
           editImagePreviewContainer.style.display = 'block';
+
+          // Trigger Gemini Vision AI analysis for edit modal
+          this.analyzeImageWithGemini(base64, true, editCtx);
         } catch (err) {
           this.showToast('Ошибка при загрузке фото');
         }
@@ -1977,29 +2080,17 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       editImageFile.value = '';
       editImagePlaceholder.style.display = 'flex';
       editImagePreviewContainer.style.display = 'none';
+      if (editAiScanOverlay) editAiScanOverlay.style.display = 'none';
     });
 
-    // Hook autocomplete for edit modal inputs
-    const editNameEn = document.getElementById('editNameEn');
-    const editNameRu = document.getElementById('editNameRu');
-    const editNameKh = document.getElementById('editNameKh');
-    const editSuggestionsEn = document.getElementById('editSuggestionsEn');
-    const editSuggestionsRu = document.getElementById('editSuggestionsRu');
-    const editCategory = document.getElementById('editCategory');
-    const editFormSelect = document.getElementById('editFormSelect');
-    const editDescription = document.getElementById('editDescription');
-
-    const editCtx = {
-      editNameEn,
-      editNameRu,
-      editNameKh,
-      editCategory,
-      editFormSelect,
-      editDescription
-    };
-
+    // Hook autocomplete suggestions for edit modal inputs
     this.bindSuggestionsToInput(editNameEn, editSuggestionsEn, 'en', true, editCtx);
     this.bindSuggestionsToInput(editNameRu, editSuggestionsRu, 'ru', true, editCtx);
+
+    // Hook smart lookup button in edit modal
+    if (btnEditLookup) {
+      btnEditLookup.addEventListener('click', () => this.handleLookup(true, editCtx));
+    }
 
     // Handle Edit Form Submission
     const editForm = document.getElementById('editForm');
