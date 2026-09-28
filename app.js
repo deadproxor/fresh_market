@@ -557,9 +557,21 @@ class App {
     this.imagePlaceholder = document.getElementById('imagePlaceholder');
     this.imagePreviewContainer = document.getElementById('imagePreviewContainer');
     this.imagePreview = document.getElementById('imagePreview');
+    this.aiScanOverlay = document.getElementById('aiScanOverlay');
     this.btnRemovePhoto = document.getElementById('btnRemovePhoto');
     this.fieldImgUrl = document.getElementById('fieldImgUrl');
     this.fieldDescription = document.getElementById('fieldDescription');
+
+    // Settings Modal Elements
+    this.btnSettings = document.getElementById('btnSettings');
+    this.settingsModal = document.getElementById('settingsModal');
+    this.settingsModalCloseBtn = document.getElementById('settingsModalCloseBtn');
+    this.btnCancelSettings = document.getElementById('btnCancelSettings');
+    this.settingsForm = document.getElementById('settingsForm');
+    this.settingApiKey = document.getElementById('settingApiKey');
+    this.settingModel = document.getElementById('settingModel');
+    this.customModelWrap = document.getElementById('customModelWrap');
+    this.settingCustomModel = document.getElementById('settingCustomModel');
 
     // Form buttons
     this.btnSaveAndMore = document.getElementById('btnSaveAndMore');
@@ -623,6 +635,31 @@ class App {
       if (e.target === this.addModal) this.closeAddModal();
     });
 
+    // Settings Modal Events
+    if (this.btnSettings) {
+      this.btnSettings.addEventListener('click', () => this.openSettingsModal());
+    }
+    if (this.settingsModalCloseBtn) {
+      this.settingsModalCloseBtn.addEventListener('click', () => this.closeSettingsModal());
+    }
+    if (this.btnCancelSettings) {
+      this.btnCancelSettings.addEventListener('click', () => this.closeSettingsModal());
+    }
+    if (this.settingsModal) {
+      this.settingsModal.addEventListener('click', (e) => {
+        if (e.target === this.settingsModal) this.closeSettingsModal();
+      });
+    }
+    if (this.settingModel) {
+      this.settingModel.addEventListener('change', () => this.toggleCustomModelInput());
+    }
+    if (this.settingsForm) {
+      this.settingsForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveSettings();
+      });
+    }
+
     // Lookup Button Click
     this.btnLookup.addEventListener('click', () => this.handleLookup());
 
@@ -639,6 +676,8 @@ class App {
         try {
           const base64 = await compressImage(file, 800, 0.75);
           this.setImagePreview(base64);
+          // Automatically trigger Gemini Vision analysis
+          this.analyzeImageWithGemini(base64);
         } catch (err) {
           this.showToast('Ошибка при загрузке фото');
         }
@@ -869,6 +908,240 @@ class App {
     this.fieldImageFile.value = '';
     this.imagePlaceholder.style.display = 'flex';
     this.imagePreviewContainer.style.display = 'none';
+    if (this.aiScanOverlay) {
+      this.aiScanOverlay.style.display = 'none';
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Settings (Gemini API Key & Model Configuration)
+  // ------------------------------------------------------------------------
+  openSettingsModal(isTriggeredByPhoto = false) {
+    if (!this.settingsModal) {
+      this.settingsModal = document.getElementById('settingsModal');
+      this.settingApiKey = document.getElementById('settingApiKey');
+      this.settingModel = document.getElementById('settingModel');
+      this.settingCustomModel = document.getElementById('settingCustomModel');
+      this.customModelWrap = document.getElementById('customModelWrap');
+    }
+    if (!this.settingsModal) return;
+
+    const savedKey = localStorage.getItem('freshmarket_gemini_api_key') || '';
+    const savedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
+    const customModel = localStorage.getItem('freshmarket_gemini_custom_model') || '';
+
+    if (this.settingApiKey) this.settingApiKey.value = savedKey;
+    if (this.settingModel) {
+      this.settingModel.value = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(savedModel) ? savedModel : 'custom';
+    }
+    if (this.settingCustomModel) {
+      this.settingCustomModel.value = customModel || (savedModel === 'custom' ? '' : savedModel);
+    }
+    this.toggleCustomModelInput();
+
+    this.settingsModal.style.display = 'flex';
+    if (this.settingApiKey) {
+      setTimeout(() => this.settingApiKey.focus(), 100);
+    }
+
+    if (isTriggeredByPhoto) {
+      this.showToast('ℹ️ Введите Gemini API Key для автозаполнения по фото');
+    }
+  }
+
+  closeSettingsModal() {
+    const modal = this.settingsModal || document.getElementById('settingsModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  toggleCustomModelInput() {
+    const modelEl = this.settingModel || document.getElementById('settingModel');
+    const wrapEl = this.customModelWrap || document.getElementById('customModelWrap');
+    if (modelEl && wrapEl) {
+      wrapEl.style.display = (modelEl.value === 'custom') ? 'block' : 'none';
+    }
+  }
+
+  saveSettings() {
+    const apiKey = this.settingApiKey.value.trim();
+    if (!apiKey) {
+      this.showToast('⚠️ Введите валидный API Key');
+      return;
+    }
+
+    const model = this.settingModel.value;
+    const customModel = this.settingCustomModel.value.trim();
+
+    localStorage.setItem('freshmarket_gemini_api_key', apiKey);
+    localStorage.setItem('freshmarket_gemini_model', model);
+    if (model === 'custom' && customModel) {
+      localStorage.setItem('freshmarket_gemini_custom_model', customModel);
+    }
+
+    this.closeSettingsModal();
+    this.showToast('✅ Настройки AI сохранены');
+
+    // If there is an active image in preview without filled names, trigger analysis
+    if (this.currentImageBase64 && !this.fieldNameEn.value && !this.fieldNameRu.value) {
+      this.analyzeImageWithGemini(this.currentImageBase64);
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Gemini Vision Analysis
+  // ------------------------------------------------------------------------
+  async analyzeImageWithGemini(base64Image) {
+    const apiKey = localStorage.getItem('freshmarket_gemini_api_key');
+    if (!apiKey) {
+      this.openSettingsModal(true);
+      return;
+    }
+
+    const selectedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
+    const customModel = localStorage.getItem('freshmarket_gemini_custom_model');
+    const modelToUse = (selectedModel === 'custom' && customModel) ? customModel.trim() : selectedModel;
+
+    if (this.aiScanOverlay) {
+      this.aiScanOverlay.style.display = 'flex';
+    }
+
+    try {
+      const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+      const mimeTypeMatch = base64Image.match(/^data:(image\/\w+);base64,/);
+      const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
+
+      const prompt = `You are an expert botanist, food specialist, and Cambodian market expert specializing in fresh produce, ingredients, seafood, meats, herbs, fruits, and mushrooms found in Southeast Asian and Cambodian markets (such as Samaki Market in Kampot).
+Analyze the food product in this image and return a JSON object with:
+- "name_en": Clear English name of the product (e.g. "Chicken Drumsticks", "Lemongrass", "Garlic", "Kep Crab", "Bitter Gourd").
+- "name_ru": Clear Russian name of the product (e.g. "Куриные голени", "Лемонграсс", "Чеснок", "Кепский краб", "Горькая тыква").
+- "name_kh": Authentic Khmer script name followed by pronunciation transcription in English in brackets (e.g. "ភ្លៅមាន់ (Phlov Moan)", "ស្លឹកគ្រៃ (Sloek Krey)", "ខ្ទឹមស (Khtem Sor)").
+- "category": MUST be one of these exact 9 categories:
+  ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Грибы"]
+- "form": The form/state of the item, MUST be one of:
+  ["Целый", "Нарезка", "Филе", "Фарш", "Очищенный", "Сушеный", "Маринованный", "Замороженный"] or another short 1-word descriptor.
+- "description": Short helpful description in Russian (1-2 sentences about taste, culinary use, or how to pick it at the market).
+
+Return ONLY raw valid JSON, no markdown code block fences.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            response_mime_type: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData.error?.message || `Ошибка API Gemini (${response.status})`;
+        throw new Error(errMsg);
+      }
+
+      const result = await response.json();
+      const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResponse) {
+        throw new Error('Пустой ответ от Gemini');
+      }
+
+      let parsed;
+      try {
+        const cleanText = textResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+        parsed = JSON.parse(cleanText);
+      } catch (e) {
+        console.error('Failed to parse Gemini JSON response:', textResponse);
+        throw new Error('Не удалось разобрать ответ ИИ');
+      }
+
+      // Check against local dictionary for exact authentic names if matching
+      if (this.dictionary && this.dictionary.length > 0) {
+        const matched = this.matchWithLocalDictionary(parsed);
+        if (matched) {
+          parsed.name_en = matched.name_en || parsed.name_en;
+          parsed.name_ru = matched.name_ru || parsed.name_ru;
+          if (matched.name_kh) parsed.name_kh = matched.name_kh;
+          if (matched.category) parsed.category = matched.category;
+          if (matched.form && !parsed.form) parsed.form = matched.form;
+          if (matched.desc && !parsed.description) parsed.description = matched.desc;
+        }
+      }
+
+      this.applyAiRecognitionResults(parsed);
+      this.showToast(`✨ Распознано: ${parsed.name_ru || parsed.name_en}`);
+    } catch (err) {
+      console.error('Gemini Vision error:', err);
+      this.showToast(`⚠️ AI анализ: ${err.message}`);
+    } finally {
+      if (this.aiScanOverlay) {
+        this.aiScanOverlay.style.display = 'none';
+      }
+    }
+  }
+
+  applyAiRecognitionResults(data) {
+    if (data.name_en) {
+      this.fieldNameEn.value = data.name_en;
+      this.highlightField(this.fieldNameEn);
+    }
+    if (data.name_ru) {
+      this.fieldNameRu.value = data.name_ru;
+      this.highlightField(this.fieldNameRu);
+    }
+    if (data.name_kh) {
+      this.fieldNameKh.value = data.name_kh;
+      this.highlightField(this.fieldNameKh);
+    }
+    if (data.category) {
+      this.selectCategoryByName(data.category);
+      if (this.categoryChips) this.highlightField(this.categoryChips);
+    }
+    if (data.form) {
+      this.selectFormByName(data.form);
+    }
+    if (data.description) {
+      this.fieldDescription.value = data.description;
+      this.highlightField(this.fieldDescription);
+    }
+  }
+
+  highlightField(element) {
+    if (!element) return;
+    element.classList.remove('field-highlight-ai');
+    void element.offsetWidth; // trigger reflow
+    element.classList.add('field-highlight-ai');
+  }
+
+  matchWithLocalDictionary(parsed) {
+    if (!parsed) return null;
+    const en = (parsed.name_en || '').toLowerCase();
+    const ru = (parsed.name_ru || '').toLowerCase();
+
+    for (const item of this.dictionary) {
+      const itemEn = (item.name_en || '').toLowerCase();
+      const itemRu = (item.name_ru || '').toLowerCase();
+      if (en && (itemEn === en || en.includes(itemEn) || itemEn.includes(en))) {
+        return item;
+      }
+      if (ru && (itemRu === ru || ru.includes(itemRu) || itemRu.includes(ru))) {
+        return item;
+      }
+    }
+    return null;
   }
 
   // ------------------------------------------------------------------------
@@ -965,7 +1238,7 @@ class App {
       }
     });
 
-    // Auto-match category when typing finishes / focus leaves input
+    // Auto-match category and translations when typing finishes / focus leaves input
     const autoMatchCategory = () => {
       const term = inputEl.value.trim();
       if (!term) return;
@@ -978,6 +1251,12 @@ class App {
           }
           if (match.kh && !this.fieldNameKh.value.trim()) {
             this.fieldNameKh.value = match.kh;
+          }
+          if (match.en && !this.fieldNameEn.value.trim()) {
+            this.fieldNameEn.value = match.en;
+          }
+          if (match.ru && !this.fieldNameRu.value.trim()) {
+            this.fieldNameRu.value = match.ru;
           }
         } else if (editCtx && editCtx.editCategory) {
           editCtx.editCategory.value = match.cat;
@@ -1350,21 +1629,24 @@ class App {
 
         <!-- Main Card Content Surface -->
         <div class="swipe-card-content product-card">
-          <div class="card-top-row">
-            <div class="card-names-block">
-              <!-- LARGE PROMINENT EN & KH NAMES -->
-              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
-              ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
-              <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
-              
-              <!-- Badges -->
-              <div class="card-badges">
-                <span class="badge badge-category">${catIcon} ${this.escapeHtml(item.category)}</span>
-                ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
-              </div>
+          <div class="card-names-block">
+            <!-- LARGE PROMINENT EN & KH NAMES -->
+            <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+            ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
+            <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
+            
+            <!-- Badges -->
+            <div class="card-badges">
+              <span class="badge badge-category">${catIcon} ${this.escapeHtml(item.category)}</span>
+              ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
             </div>
-            ${item.img_url ? `<img src="${item.img_url}" class="card-photo" alt="${this.escapeHtml(item.name_en)}" />` : ''}
           </div>
+
+          ${item.img_url ? `
+            <div class="card-photo-container">
+              <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+            </div>
+          ` : ''}
 
           ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
         </div>
