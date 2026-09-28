@@ -585,7 +585,7 @@ class App {
     this.btnEmptyGoAdd = document.getElementById('btnEmptyGoAdd');
 
     // Toast & Modals
-    this.toast = document.getElementById('toast');
+    this.toastContainer = document.getElementById('toastContainer');
     this.editModal = document.getElementById('editModal');
     this.modalBody = document.getElementById('modalBody');
     this.modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -1630,8 +1630,18 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         <!-- Main Card Content Surface -->
         <div class="swipe-card-content product-card">
           <div class="card-names-block">
-            <!-- LARGE PROMINENT EN & KH NAMES -->
-            <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+            <!-- Header with prominent EN Name and Minimalist Collapse Arrow -->
+            <div class="card-header-row">
+              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+              ${(item.img_url || item.description) ? `
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              ` : ''}
+            </div>
+
             ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
             <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
             
@@ -1642,13 +1652,17 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
             </div>
           </div>
 
-          ${item.img_url ? `
-            <div class="card-photo-container">
-              <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+          ${(item.img_url || item.description) ? `
+            <div class="card-collapsible-body">
+              ${item.img_url ? `
+                <div class="card-photo-container">
+                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                </div>
+              ` : ''}
+
+              ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
             </div>
           ` : ''}
-
-          ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
         </div>
       `;
 
@@ -1663,6 +1677,25 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         e.stopPropagation();
         this.handleDelete(item.id, item.name_en);
       });
+
+      // Toggle card collapse / expand via chevron button or clicking .card-names-block
+      const toggleCollapse = (e) => {
+        e.stopPropagation();
+        const cardEl = container.querySelector('.product-card');
+        if (cardEl && !cardEl.classList.contains('swiped-open')) {
+          cardEl.classList.toggle('is-collapsed');
+        }
+      };
+
+      const toggleBtn = container.querySelector('.btn-card-toggle');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleCollapse);
+      }
+
+      const namesBlock = container.querySelector('.card-names-block');
+      if (namesBlock && (item.img_url || item.description)) {
+        namesBlock.addEventListener('click', toggleCollapse);
+      }
 
       // Attach Swipe Gesture Handler
       this.initSwipeGesture(container);
@@ -2002,15 +2035,88 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   }
 
   // ------------------------------------------------------------------------
-  // Utilities
+  // Utilities & Toast Notifications
   // ------------------------------------------------------------------------
-  showToast(msg) {
-    this.toast.textContent = msg;
-    this.toast.classList.add('show');
-    clearTimeout(this.toastTimeout);
-    this.toastTimeout = setTimeout(() => {
-      this.toast.classList.remove('show');
-    }, 2800);
+  showToast(msg, type = 'auto', duration = 3200) {
+    if (!this.toastContainer) {
+      this.toastContainer = document.getElementById('toastContainer');
+      if (!this.toastContainer) return;
+    }
+
+    let toastType = type;
+    let icon = '';
+    let cleanMsg = String(msg || '').trim();
+
+    // Auto-detect type if 'auto'
+    if (toastType === 'auto') {
+      if (/^✅|успешно|сохранен|добавлен|обновлен/i.test(cleanMsg)) {
+        toastType = 'success';
+      } else if (/^⚠️|^❌|ошибка|не удалось|заполните/i.test(cleanMsg)) {
+        toastType = 'error';
+      } else if (/^ℹ️|^✨|^☀️|^🌙|распознано|найдено|выбран/i.test(cleanMsg)) {
+        toastType = 'info';
+      } else {
+        toastType = 'info';
+      }
+    }
+
+    // Extract leading emoji icon or set default icon based on toastType
+    const emojiMatch = cleanMsg.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Emoji_Presentation}|\p{Extended_Pictographic})/u);
+    if (emojiMatch) {
+      icon = emojiMatch[0];
+      cleanMsg = cleanMsg.slice(icon.length).trim();
+    } else {
+      if (toastType === 'success') icon = '✅';
+      else if (toastType === 'error') icon = '⚠️';
+      else if (toastType === 'warning') icon = '⚠️';
+      else icon = 'ℹ️';
+    }
+
+    // Cap active toasts to 3 max to avoid stacking over whole screen
+    const activeToasts = this.toastContainer.querySelectorAll('.toast-item:not(.toast-hiding)');
+    if (activeToasts.length >= 3) {
+      this.removeToast(activeToasts[0]);
+    }
+
+    // Create toast element
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast-item toast-${toastType}`;
+    toastEl.setAttribute('role', 'status');
+
+    toastEl.innerHTML = `
+      <span class="toast-icon">${icon}</span>
+      <span class="toast-text">${this.escapeHtml(cleanMsg)}</span>
+      <button type="button" class="toast-close-btn" title="Закрыть" aria-label="Закрыть">✕</button>
+    `;
+
+    const closeBtn = toastEl.querySelector('.toast-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.removeToast(toastEl);
+      });
+    }
+
+    const timer = setTimeout(() => {
+      this.removeToast(toastEl);
+    }, duration);
+    toastEl._toastTimer = timer;
+
+    this.toastContainer.appendChild(toastEl);
+  }
+
+  removeToast(toastEl) {
+    if (!toastEl || toastEl.classList.contains('toast-hiding')) return;
+    if (toastEl._toastTimer) {
+      clearTimeout(toastEl._toastTimer);
+      toastEl._toastTimer = null;
+    }
+    toastEl.classList.add('toast-hiding');
+    setTimeout(() => {
+      if (toastEl.parentNode) {
+        toastEl.parentNode.removeChild(toastEl);
+      }
+    }, 240);
   }
 
   escapeHtml(str) {
