@@ -508,6 +508,15 @@ class App {
     this.renderCategoryFilterPills();
     this.loadData();
     this.initServiceWorker();
+    this.initSplashScreen();
+  }
+
+  initSplashScreen() {
+    const splash = document.getElementById('splashScreen');
+    if (!splash) return;
+    setTimeout(() => {
+      splash.classList.add('hide');
+    }, 600);
   }
 
   initElements() {
