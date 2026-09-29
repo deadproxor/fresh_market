@@ -214,11 +214,61 @@ class LocalStorageAdapter {
 }
 
 /**
+ * Cloudinary Photo Storage Service
+ */
+class CloudinaryService {
+  static getConfig() {
+    return {
+      cloudName: (localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
+      uploadPreset: (localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
+      folder: (localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim()
+    };
+  }
+
+  static isConfigured() {
+    const { cloudName, uploadPreset } = this.getConfig();
+    return Boolean(cloudName && uploadPreset);
+  }
+
+  static async upload(fileOrBase64) {
+    if (!this.isConfigured() || !fileOrBase64) {
+      return fileOrBase64;
+    }
+
+    // If it's already a hosted URL, return as is
+    if (typeof fileOrBase64 === 'string' && (fileOrBase64.startsWith('http://') || fileOrBase64.startsWith('https://'))) {
+      return fileOrBase64;
+    }
+
+    const { cloudName, uploadPreset, folder } = this.getConfig();
+    const formData = new FormData();
+    formData.append('file', fileOrBase64);
+    formData.append('upload_preset', uploadPreset);
+    if (folder) {
+      formData.append('folder', folder);
+    }
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Ошибка Cloudinary: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.secure_url || data.url;
+  }
+}
+
+/**
  * Supabase Storage Adapter (Pure fetch wrapper)
  */
 class SupabaseAdapter {
   constructor(supabaseUrl, supabaseAnonKey) {
-    this.url = supabaseUrl ? supabaseUrl.replace(/\/$/, '') : '';
+    this.url = supabaseUrl ? supabaseUrl.replace(/\/+$/, '') : '';
     this.key = supabaseAnonKey || '';
   }
 
@@ -232,54 +282,94 @@ class SupabaseAdapter {
   }
 
   async getAll() {
-    if (!this.url || !this.key) throw new Error('Supabase credentials not configured');
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
     const res = await fetch(`${this.url}/rest/v1/products?select=*&order=created_at.desc`, {
       headers: this.headers
     });
-    if (!res.ok) throw new Error(`Supabase error: ${res.statusText}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+    }
     return await res.json();
   }
 
+  async getById(id) {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}&select=*`, {
+      headers: this.headers
+    });
+    if (!res.ok) throw new Error(`Supabase error: ${res.statusText}`);
+    const data = await res.json();
+    return data[0] || null;
+  }
+
   async create(product) {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
     const res = await fetch(`${this.url}/rest/v1/products`, {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify(product)
     });
-    if (!res.ok) throw new Error(`Supabase error: ${res.statusText}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+    }
     const data = await res.json();
     return data[0];
   }
 
   async update(id, updatedFields) {
-    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${id}`, {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: this.headers,
       body: JSON.stringify(updatedFields)
     });
-    if (!res.ok) throw new Error(`Supabase error: ${res.statusText}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+    }
     const data = await res.json();
     return data[0];
   }
 
   async delete(id) {
-    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${id}`, {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: this.headers
     });
-    if (!res.ok) throw new Error(`Supabase error: ${res.statusText}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+    }
+  }
+
+  async testConnection() {
+    if (!this.url || !this.key) throw new Error('Введите URL и Anon Key');
+    const res = await fetch(`${this.url}/rest/v1/products?select=id&limit=1`, {
+      headers: this.headers
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Ошибка доступа (${res.status}): проверьте URL, ключ и создание таблицы products.`);
+    }
+    return true;
   }
 }
 
-const STORAGE_CONFIG = {
-  provider: 'local',
-  supabaseUrl: '',
-  supabaseKey: ''
-};
+function getActiveStorage() {
+  const provider = localStorage.getItem('freshmarket_storage_provider') || 'local';
+  const sbUrl = localStorage.getItem('freshmarket_supabase_url');
+  const sbKey = localStorage.getItem('freshmarket_supabase_key');
 
-const storage = STORAGE_CONFIG.provider === 'supabase'
-  ? new SupabaseAdapter(STORAGE_CONFIG.supabaseUrl, STORAGE_CONFIG.supabaseKey)
-  : new LocalStorageAdapter();
+  if (provider === 'supabase' && sbUrl && sbKey) {
+    return new SupabaseAdapter(sbUrl, sbKey);
+  }
+  return new LocalStorageAdapter();
+}
+
+let storage = getActiveStorage();
 
 // ==========================================================================
 // 3. ONLINE & LOCAL LOOKUP SERVICE (RU <-> EN <-> KH + Transcription)
@@ -527,6 +617,7 @@ class App {
 
     // Navigation
     this.navBtnAdd = document.getElementById('navBtnAdd');
+    this.navBtnFabAdd = document.getElementById('navBtnFabAdd');
     this.navBtnList = document.getElementById('navBtnList');
     this.viewAdd = document.getElementById('viewAdd');
     this.viewList = document.getElementById('viewList');
@@ -536,7 +627,6 @@ class App {
     this.statDictCount = document.getElementById('statDictCount');
     this.statProductsCount = document.getElementById('statProductsCount');
     this.categoryStatsGrid = document.getElementById('categoryStatsGrid');
-    this.bigActionFrame = document.getElementById('bigActionFrame');
     this.recentList = document.getElementById('recentList');
     this.btnViewAllRecent = document.getElementById('btnViewAllRecent');
 
@@ -582,6 +672,26 @@ class App {
     this.customModelWrap = document.getElementById('customModelWrap');
     this.settingCustomModel = document.getElementById('settingCustomModel');
 
+    this.providerLocal = document.getElementById('providerLocal');
+    this.providerSupabase = document.getElementById('providerSupabase');
+    this.supabaseFieldsWrap = document.getElementById('supabaseFieldsWrap');
+    this.settingSupabaseUrl = document.getElementById('settingSupabaseUrl');
+    this.settingSupabaseKey = document.getElementById('settingSupabaseKey');
+    this.btnTestSupabase = document.getElementById('btnTestSupabase');
+    this.btnMigrateToSupabase = document.getElementById('btnMigrateToSupabase');
+
+    this.settingCloudinaryName = document.getElementById('settingCloudinaryName');
+    this.settingCloudinaryPreset = document.getElementById('settingCloudinaryPreset');
+    this.settingCloudinaryFolder = document.getElementById('settingCloudinaryFolder');
+    this.btnTestCloudinary = document.getElementById('btnTestCloudinary');
+
+    // Settings Backup & Import/Export Elements
+    this.btnExportSettings = document.getElementById('btnExportSettings');
+    this.btnImportSettings = document.getElementById('btnImportSettings');
+    this.inputImportSettingsFile = document.getElementById('inputImportSettingsFile');
+    this.btnCopySettingsClipboard = document.getElementById('btnCopySettingsClipboard');
+    this.btnPasteSettingsClipboard = document.getElementById('btnPasteSettingsClipboard');
+
     // List Screen Elements
     this.searchInput = document.getElementById('searchInput');
     this.searchClearBtn = document.getElementById('searchClearBtn');
@@ -615,6 +725,9 @@ class App {
     // View switching
     this.navBtnAdd.addEventListener('click', () => this.switchView('viewAdd'));
     this.navBtnList.addEventListener('click', () => this.switchView('viewList'));
+    if (this.navBtnFabAdd) {
+      this.navBtnFabAdd.addEventListener('click', () => this.openAddModal());
+    }
     this.btnEmptyGoAdd.addEventListener('click', () => this.openAddModal());
     this.btnViewAllRecent.addEventListener('click', () => this.switchView('viewList'));
 
@@ -625,15 +738,6 @@ class App {
       if (e.target === this.deleteModal) this.closeDeleteModal();
     });
     this.btnConfirmDelete.addEventListener('click', () => this.executeDelete());
-
-    // Open Add Modal ONLY when big button is clicked
-    this.bigActionFrame.addEventListener('click', () => this.openAddModal());
-    this.bigActionFrame.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this.openAddModal();
-      }
-    });
 
     // Close Add Modal
     this.addModalCloseBtn.addEventListener('click', () => this.closeAddModal());
@@ -658,6 +762,30 @@ class App {
     }
     if (this.settingModel) {
       this.settingModel.addEventListener('change', () => this.toggleCustomModelInput());
+    }
+    if (this.btnTestSupabase) {
+      this.btnTestSupabase.addEventListener('click', () => this.testSupabaseConnection());
+    }
+    if (this.btnMigrateToSupabase) {
+      this.btnMigrateToSupabase.addEventListener('click', () => this.migrateLocalToSupabase());
+    }
+    if (this.btnTestCloudinary) {
+      this.btnTestCloudinary.addEventListener('click', () => this.testCloudinaryConnection());
+    }
+    if (this.btnExportSettings) {
+      this.btnExportSettings.addEventListener('click', () => this.exportSettings());
+    }
+    if (this.btnImportSettings) {
+      this.btnImportSettings.addEventListener('click', () => this.inputImportSettingsFile?.click());
+    }
+    if (this.inputImportSettingsFile) {
+      this.inputImportSettingsFile.addEventListener('change', (e) => this.handleSettingsFileImport(e));
+    }
+    if (this.btnCopySettingsClipboard) {
+      this.btnCopySettingsClipboard.addEventListener('click', () => this.copySettingsToClipboard());
+    }
+    if (this.btnPasteSettingsClipboard) {
+      this.btnPasteSettingsClipboard.addEventListener('click', () => this.pasteSettingsFromClipboard());
     }
     if (this.settingsForm) {
       this.settingsForm.addEventListener('submit', (e) => {
@@ -913,18 +1041,15 @@ class App {
   }
 
   // ------------------------------------------------------------------------
-  // Settings (Gemini API Key & Model Configuration)
+  // Settings (Gemini API, Supabase, Cloudinary)
   // ------------------------------------------------------------------------
   openSettingsModal(isTriggeredByPhoto = false) {
     if (!this.settingsModal) {
       this.settingsModal = document.getElementById('settingsModal');
-      this.settingApiKey = document.getElementById('settingApiKey');
-      this.settingModel = document.getElementById('settingModel');
-      this.settingCustomModel = document.getElementById('settingCustomModel');
-      this.customModelWrap = document.getElementById('customModelWrap');
     }
     if (!this.settingsModal) return;
 
+    // AI
     const savedKey = localStorage.getItem('freshmarket_gemini_api_key') || '';
     const savedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
     const customModel = localStorage.getItem('freshmarket_gemini_custom_model') || '';
@@ -937,6 +1062,25 @@ class App {
       this.settingCustomModel.value = customModel || (savedModel === 'custom' ? '' : savedModel);
     }
     this.toggleCustomModelInput();
+
+    // Supabase
+    const provider = localStorage.getItem('freshmarket_storage_provider') || 'local';
+    const supabaseUrl = localStorage.getItem('freshmarket_supabase_url') || '';
+    const supabaseKey = localStorage.getItem('freshmarket_supabase_key') || '';
+
+    if (this.providerLocal) this.providerLocal.checked = (provider === 'local');
+    if (this.providerSupabase) this.providerSupabase.checked = (provider === 'supabase');
+    if (this.settingSupabaseUrl) this.settingSupabaseUrl.value = supabaseUrl;
+    if (this.settingSupabaseKey) this.settingSupabaseKey.value = supabaseKey;
+
+    // Cloudinary
+    const cloudName = localStorage.getItem('freshmarket_cloudinary_cloud_name') || '';
+    const preset = localStorage.getItem('freshmarket_cloudinary_preset') || '';
+    const folder = localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket';
+
+    if (this.settingCloudinaryName) this.settingCloudinaryName.value = cloudName;
+    if (this.settingCloudinaryPreset) this.settingCloudinaryPreset.value = preset;
+    if (this.settingCloudinaryFolder) this.settingCloudinaryFolder.value = folder;
 
     this.settingsModal.style.display = 'flex';
 
@@ -960,29 +1104,421 @@ class App {
     }
   }
 
-  saveSettings() {
-    const apiKey = this.settingApiKey.value.trim();
-    if (!apiKey) {
-      this.showToast('⚠️ Введите валидный API Key');
-      return;
-    }
+  async saveSettings() {
+    // 1. AI Settings
+    const apiKey = this.settingApiKey ? this.settingApiKey.value.trim() : '';
+    const model = this.settingModel ? this.settingModel.value : 'gemini-2.5-flash';
+    const customModel = this.settingCustomModel ? this.settingCustomModel.value.trim() : '';
 
-    const model = this.settingModel.value;
-    const customModel = this.settingCustomModel.value.trim();
-
-    localStorage.setItem('freshmarket_gemini_api_key', apiKey);
+    if (apiKey) localStorage.setItem('freshmarket_gemini_api_key', apiKey);
     localStorage.setItem('freshmarket_gemini_model', model);
     if (model === 'custom' && customModel) {
       localStorage.setItem('freshmarket_gemini_custom_model', customModel);
     }
 
-    this.closeSettingsModal();
-    this.showToast('✅ Настройки AI сохранены');
+    // 2. Supabase Settings
+    const provider = this.providerSupabase && this.providerSupabase.checked ? 'supabase' : 'local';
+    const supabaseUrl = this.settingSupabaseUrl ? this.settingSupabaseUrl.value.trim() : '';
+    const supabaseKey = this.settingSupabaseKey ? this.settingSupabaseKey.value.trim() : '';
 
-    // If there is an active image in preview without filled names, trigger analysis
-    if (this.currentImageBase64 && !this.fieldNameEn.value && !this.fieldNameRu.value) {
-      this.analyzeImageWithGemini(this.currentImageBase64);
+    if (provider === 'supabase' && (!supabaseUrl || !supabaseKey)) {
+      this.showToast('⚠️ Для режима Supabase заполните URL и Anon Key');
+      return;
     }
+
+    localStorage.setItem('freshmarket_storage_provider', provider);
+    localStorage.setItem('freshmarket_supabase_url', supabaseUrl);
+    localStorage.setItem('freshmarket_supabase_key', supabaseKey);
+
+    // 3. Cloudinary Settings
+    const cloudName = this.settingCloudinaryName ? this.settingCloudinaryName.value.trim() : '';
+    const preset = this.settingCloudinaryPreset ? this.settingCloudinaryPreset.value.trim() : '';
+    const folder = this.settingCloudinaryFolder ? this.settingCloudinaryFolder.value.trim() : 'freshmarket';
+
+    localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
+    localStorage.setItem('freshmarket_cloudinary_preset', preset);
+    localStorage.setItem('freshmarket_cloudinary_folder', folder || 'freshmarket');
+
+    // Re-initialize storage adapter
+    storage = getActiveStorage();
+
+    this.closeSettingsModal();
+    this.showToast('✅ Настройки сохранены');
+
+    // Reload catalog with active storage provider
+    await this.loadData();
+  }
+
+  setSupabaseStatus(type, message) {
+    const box = document.getElementById('supabaseStatusBox');
+    const dot = document.getElementById('supabaseStatusDot');
+    const text = document.getElementById('supabaseStatusText');
+    if (!box || !dot || !text) return;
+
+    box.className = `settings-status-box status-${type}`;
+    dot.className = `status-dot status-${type}`;
+    text.textContent = message;
+  }
+
+  setCloudinaryStatus(type, message) {
+    const box = document.getElementById('cloudinaryStatusBox');
+    const dot = document.getElementById('cloudinaryStatusDot');
+    const text = document.getElementById('cloudinaryStatusText');
+    if (!box || !dot || !text) return;
+
+    box.className = `settings-status-box status-${type}`;
+    dot.className = `status-dot status-${type}`;
+    text.textContent = message;
+  }
+
+  async testSupabaseConnection() {
+    const supabaseUrl = (this.settingSupabaseUrl?.value || localStorage.getItem('freshmarket_supabase_url') || '').trim();
+    const supabaseKey = (this.settingSupabaseKey?.value || localStorage.getItem('freshmarket_supabase_key') || '').trim();
+
+    if (!supabaseUrl || !supabaseKey) {
+      this.setSupabaseStatus('error', 'Ошибка: заполните поля URL и Anon Key выше');
+      this.showToast('⚠️ Введите Supabase URL и Anon Key');
+      return;
+    }
+
+    const btn = document.getElementById('btnTestSupabase');
+    if (btn) btn.classList.add('loading');
+    this.setSupabaseStatus('loading', 'Проверка соединения с базой данных Supabase...');
+
+    try {
+      this.showToast('⏳ Проверяем подключение к Supabase...');
+      const sb = new SupabaseAdapter(supabaseUrl, supabaseKey);
+      await sb.testConnection();
+      this.setSupabaseStatus('success', 'Подключение успешно! Таблица "products" доступна.');
+      this.showToast('✅ Успешное подключение к таблице products в Supabase!');
+    } catch (e) {
+      console.error(e);
+      this.setSupabaseStatus('error', `Ошибка: ${e.message}`);
+      this.showToast(`❌ Supabase: ${e.message}`);
+    } finally {
+      if (btn) btn.classList.remove('loading');
+    }
+  }
+
+  async migrateLocalToSupabase() {
+    const supabaseUrl = (this.settingSupabaseUrl?.value || localStorage.getItem('freshmarket_supabase_url') || '').trim();
+    const supabaseKey = (this.settingSupabaseKey?.value || localStorage.getItem('freshmarket_supabase_key') || '').trim();
+
+    if (!supabaseUrl || !supabaseKey) {
+      this.setSupabaseStatus('error', 'Ошибка: укажите URL и Anon Key перед миграцией');
+      this.showToast('⚠️ Укажите URL и Anon Key Supabase');
+      return;
+    }
+
+    const sb = new SupabaseAdapter(supabaseUrl, supabaseKey);
+    const btn = document.getElementById('btnMigrateToSupabase');
+    if (btn) btn.classList.add('loading');
+    this.setSupabaseStatus('loading', 'Миграция локальных продуктов в Supabase...');
+
+    try {
+      this.showToast('⏳ Проверяем базу Supabase...');
+      const existingInSupabase = await sb.getAll();
+      const existingIds = new Set(existingInSupabase.map(p => p.id));
+      const existingNames = new Set(existingInSupabase.map(p => (p.name_en || '').toLowerCase().trim()));
+
+      const localProducts = await new LocalStorageAdapter().getAll();
+      if (!localProducts || localProducts.length === 0) {
+        this.setSupabaseStatus('idle', 'В локальном хранилище нет продуктов для переноса');
+        this.showToast('ℹ️ В локальном хранилище нет продуктов для переноса');
+        return;
+      }
+
+      let insertedCount = 0;
+      let skippedCount = 0;
+
+      for (const prod of localProducts) {
+        const nameNorm = (prod.name_en || '').toLowerCase().trim();
+        // Check for duplicates by ID or English name
+        if (existingIds.has(prod.id) || existingNames.has(nameNorm)) {
+          skippedCount++;
+          continue;
+        }
+
+        let finalImgUrl = prod.img_url || '';
+        // If image is base64 and Cloudinary is configured, upload to Cloudinary
+        if (finalImgUrl && finalImgUrl.startsWith('data:') && CloudinaryService.isConfigured()) {
+          try {
+            finalImgUrl = await CloudinaryService.upload(finalImgUrl);
+          } catch (imgErr) {
+            console.warn('Cloudinary upload during migration failed, keeping base64:', imgErr);
+          }
+        }
+
+        await sb.create({
+          id: prod.id,
+          category: prod.category || 'Овощи',
+          name_en: prod.name_en || '',
+          name_ru: prod.name_ru || '',
+          name_kh: prod.name_kh || '',
+          form: prod.form || 'Целый',
+          description: prod.description || '',
+          img_url: finalImgUrl,
+          created_at: prod.created_at || new Date().toISOString()
+        });
+
+        insertedCount++;
+      }
+
+      this.setSupabaseStatus('success', `Миграция завершена: ${insertedCount} добавлено, ${skippedCount} пропущено (дубликаты).`);
+      this.showToast(`✅ Перенесено: ${insertedCount} продуктов (${skippedCount} пропущено как дубликаты)`);
+
+      if (localStorage.getItem('freshmarket_storage_provider') === 'supabase') {
+        await this.loadData();
+      }
+    } catch (err) {
+      console.error('Migration error:', err);
+      this.setSupabaseStatus('error', `Ошибка миграции: ${err.message}`);
+      this.showToast(`❌ Ошибка миграции: ${err.message}`);
+    } finally {
+      if (btn) btn.classList.remove('loading');
+    }
+  }
+
+  async testCloudinaryConnection() {
+    const cloudName = (this.settingCloudinaryName?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim();
+    const uploadPreset = (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim();
+    const folder = (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim();
+
+    if (!cloudName || !uploadPreset) {
+      this.setCloudinaryStatus('error', 'Ошибка: заполните Cloud Name и Upload Preset выше');
+      this.showToast('⚠️ Введите Cloud Name и Upload Preset');
+      return;
+    }
+
+    const btn = document.getElementById('btnTestCloudinary');
+    if (btn) btn.classList.add('loading');
+    this.setCloudinaryStatus('loading', 'Тестирование загрузки изображения в Cloudinary...');
+
+    try {
+      this.showToast('⏳ Тестируем загрузку в Cloudinary...');
+      const testPixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+      const formData = new FormData();
+      formData.append('file', testPixel);
+      formData.append('upload_preset', uploadPreset);
+      if (folder) formData.append('folder', folder);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let detail = err.error?.message || `Статус ${res.status} ${res.statusText}`;
+        if (detail.includes('Signing') || detail.includes('unsigned')) {
+          detail += ' (Убедитесь, что пресет переключен в Signing Mode: Unsigned)';
+        }
+        throw new Error(detail);
+      }
+
+      this.setCloudinaryStatus('success', `Cloudinary настроен! Тестовое изображение загружено в папку "${folder}".`);
+      this.showToast('✅ Cloudinary настроен корректно! Тест загрузки успешен.');
+    } catch (e) {
+      console.error(e);
+      this.setCloudinaryStatus('error', `Ошибка: ${e.message}`);
+      this.showToast(`❌ Ошибка Cloudinary: ${e.message}`);
+    } finally {
+      if (btn) btn.classList.remove('loading');
+    }
+  }
+
+  // ------------------------------------------------------------------------
+  // Settings Backup: Export, Import, Clipboard Sync
+  // ------------------------------------------------------------------------
+  setBackupStatus(type, message) {
+    const box = document.getElementById('backupStatusBox');
+    const dot = document.getElementById('backupStatusDot');
+    const text = document.getElementById('backupStatusText');
+    if (!box || !dot || !text) return;
+
+    box.style.display = 'flex';
+    box.className = `settings-status-box status-${type}`;
+    dot.className = `status-dot status-${type}`;
+    text.textContent = message;
+  }
+
+  collectSettingsPayload() {
+    return {
+      app: 'FreshMarket',
+      version: '1.2.3',
+      exportedAt: new Date().toISOString(),
+      settings: {
+        gemini: {
+          apiKey: (this.settingApiKey?.value || localStorage.getItem('freshmarket_gemini_api_key') || '').trim(),
+          model: this.settingModel?.value || localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash',
+          customModel: (this.settingCustomModel?.value || localStorage.getItem('freshmarket_gemini_custom_model') || '').trim()
+        },
+        supabase: {
+          provider: (this.providerSupabase && this.providerSupabase.checked ? 'supabase' : (localStorage.getItem('freshmarket_storage_provider') || 'local')),
+          url: (this.settingSupabaseUrl?.value || localStorage.getItem('freshmarket_supabase_url') || '').trim(),
+          anonKey: (this.settingSupabaseKey?.value || localStorage.getItem('freshmarket_supabase_key') || '').trim()
+        },
+        cloudinary: {
+          cloudName: (this.settingCloudinaryName?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
+          preset: (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
+          folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim()
+        },
+        theme: localStorage.getItem('freshmarket_theme') || 'dark'
+      }
+    };
+  }
+
+  exportSettings() {
+    try {
+      const payload = this.collectSettingsPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `freshmarket-settings-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      this.setBackupStatus('success', 'Настройки успешно экспортированы в файл');
+      this.showToast('Настройки экспортированы в файл');
+    } catch (err) {
+      console.error(err);
+      this.setBackupStatus('error', 'Ошибка экспорта: ' + err.message);
+      this.showToast('Ошибка экспорта: ' + err.message);
+    }
+  }
+
+  async copySettingsToClipboard() {
+    try {
+      const payload = this.collectSettingsPayload();
+      const jsonStr = JSON.stringify(payload, null, 2);
+      await navigator.clipboard.writeText(jsonStr);
+      this.setBackupStatus('success', 'Конфигурация скопирована в буфер обмена');
+      this.showToast('Настройки скопированы в буфер обмена');
+    } catch (err) {
+      console.error(err);
+      this.setBackupStatus('error', 'Ошибка копирования: ' + err.message);
+      this.showToast('Не удалось скопировать в буфер');
+    }
+  }
+
+  async pasteSettingsFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim()) {
+        this.setBackupStatus('error', 'Буфер обмена пуст');
+        this.showToast('Буфер обмена пуст');
+        return;
+      }
+      const parsed = JSON.parse(text);
+      await this.applyImportedSettings(parsed);
+    } catch (err) {
+      console.error(err);
+      this.setBackupStatus('error', 'Ошибка импорта из буфера: ' + err.message);
+      this.showToast('Неверный формат настроек в буфере');
+    }
+  }
+
+  handleSettingsFileImport(e) {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result;
+        const parsed = JSON.parse(text);
+        await this.applyImportedSettings(parsed);
+      } catch (err) {
+        console.error(err);
+        this.setBackupStatus('error', 'Ошибка чтения файла: ' + err.message);
+        this.showToast('Ошибка чтения файла настроек');
+      } finally {
+        if (this.inputImportSettingsFile) {
+          this.inputImportSettingsFile.value = '';
+        }
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async applyImportedSettings(parsed) {
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Файл не содержит корректных настроек JSON');
+    }
+    const s = parsed.settings || parsed;
+
+    // 1. Gemini
+    if (s.gemini && typeof s.gemini === 'object') {
+      if (s.gemini.apiKey !== undefined) {
+        localStorage.setItem('freshmarket_gemini_api_key', s.gemini.apiKey || '');
+        if (this.settingApiKey) this.settingApiKey.value = s.gemini.apiKey || '';
+      }
+      if (s.gemini.model) {
+        localStorage.setItem('freshmarket_gemini_model', s.gemini.model);
+        if (this.settingModel) {
+          this.settingModel.value = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(s.gemini.model) ? s.gemini.model : 'custom';
+        }
+      }
+      if (s.gemini.customModel !== undefined) {
+        localStorage.setItem('freshmarket_gemini_custom_model', s.gemini.customModel || '');
+        if (this.settingCustomModel) this.settingCustomModel.value = s.gemini.customModel || '';
+      }
+      this.toggleCustomModelInput();
+    }
+
+    // 2. Supabase
+    if (s.supabase && typeof s.supabase === 'object') {
+      if (s.supabase.provider) {
+        localStorage.setItem('freshmarket_storage_provider', s.supabase.provider);
+        if (this.providerLocal) this.providerLocal.checked = (s.supabase.provider === 'local');
+        if (this.providerSupabase) this.providerSupabase.checked = (s.supabase.provider === 'supabase');
+      }
+      if (s.supabase.url !== undefined) {
+        localStorage.setItem('freshmarket_supabase_url', s.supabase.url || '');
+        if (this.settingSupabaseUrl) this.settingSupabaseUrl.value = s.supabase.url || '';
+      }
+      if (s.supabase.anonKey !== undefined) {
+        localStorage.setItem('freshmarket_supabase_key', s.supabase.anonKey || '');
+        if (this.settingSupabaseKey) this.settingSupabaseKey.value = s.supabase.anonKey || '';
+      }
+    }
+
+    // 3. Cloudinary
+    if (s.cloudinary && typeof s.cloudinary === 'object') {
+      if (s.cloudinary.cloudName !== undefined) {
+        localStorage.setItem('freshmarket_cloudinary_cloud_name', s.cloudinary.cloudName || '');
+        if (this.settingCloudinaryName) this.settingCloudinaryName.value = s.cloudinary.cloudName || '';
+      }
+      if (s.cloudinary.preset !== undefined) {
+        localStorage.setItem('freshmarket_cloudinary_preset', s.cloudinary.preset || '');
+        if (this.settingCloudinaryPreset) this.settingCloudinaryPreset.value = s.cloudinary.preset || '';
+      }
+      if (s.cloudinary.folder !== undefined) {
+        const folder = s.cloudinary.folder || 'freshmarket';
+        localStorage.setItem('freshmarket_cloudinary_folder', folder);
+        if (this.settingCloudinaryFolder) this.settingCloudinaryFolder.value = folder;
+      }
+    }
+
+    // 4. Theme
+    if (s.theme && ['light', 'dark'].includes(s.theme)) {
+      this.setTheme(s.theme);
+    }
+
+    // Re-initialize storage adapter instance
+    storage = getActiveStorage();
+
+    this.setBackupStatus('success', 'Настройки успешно применены');
+    this.showToast('Настройки успешно применены');
+
+    // Reload catalog with newly applied storage credentials
+    await this.loadData();
   }
 
   // ------------------------------------------------------------------------
@@ -1481,7 +2017,6 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     const category = this.fieldCategory.value || this.selectedCategory;
     const form = this.fieldForm.value || this.selectedForm;
     const description = this.fieldDescription.value.trim();
-    const imgUrl = this.currentImageBase64;
 
     if (!nameEn) {
       this.showToast('Заполните поле Name (EN)');
@@ -1493,6 +2028,17 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.showToast('Заполните поле Название (RU)');
       this.fieldNameRu.focus();
       return;
+    }
+
+    let imgUrl = this.currentImageBase64;
+    if (imgUrl && imgUrl.startsWith('data:') && CloudinaryService.isConfigured()) {
+      try {
+        this.showToast('☁️ Загружаем фото в Cloudinary...');
+        imgUrl = await CloudinaryService.upload(imgUrl);
+      } catch (err) {
+        console.warn('Cloudinary upload failed, fallback to local base64:', err);
+        this.showToast('⚠️ Не удалось загрузить в Cloudinary, сохранено локально');
+      }
     }
 
     const newProduct = {
@@ -2096,24 +2642,40 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     const editForm = document.getElementById('editForm');
     editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const nameEn = document.getElementById('editNameEn').value.trim();
+      const nameRu = document.getElementById('editNameRu').value.trim();
+
+      if (!nameEn) {
+        this.showToast('Заполните поле Name (EN)');
+        return;
+      }
+      if (!nameRu) {
+        this.showToast('Заполните поле Название (RU)');
+        return;
+      }
+
+      let finalImgUrl = this.editModalImageBase64;
+      if (finalImgUrl && finalImgUrl.startsWith('data:') && CloudinaryService.isConfigured()) {
+        try {
+          this.showToast('☁️ Загружаем фото в Cloudinary...');
+          finalImgUrl = await CloudinaryService.upload(finalImgUrl);
+          this.editModalImageBase64 = finalImgUrl;
+        } catch (err) {
+          console.warn('Cloudinary upload failed, keeping base64:', err);
+          this.showToast('⚠️ Не удалось загрузить в Cloudinary, сохранено локально');
+        }
+      }
+
       const updatedData = {
         category: document.getElementById('editCategory').value,
-        name_en: document.getElementById('editNameEn').value.trim(),
-        name_ru: document.getElementById('editNameRu').value.trim(),
+        name_en: nameEn,
+        name_ru: nameRu,
         name_kh: document.getElementById('editNameKh').value.trim(),
         form: document.getElementById('editFormSelect').value.trim(),
         description: document.getElementById('editDescription').value.trim(),
         img_url: this.editModalImageBase64
       };
-
-      if (!updatedData.name_en) {
-        this.showToast('Заполните поле Name (EN)');
-        return;
-      }
-      if (!updatedData.name_ru) {
-        this.showToast('Заполните поле Название (RU)');
-        return;
-      }
 
       try {
         await storage.update(item.id, updatedData);
@@ -2250,4 +2812,5 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 // Instantiate on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   window.app = new App();
+  window.showToast = (msg, type, duration) => window.app?.showToast(msg, type, duration);
 });
