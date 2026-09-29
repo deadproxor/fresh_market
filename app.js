@@ -1597,8 +1597,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       pill.className = 'category-stat-pill';
       pill.innerHTML = `
         <div class="cat-pill-left">
-          <span>${cat.icon}</span>
-          <span>${this.escapeHtml(cat.name)}</span>
+          <span class="cat-pill-icon">${cat.icon}</span>
+          <span class="cat-pill-name">${this.escapeHtml(cat.name)}</span>
         </div>
         <span class="cat-pill-count" style="${count === 0 ? 'opacity:0.4;' : ''}">${count}</span>
       `;

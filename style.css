@@ -321,12 +321,12 @@ body {
 
 /* Expanded Stats Widget */
 .stats-card-container {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 16px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -336,6 +336,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-around;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px 12px;
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-item {
@@ -367,7 +372,7 @@ body {
 
 /* Category Breakdown in Stats */
 .stats-breakdown-section {
-  padding-top: 4px;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -380,7 +385,7 @@ body {
 }
 
 .breakdown-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.1px;
@@ -393,21 +398,22 @@ body {
 
 .categories-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .category-stat-pill {
-  background: var(--bg-card-subtle);
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 8px 10px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .category-stat-pill:hover {
@@ -423,21 +429,33 @@ body {
 .cat-pill-left {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.cat-pill-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cat-pill-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cat-pill-count {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--accent-emerald-light);
   background: rgba(16, 185, 129, 0.14);
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: var(--radius-full);
 }
 
