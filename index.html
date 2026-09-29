@@ -24,7 +24,7 @@
     rel="stylesheet" />
 
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=v1.2.4" />
+  <link rel="stylesheet" href="style.css?v=v1.3.0" />
 </head>
 
 <body>
@@ -35,7 +35,7 @@
         <span class="splash-icon">🌱</span>
       </div>
       <div class="splash-title">FreshMarket</div>
-      <div class="splash-version">v1.2.0</div>
+      <div class="splash-version" id="splashVersion">v1.3.0</div>
     </div>
   </div>
 
@@ -545,6 +545,9 @@
                 onclick="window.app ? window.app.closeSettingsModal() : (document.getElementById('settingsModal').style.display='none')">Отмена</button>
               <button type="submit" class="btn btn-primary" id="btnSaveSettings">Сохранить настройки</button>
             </div>
+            <div class="settings-version-footer">
+              FreshMarket <span id="settingsAppVersion">v1.3.0</span>
+            </div>
           </form>
         </div>
       </div>
@@ -555,7 +558,7 @@
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Main JavaScript App -->
-  <script src="app.js?v=v1.2.4"></script>
+  <script src="app.js?v=v1.3.0"></script>
 </body>
 
 </html>

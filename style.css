@@ -2042,3 +2042,12 @@ body {
     transform: scale(1.15);
   }
 }
+
+.settings-version-footer {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 14px;
+  letter-spacing: 0.2px;
+}

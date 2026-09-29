@@ -7,6 +7,9 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
+const APP_VERSION = '1.3.0';
+window.APP_VERSION = APP_VERSION;
+
 const CATEGORIES = [
   { id: 'vegetables', name: 'Овощи', icon: '🥦' },
   { id: 'roots_tubers', name: 'Корнеплоды', icon: '🥔' },
@@ -598,7 +601,15 @@ class App {
     this.renderCategoryFilterPills();
     this.loadData();
     this.initServiceWorker();
+    this.renderAppVersion();
     this.initSplashScreen();
+  }
+
+  renderAppVersion() {
+    const splashEl = document.getElementById('splashVersion');
+    if (splashEl) splashEl.textContent = `v${APP_VERSION}`;
+    const settingsVerEl = document.getElementById('settingsAppVersion');
+    if (settingsVerEl) settingsVerEl.textContent = `v${APP_VERSION}`;
   }
 
   initSplashScreen() {
@@ -1346,7 +1357,7 @@ class App {
   collectSettingsPayload() {
     return {
       app: 'FreshMarket',
-      version: '1.2.3',
+      version: APP_VERSION,
       exportedAt: new Date().toISOString(),
       settings: {
         gemini: {
