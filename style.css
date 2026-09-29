@@ -428,10 +428,11 @@ body {
 
 .cat-pill-left {
   display: flex;
-  align-items: center;
+  align-items: left;
   gap: 10px;
   font-size: 14px;
   font-weight: 600;
+  flex-direction: column;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -439,7 +440,7 @@ body {
 }
 
 .cat-pill-icon {
-  font-size: 22px;
+  font-size: 32px;
   line-height: 1;
   flex-shrink: 0;
 }
