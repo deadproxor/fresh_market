@@ -2,3 +2,5 @@
 *.log
 *.code-workspace
 AGENTS.md
+bump.js
+bump.py
