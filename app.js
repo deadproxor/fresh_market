@@ -995,6 +995,10 @@ class App {
     this.applyTheme(nextTheme, true);
   }
 
+  setTheme(theme, showFeedback = false) {
+    this.applyTheme(theme, showFeedback);
+  }
+
   // ------------------------------------------------------------------------
   // Navigation & Modals
   // ------------------------------------------------------------------------
@@ -1653,7 +1657,7 @@ class App {
 
     // 4. Theme
     if (s.theme && ['light', 'dark'].includes(s.theme)) {
-      this.setTheme(s.theme);
+      this.applyTheme(s.theme, false);
     }
 
     // Re-initialize storage adapter instance
