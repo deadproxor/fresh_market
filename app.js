@@ -891,6 +891,16 @@ class App {
     if (this.btnPasteSettingsClipboard) {
       this.btnPasteSettingsClipboard.addEventListener('click', () => this.pasteSettingsFromClipboard());
     }
+    // Settings Accordion Sections
+    const settingsSections = document.querySelectorAll('.settings-section');
+    settingsSections.forEach((section) => {
+      const header = section.querySelector('.settings-section-header');
+      if (header) {
+        header.addEventListener('click', () => {
+          section.classList.toggle('is-collapsed');
+        });
+      }
+    });
     if (this.settingsForm) {
       this.settingsForm.addEventListener('submit', (e) => {
         e.preventDefault();

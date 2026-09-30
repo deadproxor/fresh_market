@@ -1093,6 +1093,8 @@ body {
 
 .modal-confirm-card {
   max-width: 420px;
+  height: auto;
+  max-height: 88dvh;
   border-radius: var(--radius-lg);
   margin: auto 16px;
 }
@@ -1799,7 +1801,9 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   width: 100%;
   max-width: 600px;
-  max-height: 92vh;
+  height: 88vh;
+  height: 88dvh;
+  max-height: 88dvh;
   overflow-y: auto;
   padding: 20px 18px calc(24px + var(--safe-bottom)) 18px;
   animation: slideUp 0.25s var(--ease-fast) forwards;
@@ -1853,16 +1857,29 @@ body {
   color: var(--text-primary);
 }
 
-/* Settings Modal Sections & Toggles */
+/* Settings Modal Sections & Toggles (Accordion) */
 .settings-section {
   background: var(--bg-card-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 14px;
-  margin-bottom: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 0;
+}
+
+.settings-section-header:hover .settings-section-title {
+  color: var(--accent-emerald-light);
 }
 
 .settings-section-title {
@@ -1872,8 +1889,33 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  transition: color 0.15s ease;
+}
+
+.settings-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  overflow: hidden;
+  transition: max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease, padding 0.24s ease, margin 0.24s ease;
+  max-height: 1200px;
+  opacity: 1;
+}
+
+.settings-section.is-collapsed .settings-section-body {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  margin-top: 0;
+  border-top-color: transparent;
+  pointer-events: none;
+}
+
+.settings-section.is-collapsed .btn-card-toggle .toggle-icon {
+  transform: rotate(-90deg);
 }
 
 .storage-provider-toggle {
