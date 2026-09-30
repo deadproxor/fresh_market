@@ -94,7 +94,7 @@
 
 ---
 
-## 🦐 6. Морепродукты и рыба (Seafood & Fish)
+## 🐟 6. Морепродукты и рыба (Seafood & Fish)
 * **Краб Кепский (голубой)** — *Kep Crab / Blue Swimming Crab* — **ក្តាម / ក្តាមសេះ (Kdam / Kdam Seh)**
 * **Креветки свежие** — *Fresh Shrimps / Prawns* — **បង្គាស្រស់ (Bangkaea Sros)**
 * **Кальмар свежий** — *Fresh Squid* — **មឹក (Meuk)**

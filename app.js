@@ -7,8 +7,22 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.3';
 window.APP_VERSION = APP_VERSION;
+
+// Safe UUID v4 generator for Supabase & LocalStorage
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch (e) {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 const CATEGORIES = [
   { id: 'vegetables', name: 'Овощи', icon: '🥦' },
@@ -16,7 +30,7 @@ const CATEGORIES = [
   { id: 'fruits', name: 'Фрукты', icon: '🥭' },
   { id: 'herbs', name: 'Зелень и травы', icon: '🌿' },
   { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚' },
-  { id: 'seafood', name: 'Морепродукты', icon: '🦐' },
+  { id: 'seafood', name: 'Морепродукты', icon: '🐟' },
   { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
   { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
   { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
@@ -224,13 +238,42 @@ class CloudinaryService {
     return {
       cloudName: (localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
       uploadPreset: (localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
-      folder: (localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim()
+      folder: (localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
+      apiKey: (localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
+      apiSecret: (localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim()
     };
   }
 
   static isConfigured() {
     const { cloudName, uploadPreset } = this.getConfig();
     return Boolean(cloudName && uploadPreset);
+  }
+
+  static extractPublicId(url) {
+    if (!url || typeof url !== 'string') return null;
+    if (!url.includes('cloudinary.com') && !url.includes('res.cloudinary')) return null;
+    try {
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      const uploadIdx = cleanUrl.indexOf('/upload/');
+      if (uploadIdx === -1) return null;
+      let afterUpload = cleanUrl.substring(uploadIdx + '/upload/'.length);
+      // Strip transformations and version prefix like v1234567890/
+      afterUpload = afterUpload.replace(/^(?:[a-z]_[^/]+,)*v\d+\//, '');
+      afterUpload = afterUpload.replace(/^(?:[a-z]{1,2}_[^/]+(?:\/|$))+/, '');
+      const dotIdx = afterUpload.lastIndexOf('.');
+      if (dotIdx !== -1) {
+        afterUpload = afterUpload.substring(0, dotIdx);
+      }
+      return decodeURIComponent(afterUpload).trim();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static async sha1(str) {
+    const buffer = new TextEncoder().encode(str);
+    const digest = await crypto.subtle.digest('SHA-1', buffer);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   static async upload(fileOrBase64) {
@@ -263,6 +306,46 @@ class CloudinaryService {
 
     const data = await res.json();
     return data.secure_url || data.url;
+  }
+
+  static async delete(urlOrPublicId) {
+    if (!urlOrPublicId) return;
+    const { cloudName, apiKey, apiSecret } = this.getConfig();
+    if (!cloudName || !apiKey || !apiSecret) {
+      console.warn('[CloudinaryService] API Key/Secret not set. Image not deleted from Cloudinary.');
+      return;
+    }
+
+    const publicId = urlOrPublicId.includes('http') ? this.extractPublicId(urlOrPublicId) : urlOrPublicId.trim();
+    if (!publicId) return;
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const cleanSecret = String(apiSecret).trim();
+    const cleanApiKey = String(apiKey).trim();
+    const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${cleanSecret}`;
+    const signature = await this.sha1(stringToSign);
+
+    const formData = new FormData();
+    formData.append('public_id', publicId);
+    formData.append('timestamp', String(timestamp));
+    formData.append('api_key', cleanApiKey);
+    formData.append('signature', signature);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/destroy`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.error?.message || `Ошибка удаления (${res.status})`;
+      console.warn('[CloudinaryService] Image destroy request failed:', msg);
+      throw new Error(msg);
+    }
+
+    const data = await res.json().catch(() => ({}));
+    console.log('[CloudinaryService] Image deleted successfully:', data);
+    return data;
   }
 }
 
@@ -308,17 +391,25 @@ class SupabaseAdapter {
 
   async create(product) {
     if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    const payload = {
+      id: product.id || generateUUID(),
+      created_at: product.created_at || new Date().toISOString(),
+      ...product
+    };
+    if (!payload.id) {
+      payload.id = generateUUID();
+    }
     const res = await fetch(`${this.url}/rest/v1/products`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify(product)
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+      throw new Error(err.message || err.hint || `Supabase error: ${res.statusText}`);
     }
     const data = await res.json();
-    return data[0];
+    return (data && data[0]) ? data[0] : payload;
   }
 
   async update(id, updatedFields) {
@@ -362,7 +453,7 @@ class SupabaseAdapter {
 }
 
 function getActiveStorage() {
-  const provider = localStorage.getItem('freshmarket_storage_provider') || 'local';
+  const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
   const sbUrl = localStorage.getItem('freshmarket_supabase_url');
   const sbKey = localStorage.getItem('freshmarket_supabase_key');
 
@@ -694,6 +785,8 @@ class App {
     this.settingCloudinaryName = document.getElementById('settingCloudinaryName');
     this.settingCloudinaryPreset = document.getElementById('settingCloudinaryPreset');
     this.settingCloudinaryFolder = document.getElementById('settingCloudinaryFolder');
+    this.settingCloudinaryApiKey = document.getElementById('settingCloudinaryApiKey');
+    this.settingCloudinaryApiSecret = document.getElementById('settingCloudinaryApiSecret');
     this.btnTestCloudinary = document.getElementById('btnTestCloudinary');
 
     // Settings Backup & Import/Export Elements
@@ -1075,7 +1168,7 @@ class App {
     this.toggleCustomModelInput();
 
     // Supabase
-    const provider = localStorage.getItem('freshmarket_storage_provider') || 'local';
+    const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
     const supabaseUrl = localStorage.getItem('freshmarket_supabase_url') || '';
     const supabaseKey = localStorage.getItem('freshmarket_supabase_key') || '';
 
@@ -1088,10 +1181,14 @@ class App {
     const cloudName = localStorage.getItem('freshmarket_cloudinary_cloud_name') || '';
     const preset = localStorage.getItem('freshmarket_cloudinary_preset') || '';
     const folder = localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket';
+    const cloudApiKey = localStorage.getItem('freshmarket_cloudinary_api_key') || '';
+    const cloudApiSecret = localStorage.getItem('freshmarket_cloudinary_api_secret') || '';
 
     if (this.settingCloudinaryName) this.settingCloudinaryName.value = cloudName;
     if (this.settingCloudinaryPreset) this.settingCloudinaryPreset.value = preset;
     if (this.settingCloudinaryFolder) this.settingCloudinaryFolder.value = folder;
+    if (this.settingCloudinaryApiKey) this.settingCloudinaryApiKey.value = cloudApiKey;
+    if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = cloudApiSecret;
 
     this.settingsModal.style.display = 'flex';
 
@@ -1145,10 +1242,14 @@ class App {
     const cloudName = this.settingCloudinaryName ? this.settingCloudinaryName.value.trim() : '';
     const preset = this.settingCloudinaryPreset ? this.settingCloudinaryPreset.value.trim() : '';
     const folder = this.settingCloudinaryFolder ? this.settingCloudinaryFolder.value.trim() : 'freshmarket';
+    const cloudApiKey = this.settingCloudinaryApiKey ? this.settingCloudinaryApiKey.value.trim() : '';
+    const cloudApiSecret = this.settingCloudinaryApiSecret ? this.settingCloudinaryApiSecret.value.trim() : '';
 
     localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
     localStorage.setItem('freshmarket_cloudinary_preset', preset);
     localStorage.setItem('freshmarket_cloudinary_folder', folder || 'freshmarket');
+    localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
+    localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
 
     // Re-initialize storage adapter
     storage = getActiveStorage();
@@ -1294,6 +1395,8 @@ class App {
     const cloudName = (this.settingCloudinaryName?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim();
     const uploadPreset = (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim();
     const folder = (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim();
+    const cloudApiKey = (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim();
+    const cloudApiSecret = (this.settingCloudinaryApiSecret?.value || localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim();
 
     if (!cloudName || !uploadPreset) {
       this.setCloudinaryStatus('error', 'Ошибка: заполните Cloud Name и Upload Preset выше');
@@ -1303,10 +1406,10 @@ class App {
 
     const btn = document.getElementById('btnTestCloudinary');
     if (btn) btn.classList.add('loading');
-    this.setCloudinaryStatus('loading', 'Тестирование загрузки изображения в Cloudinary...');
+    this.setCloudinaryStatus('loading', 'Тестирование загрузки тестового изображения...');
 
     try {
-      this.showToast('⏳ Тестируем загрузку в Cloudinary...');
+      this.showToast('⏳ Тестируем Cloudinary...');
       const testPixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
       const formData = new FormData();
@@ -1328,8 +1431,29 @@ class App {
         throw new Error(detail);
       }
 
-      this.setCloudinaryStatus('success', `Cloudinary настроен! Тестовое изображение загружено в папку "${folder}".`);
-      this.showToast('✅ Cloudinary настроен корректно! Тест загрузки успешен.');
+      const uploadResult = await res.json();
+      const testPublicId = uploadResult.public_id;
+
+      // If API Key and Secret are filled, test immediate deletion
+      if (cloudApiKey && cloudApiSecret) {
+        this.setCloudinaryStatus('loading', 'Загрузка успешна! Тестируем удаление через API Key/Secret...');
+        // Save temporarily to test delete
+        localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
+        localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
+        localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
+
+        try {
+          await CloudinaryService.delete(testPublicId);
+          this.setCloudinaryStatus('success', 'Cloudinary настроен полностью! Загрузка и удаление (API Key/Secret) работают корректно.');
+          this.showToast('✅ Cloudinary: загрузка и удаление работают!');
+        } catch (delErr) {
+          this.setCloudinaryStatus('error', `Загрузка успешна, но ошибка удаления: ${delErr.message}. Проверьте правильность API Key и API Secret.`);
+          this.showToast(`❌ Cloudinary: ${delErr.message}`);
+        }
+      } else {
+        this.setCloudinaryStatus('success', `Cloudinary настроен для загрузки в папку "${folder}". Для автоудаления фото укажите API Key и Secret.`);
+        this.showToast('✅ Cloudinary: тест загрузки успешен!');
+      }
     } catch (e) {
       console.error(e);
       this.setCloudinaryStatus('error', `Ошибка: ${e.message}`);
@@ -1366,14 +1490,16 @@ class App {
           customModel: (this.settingCustomModel?.value || localStorage.getItem('freshmarket_gemini_custom_model') || '').trim()
         },
         supabase: {
-          provider: (this.providerSupabase && this.providerSupabase.checked ? 'supabase' : (localStorage.getItem('freshmarket_storage_provider') || 'local')),
+          provider: (this.providerSupabase && this.providerSupabase.checked ? 'supabase' : (localStorage.getItem('freshmarket_storage_provider') || 'supabase')),
           url: (this.settingSupabaseUrl?.value || localStorage.getItem('freshmarket_supabase_url') || '').trim(),
           anonKey: (this.settingSupabaseKey?.value || localStorage.getItem('freshmarket_supabase_key') || '').trim()
         },
         cloudinary: {
           cloudName: (this.settingCloudinaryName?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
           preset: (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
-          folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim()
+          folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
+          apiKey: (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
+          apiSecret: (this.settingCloudinaryApiSecret?.value || localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim()
         },
         theme: localStorage.getItem('freshmarket_theme') || 'dark'
       }
@@ -1514,6 +1640,14 @@ class App {
         const folder = s.cloudinary.folder || 'freshmarket';
         localStorage.setItem('freshmarket_cloudinary_folder', folder);
         if (this.settingCloudinaryFolder) this.settingCloudinaryFolder.value = folder;
+      }
+      if (s.cloudinary.apiKey !== undefined) {
+        localStorage.setItem('freshmarket_cloudinary_api_key', s.cloudinary.apiKey || '');
+        if (this.settingCloudinaryApiKey) this.settingCloudinaryApiKey.value = s.cloudinary.apiKey || '';
+      }
+      if (s.cloudinary.apiSecret !== undefined) {
+        localStorage.setItem('freshmarket_cloudinary_api_secret', s.cloudinary.apiSecret || '');
+        if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = s.cloudinary.apiSecret || '';
       }
     }
 
@@ -2075,7 +2209,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.switchView('viewList');
     } catch (e) {
       console.error(e);
-      this.showToast('Не удалось сохранить продукт');
+      this.showToast(e.message ? `❌ Ошибка: ${e.message}` : 'Не удалось сохранить продукт');
     }
   }
 
@@ -2104,21 +2238,81 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     this.pendingDeleteName = '';
   }
 
+  async deleteProductEverywhere(id, product = null) {
+    const errors = [];
+
+    // 1. Always delete from LocalStorage
+    try {
+      const localAdapter = new LocalStorageAdapter();
+      await localAdapter.delete(id);
+
+      // If product object is known, also remove any local matching item by name_en (in case ID differed)
+      if (product && product.name_en) {
+        const localProds = await localAdapter.getAll();
+        const targetName = (product.name_en || '').toLowerCase().trim();
+        const cleaned = localProds.filter(p => p.id !== id && (p.name_en || '').toLowerCase().trim() !== targetName);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      }
+    } catch (localErr) {
+      console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
+      errors.push(localErr.message);
+    }
+
+    // 2. If Supabase credentials are configured, also delete from Supabase
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url');
+    const sbKey = localStorage.getItem('freshmarket_supabase_key');
+    if (sbUrl && sbKey) {
+      try {
+        const sb = new SupabaseAdapter(sbUrl, sbKey);
+        await sb.delete(id);
+
+        // Also delete by matching name_en if known (to remove duplicate cloud records)
+        if (product && product.name_en) {
+          const encodedName = encodeURIComponent(product.name_en.trim());
+          await fetch(`${sb.url}/rest/v1/products?name_en=eq.${encodedName}`, {
+            method: 'DELETE',
+            headers: sb.headers
+          }).catch(() => {});
+        }
+      } catch (sbErr) {
+        console.warn('[FreshMarket] Error deleting from Supabase:', sbErr);
+        if (localStorage.getItem('freshmarket_storage_provider') === 'supabase') {
+          errors.push(sbErr.message);
+        }
+      }
+    }
+
+    // 3. If product has an image hosted on Cloudinary, delete it from Cloudinary
+    if (product && product.img_url && (product.img_url.includes('cloudinary.com') || product.img_url.includes('res.cloudinary'))) {
+      try {
+        await CloudinaryService.delete(product.img_url);
+      } catch (cloudErr) {
+        console.warn('[FreshMarket] Error deleting image from Cloudinary:', cloudErr);
+      }
+    }
+
+    if (errors.length > 0 && localStorage.getItem('freshmarket_storage_provider') === 'supabase') {
+      throw new Error(errors.join(', '));
+    }
+  }
+
   async executeDelete() {
     if (!this.pendingDeleteId) return;
     const id = this.pendingDeleteId;
     const name = this.pendingDeleteName;
+    const targetProduct = this.products.find(p => p.id === id);
 
     try {
-      await storage.delete(id);
+      await this.deleteProductEverywhere(id, targetProduct);
       this.products = this.products.filter(p => p.id !== id);
       this.updateStats();
       this.renderRecentList();
       this.renderProductsList();
       this.closeDeleteModal();
-      this.showToast(`🗑️ «${name}» удален`);
+      this.showToast(`«${name}» удален`);
     } catch (e) {
-      this.showToast('Ошибка при удалении');
+      console.error(e);
+      this.showToast(e.message ? `❌ Ошибка при удалении: ${e.message}` : 'Ошибка при удалении');
     }
   }
 
