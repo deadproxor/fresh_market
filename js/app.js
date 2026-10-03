@@ -30,7 +30,7 @@ const CATEGORIES = [
   { id: 'fruits', name: 'Фрукты', icon: '🥭' },
   { id: 'herbs', name: 'Зелень и травы', icon: '🌿' },
   { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚' },
-  { id: 'seafood', name: 'Морепродукты', icon: '🐟' },
+  { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟' },
   { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
   { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
   { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
@@ -58,7 +58,10 @@ const CUSTOM_DICT_KEY = 'freshmarket_custom_produce_dictionary';
 // Load produce dictionary from standalone JSON file + localStorage custom items
 async function loadProduceDictionary() {
   try {
-    const response = await fetch('./products_dictionary.json');
+    let response = await fetch('./data/products_dictionary.json');
+    if (!response.ok) {
+      response = await fetch('./products_dictionary.json');
+    }
     if (response.ok) {
       PRODUCE_DICTIONARY = await response.json();
     }
@@ -1049,6 +1052,8 @@ class App {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `chip-btn ${index === 0 ? 'active' : ''}`;
+      btn.dataset.category = cat.name;
+      btn.dataset.id = cat.id;
       btn.innerHTML = `${cat.icon} <span>${cat.name}</span>`;
       btn.addEventListener('click', () => {
         this.categoryChips.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
@@ -1762,13 +1767,13 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       }
 
       // Check against local dictionary for exact authentic names if matching
-      if (this.dictionary && this.dictionary.length > 0) {
+      if (typeof PRODUCE_DICTIONARY !== 'undefined' && PRODUCE_DICTIONARY.length > 0) {
         const matched = this.matchWithLocalDictionary(parsed);
         if (matched) {
-          parsed.name_en = matched.name_en || parsed.name_en;
-          parsed.name_ru = matched.name_ru || parsed.name_ru;
-          if (matched.name_kh) parsed.name_kh = matched.name_kh;
-          if (matched.category) parsed.category = matched.category;
+          parsed.name_en = matched.en || parsed.name_en;
+          parsed.name_ru = matched.ru || parsed.name_ru;
+          if (matched.kh) parsed.name_kh = matched.kh;
+          if (matched.cat) parsed.category = matched.cat;
           if (matched.form && !parsed.form) parsed.form = matched.form;
           if (matched.desc && !parsed.description) parsed.description = matched.desc;
         }
@@ -1859,13 +1864,13 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   }
 
   matchWithLocalDictionary(parsed) {
-    if (!parsed) return null;
-    const en = (parsed.name_en || '').toLowerCase();
-    const ru = (parsed.name_ru || '').toLowerCase();
+    if (!parsed || typeof PRODUCE_DICTIONARY === 'undefined' || PRODUCE_DICTIONARY.length === 0) return null;
+    const en = (parsed.name_en || '').toLowerCase().trim();
+    const ru = (parsed.name_ru || '').toLowerCase().trim();
 
-    for (const item of this.dictionary) {
-      const itemEn = (item.name_en || '').toLowerCase();
-      const itemRu = (item.name_ru || '').toLowerCase();
+    for (const item of PRODUCE_DICTIONARY) {
+      const itemEn = (item.en || '').toLowerCase().trim();
+      const itemRu = (item.ru || '').toLowerCase().trim();
       if (en && (itemEn === en || en.includes(itemEn) || itemEn.includes(en))) {
         return item;
       }
@@ -2118,13 +2123,16 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
   selectCategoryByName(categoryName) {
     if (!categoryName || !this.categoryChips) return;
+    const targetName = categoryName.trim();
     const chips = this.categoryChips.querySelectorAll('.chip-btn');
     chips.forEach(chip => {
-      if (chip.textContent.includes(categoryName)) {
+      const chipText = chip.querySelector('span')?.textContent?.trim() || chip.textContent.trim();
+      const chipCat = chip.dataset.category || chipText;
+      if (chipCat === targetName || chip.dataset.id === targetName || chipText.includes(targetName) || targetName.includes(chipCat)) {
         chips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        this.selectedCategory = categoryName;
-        this.fieldCategory.value = categoryName;
+        this.selectedCategory = chipCat;
+        this.fieldCategory.value = chipCat;
         chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });

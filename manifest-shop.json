@@ -1,11 +1,11 @@
 {
-  "name": "FreshMarket",
+  "name": "FreshMarket — Свежие продукты с рынка",
   "short_name": "FreshMarket",
-  "description": "Простой каталог продуктов для рынка (RU, EN, KH)",
-  "start_url": "./index.html",
+  "description": "Заказ и доставка свежих фруктов, овощей и зелени с утреннего рынка",
+  "start_url": "./shop.html",
   "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#f5f5f7",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
   "orientation": "portrait",
   "icons": [
     {

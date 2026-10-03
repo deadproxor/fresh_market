@@ -1,0 +1,348 @@
+/* ==========================================================================
+   FreshMarket — Client Shop Application Dedicated Styles (shop.css)
+   ========================================================================== */
+
+/* 1. Controls */
+.shop-controls-section {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* 2. Main Content & Product List */
+.shop-main-content {
+  padding: 0 16px 120px 16px;
+}
+
+.shop-products-header {
+  margin: 12px 0 10px 0;
+}
+
+.shop-products-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.shop-products-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shop-product-card {
+  margin-bottom: 0;
+}
+
+.btn-add-cart {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+}
+
+/* 3. Cart Modal List */
+.cart-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cart-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  gap: 10px;
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cart-item-kh {
+  font-size: 12px;
+  color: var(--text-khmer);
+}
+
+.cart-item-qty-input-wrap {
+  width: 90px;
+}
+
+.cart-item-qty-input {
+  width: 100%;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+
+.cart-item-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.cart-item-remove-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* 5. Replacement Options in Checkout */
+.checkout-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.checkout-pricing-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card-subtle);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent-emerald);
+  margin-top: 14px;
+  line-height: 1.45;
+}
+
+/* 6. Orders Cards (My Orders) */
+.order-card {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.order-card-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.order-card-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.order-status-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.order-status-pill.status-new {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.order-status-pill.status-purchasing {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.order-status-pill.status-delivering {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.order-status-pill.status-completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.order-card-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.order-item-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.receipt-link {
+  font-size: 11px;
+  color: var(--accent-emerald-light);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 12px;
+}
+
+.order-calc-breakdown {
+  color: var(--text-muted);
+}
+
+.order-grand-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent-emerald-light);
+}
+
+/* 8. Auth & Profile Modal Styles */
+.auth-buttons-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-intro-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.btn-auth-provider {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.btn-auth-google {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-auth-google:hover {
+  background: #f9fafb;
+}
+
+.btn-auth-facebook {
+  background: #1877f2;
+  color: #ffffff;
+  border: none;
+}
+
+.btn-auth-facebook:hover {
+  background: #166fe5;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 10px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.auth-divider span {
+  padding: 0 10px;
+}
+
+.profile-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.profile-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+#shopHomeTabs {
+  margin-top: 12px;
+  margin-bottom: 18px;
+}
+
+.card-name-kh,
+.card-desc {
+  display: none;
+}

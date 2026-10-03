@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreshMarket — UI Components Library & Design System (Desktop Workbench)</title>
+  <meta name="description" content="Интерактивная витрина и документация UI-компонентов FreshMarket Design System" />
+
+  <!-- Google Fonts: Inter & Noto Sans Khmer -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Master Core Design System & Components -->
+  <link rel="stylesheet" href="css/components.css" />
+
+  <style>
+    /* ==========================================================================
+       Desktop Workbench Layout for Components Showcase
+       ========================================================================== */
+    body {
+      overflow-x: hidden;
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+    }
+
+    .workbench-layout {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* 1. Left Fixed Sidebar */
+    .workbench-sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sidebar-header {
+      padding: 20px 18px 16px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald-light);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav-scroll {
+      padding: 16px 12px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-nav-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      padding: 12px 8px 6px 8px;
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-nav-item:hover {
+      background: var(--bg-card-subtle);
+      color: var(--text-primary);
+    }
+
+    .sidebar-nav-item.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald-light);
+      font-weight: 600;
+    }
+
+    .sidebar-nav-item .nav-count {
+      font-size: 11px;
+      opacity: 0.7;
+      font-weight: 600;
+    }
+
+    .sidebar-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-card-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .theme-toggle-workbench {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .theme-toggle-workbench:hover {
+      border-color: var(--accent-emerald);
+    }
+
+    /* 2. Right Main Content Workbench */
+    .workbench-main {
+      flex: 1;
+      padding: 32px 40px 120px 40px;
+      max-width: 1400px;
+      overflow-y: auto;
+    }
+
+    .workbench-top-bar {
+      margin-bottom: 32px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 20px;
+    }
+
+    .workbench-page-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .workbench-page-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .workbench-section {
+      margin-bottom: 48px;
+      scroll-margin-top: 24px;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1.5px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .section-tag {
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--accent-emerald-light);
+      background: rgba(16, 185, 129, 0.12);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    .section-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    /* Grid Layouts for Desktop Workbench */
+    .workbench-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 20px;
+    }
+
+    .workbench-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .workbench-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    /* Component Canvas Card */
+    .component-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .component-box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+
+    .component-box-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .component-box-class {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--text-muted);
+    }
+
+    /* Mobile Device Frame for Accurate Mobile Rendering */
+    .mobile-frame-preview {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Color Swatch in Workbench */
+    .color-swatch-workbench {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: var(--bg-card-subtle);
+    }
+
+    .swatch-box {
+      height: 48px;
+      width: 100%;
+    }
+
+    .swatch-details {
+      padding: 8px 10px;
+    }
+
+    .swatch-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .swatch-var-name {
+      font-size: 10.5px;
+      font-family: monospace;
+      color: var(--text-muted);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      .workbench-layout {
+        flex-direction: column;
+      }
+      .workbench-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+      }
+      .workbench-main {
+        padding: 20px 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="workbench-layout">
+
+    <!-- ================= 1. SIDEBAR (DESKTOP NAVIGATION) ================= -->
+    <aside class="workbench-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand-title">
+          <span>🌱</span> FreshMarket
+        </div>
+        <span class="sidebar-badge">UI Kit v1.4</span>
+      </div>
+
+      <nav class="sidebar-nav-scroll">
+        <div class="sidebar-nav-group-title">Фундамент</div>
+        <a href="#section-colors" class="sidebar-nav-item active">
+          <span>🎨 Цветовые токены</span>
+          <span class="nav-count">8</span>
+        </a>
+        <a href="#section-typography" class="sidebar-nav-item">
+          <span>🔤 Мультиязычный текст</span>
+          <span class="nav-count">EN/KH/RU</span>
+        </a>
+
+        <div class="sidebar-nav-group-title">Структура и Поиск</div>
+        <a href="#section-headers" class="sidebar-nav-item">
+          <span>🏷️ Шапки и Бренды</span>
+          <span class="nav-count">2</span>
+        </a>
+        <a href="#section-search" class="sidebar-nav-item">
+          <span>🔍 Поиск и Категории</span>
+          <span class="nav-count">Pills</span>
+        </a>
+
+        <div class="sidebar-nav-group-title">Компоненты</div>
+        <a href="#section-cards" class="sidebar-nav-item">
+          <span>📦 Карточки товаров</span>
+          <span class="nav-count">3</span>
+        </a>
+        <a href="#section-badges" class="sidebar-nav-item">
+          <span>🏷️ Бейджи и Теги</span>
+          <span class="nav-count">7</span>
+        </a>
+        <a href="#section-buttons" class="sidebar-nav-item">
+          <span>🔘 Кнопки и FAB</span>
+          <span class="nav-count">6</span>
+        </a>
+        <a href="#section-forms" class="sidebar-nav-item">
+          <span>📝 Инпуты и Формы</span>
+          <span class="nav-count">5</span>
+        </a>
+        <a href="#section-widgets" class="sidebar-nav-item">
+          <span>📊 Виджеты и Состояния</span>
+          <span class="nav-count">3</span>
+        </a>
+        <a href="#section-bottom-nav" class="sidebar-nav-item">
+          <span>🔘 Нижняя навигация</span>
+          <span class="nav-count">2</span>
+        </a>
+
+        <div class="sidebar-nav-group-title">Модальные окна и Сценарии</div>
+        <a href="#section-onboarding" class="sidebar-nav-item">
+          <span>📱 Онбординг (3 слайда)</span>
+          <span class="nav-count">3</span>
+        </a>
+        <a href="#section-bottom-sheet" class="sidebar-nav-item">
+          <span>📑 Шторка (Bottom Sheet)</span>
+          <span class="nav-count">Modal</span>
+        </a>
+        <a href="#section-splash" class="sidebar-nav-item">
+          <span>🌱 Сплэш-экраны (Startup)</span>
+          <span class="nav-count">2</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button type="button" class="theme-toggle-workbench" id="btnThemeToggle">
+          <span id="themeIcon">☀️</span>
+          <span id="themeLabel">Светлая тема</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ================= 2. MAIN WORKBENCH CANVAS ================= -->
+    <main class="workbench-main">
+
+      <!-- Workbench Header -->
+      <div class="workbench-top-bar">
+        <div>
+          <h1 class="workbench-page-title">UI Kit & Design System Workbench</h1>
+          <p class="workbench-page-subtitle">
+            Эталонная витрина компонентов на базе <code>components.css</code>, <code>products.css</code> и <code>shop.css</code> для клиентского магазина и каталога номенклатуры.
+          </p>
+        </div>
+      </div>
+
+      <!-- ================= SECTION 1: COLOR TOKENS ================= -->
+      <section id="section-colors" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🎨 Цветовые токены (CSS Custom Properties)</h2>
+          <span class="section-tag">:root / [data-theme]</span>
+        </div>
+        <p class="section-desc">Калиброванные переменные палитры Apple Titanium Dark / Cupertino Light.</p>
+
+        <div class="workbench-grid-4">
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--bg-main);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Main Background</div>
+              <div class="swatch-var-name">--bg-main</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--bg-card);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Card Surface</div>
+              <div class="swatch-var-name">--bg-card</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--bg-card-subtle);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Subtle Card</div>
+              <div class="swatch-var-name">--bg-card-subtle</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--bg-input);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Input Background</div>
+              <div class="swatch-var-name">--bg-input</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--accent-emerald);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Emerald Accent</div>
+              <div class="swatch-var-name">--accent-emerald</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--accent-cyan);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Cyan Accent</div>
+              <div class="swatch-var-name">--accent-cyan</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--accent-amber);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Amber Accent</div>
+              <div class="swatch-var-name">--accent-amber</div>
+            </div>
+          </div>
+          <div class="color-swatch-workbench">
+            <div class="swatch-box" style="background: var(--accent-rose);"></div>
+            <div class="swatch-details">
+              <div class="swatch-title">Rose Danger</div>
+              <div class="swatch-var-name">--accent-rose</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2: TYPOGRAPHY ================= -->
+      <section id="section-typography" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🔤 Мультиязычная Типографика</h2>
+          <span class="section-tag">Inter + Noto Sans Khmer</span>
+        </div>
+        <p class="section-desc">Трехуровневая языковая структура: EN (основной международный), KH (оригинальный кхмерский), RU (перевод).</p>
+
+        <div class="component-box">
+          <div class="component-box-header">
+            <span class="component-box-title">Иерархия названий товара в карточке</span>
+            <span class="component-box-class">.card-names-block</span>
+          </div>
+          <div class="mobile-frame-preview" style="max-width: 500px;">
+            <div class="card-names-block" style="cursor: default;">
+              <div class="card-header-row">
+                <div class="card-name-en">Morning Glory Water Spinach (EN 19px Bold)</div>
+              </div>
+              <div class="card-name-kh khmer-font">ត្រកួនបំពងស្រួយ (KH 17px Noto Sans Khmer)</div>
+              <div class="card-name-ru">Водяной шпинат / Морнинг глори (RU 13px Medium)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 3: HEADERS & BRAND ================= -->
+      <section id="section-headers" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🏷️ Шапки и Брендинг</h2>
+          <span class="section-tag">.app-header & .brand</span>
+        </div>
+
+        <div class="workbench-grid-2">
+          <!-- Catalog Header -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Шапка каталога номенклатуры (index.html)</span>
+              <span class="component-box-class">.brand + .brand-subtitle</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <header class="app-header" style="position: static; margin: -14px; border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                <div class="brand">
+                  <div class="brand-icon">🌱</div>
+                  <div class="brand-text">
+                    <span class="brand-title">FreshMarket</span>
+                    <span class="brand-subtitle">База продуктов</span>
+                  </div>
+                </div>
+                <div class="header-right">
+                  <button type="button" class="theme-toggle-btn" title="Настройки"><span class="theme-icon">⚙️</span></button>
+                  <button type="button" class="theme-toggle-btn" title="Тема"><span class="theme-icon">☀️</span></button>
+                </div>
+              </header>
+            </div>
+          </div>
+
+          <!-- Shop Client Header -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Шапка клиентской витрины (shop.html)</span>
+              <span class="component-box-class">.brand + .brand-subtitle</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <header class="app-header" style="position: static; margin: -14px; border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                <div class="brand">
+                  <div class="brand-icon">🥬</div>
+                  <div class="brand-text">
+                    <span class="brand-title">FreshMarket</span>
+                    <span class="brand-subtitle">Доставка свежих продуктов</span>
+                  </div>
+                </div>
+                <div class="header-right">
+                  <button type="button" class="theme-toggle-btn" title="Профиль"><span class="theme-icon">👤</span></button>
+                  <button type="button" class="theme-toggle-btn" title="Тема"><span class="theme-icon">☀️</span></button>
+                </div>
+              </header>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 4: SEARCH & CATEGORY PILLS ================= -->
+      <section id="section-search" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🔍 Поиск и Фильтры категорий</h2>
+          <span class="section-tag">.search-box & .category-filter-pills</span>
+        </div>
+
+        <div class="workbench-grid-2">
+          <!-- Search Box -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Поисковый инпут с иконкой и очисткой</span>
+              <span class="component-box-class">.search-box & .search-input</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="demoSearchInput" placeholder="Поиск: Mango, Манго, ស្វាយ..." value="Mango" />
+                <button type="button" class="search-clear-btn" id="demoSearchClear" style="display: block;">✕</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Pills -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Горизонтальный скролл категорий</span>
+              <span class="component-box-class">.category-filter-pills & .filter-pill</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <div class="category-filter-pills" id="demoPillsContainer">
+                <button type="button" class="filter-pill active"><span class="category-icon">🧺</span> Все <span style="opacity:0.75; font-size:11px;">42</span></button>
+                <button type="button" class="filter-pill"><span class="category-icon">🥦</span> Овощи <span style="opacity:0.75; font-size:11px;">12</span></button>
+                <button type="button" class="filter-pill"><span class="category-icon">🥭</span> Фрукты <span style="opacity:0.75; font-size:11px;">8</span></button>
+                <button type="button" class="filter-pill"><span class="category-icon">🌿</span> Зелень <span style="opacity:0.75; font-size:11px;">6</span></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Grid Tiles -->
+          <div class="component-box" style="grid-column: 1 / -1;">
+            <div class="component-box-header">
+              <span class="component-box-title">Сетка плиток категорий (стартовый экран)</span>
+              <span class="component-box-class">.categories-grid & .category-card</span>
+            </div>
+            <div class="mobile-frame-preview" style="padding: 16px;">
+              <div class="categories-grid" style="width: 100%; max-width: 440px; margin: 0 auto;">
+                <div class="category-card" onclick="showToastDemo('Выбрана категория: 🥦 Овощи')">
+                  <div class="cat-card-left">
+                    <span class="cat-card-icon">🥦</span>
+                    <span class="cat-card-name">Овощи</span>
+                  </div>
+                  <span class="cat-card-count">16</span>
+                </div>
+                <div class="category-card" onclick="showToastDemo('Выбрана категория: 🥭 Фрукты')">
+                  <div class="cat-card-left">
+                    <span class="cat-card-icon">🥭</span>
+                    <span class="cat-card-name">Фрукты</span>
+                  </div>
+                  <span class="cat-card-count">12</span>
+                </div>
+                <div class="category-card" onclick="showToastDemo('Выбрана категория: 🌿 Зелень и травы')">
+                  <div class="cat-card-left">
+                    <span class="cat-card-icon">🌿</span>
+                    <span class="cat-card-name">Зелень</span>
+                  </div>
+                  <span class="cat-card-count">8</span>
+                </div>
+          <!-- Segmented Tabs (Categories vs List) -->
+          <div class="component-box" style="grid-column: 1 / -1;">
+            <div class="component-box-header">
+              <span class="component-box-title">Переключатель табов стартового экрана (Segmented Control)</span>
+              <span class="component-box-class">.segmented-tabs & .tab-item</span>
+            </div>
+            <div class="mobile-frame-preview" style="padding: 16px;">
+              <div class="segmented-tabs" style="max-width: 440px; margin: 0 auto;">
+                <button type="button" class="tab-item active" onclick="this.parentElement.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active')); this.classList.add('active'); showToastDemo('Переключено на таб: 🗂️ Категории');">
+                  <span>🗂️</span>
+                  <span>Категории</span>
+                </button>
+                <button type="button" class="tab-item" onclick="this.parentElement.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active')); this.classList.add('active'); showToastDemo('Переключено на таб: 📦 Список продуктов');">
+                  <span>📦</span>
+                  <span>Список продуктов</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 5: PRODUCT CARDS ================= -->
+      <section id="section-cards" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📦 Карточки товаров (.product-card)</h2>
+          <span class="section-tag">Сравнение вариантов в мобильных фреймах</span>
+        </div>
+
+        <div class="workbench-grid-3">
+
+          <!-- 1. Full Expanded Card -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">1. Развернутая карточка каталога</span>
+              <span class="component-box-class">.product-card</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <div class="product-card" id="cardDemo1">
+                <div class="card-names-block">
+                  <div class="card-header-row">
+                    <div class="card-name-en">Bok Choy Cabbage</div>
+                    <button type="button" class="btn-card-toggle" onclick="toggleCard('cardDemo1')">
+                      <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="card-name-kh khmer-font">ស្ពៃបូកគោ / ស្ពៃចិន</div>
+                  <div class="card-name-ru">Капуста пак-чой китайская</div>
+                </div>
+
+                <div class="card-collapsible-body">
+                  <div class="card-badges">
+                    <span class="badge badge-category">🥦 Овощи</span>
+                    <span class="badge badge-form">Кочан</span>
+                  </div>
+                  <div class="card-photo-container">
+                    <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Bok Choy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥦</text></svg>';" />
+                  </div>
+                  <div class="card-desc">
+                    Сочные хрустящие черешки с темно-зелеными листьями для быстрой обжарки в воке.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Collapsed State Card -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">2. Свернутое состояние</span>
+              <span class="component-box-class">.product-card.is-collapsed</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <div class="product-card is-collapsed" id="cardDemo2">
+                <div class="card-names-block" onclick="toggleCard('cardDemo2')">
+                  <div class="card-header-row">
+                    <div class="card-name-en">Lemongrass Fresh Stalks</div>
+                    <button type="button" class="btn-card-toggle">
+                      <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="card-name-kh khmer-font">ស្លឹកគ្រៃស្រស់</div>
+                  <div class="card-name-ru">Лемонграсс / Лимонная трава</div>
+                </div>
+
+                <div class="card-collapsible-body">
+                  <div class="card-badges">
+                    <span class="badge badge-category">🌿 Зелень</span>
+                    <span class="badge badge-form">Свежие стебли</span>
+                  </div>
+                  <div class="card-desc">
+                    Ароматные стебли для супа Том Ям и кхмерской пасты.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Client Shop Card with Actions -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">3. Карточка покупателя магазина</span>
+              <span class="component-box-class">.shop-card-actions + .cart-qty-control</span>
+            </div>
+            <div class="mobile-frame-preview">
+              <div class="product-card" id="cardDemo3">
+                <div class="card-names-block" onclick="toggleCard('cardDemo3')">
+                  <div class="card-header-row">
+                    <div class="card-name-en">Ripe Sweet Mango</div>
+                    <button type="button" class="btn-card-toggle" onclick="event.stopPropagation(); toggleCard('cardDemo3')">
+                      <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="card-name-kh khmer-font">ស្វាយទុំផ្អែម</div>
+                  <div class="card-name-ru">Манго желтое спелое</div>
+                </div>
+
+                <div class="card-collapsible-body">
+                  <div class="card-badges">
+                    <span class="badge badge-category">🥭 Фрукты</span>
+                    <span class="badge badge-form">Спелый</span>
+                  </div>
+
+                  <div class="shop-card-actions">
+                    <div class="cart-qty-control">
+                      <button type="button" onclick="changeQty(-1)">−</button>
+                      <span class="qty-number" id="demoQtyNumber">2 кг</span>
+                      <button type="button" onclick="changeQty(1)">+</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= SECTION 6: BADGES & BUTTONS ================= -->
+      <section id="section-badges" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🏷️ Бейджи, Кнопки и Действия</h2>
+          <span class="section-tag">.badge, .btn, .nav-fab-btn</span>
+        </div>
+
+        <div class="workbench-grid-2">
+          <!-- Badges -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Бейджи категорий, форм и слотов</span>
+              <span class="component-box-class">.badge-category, .badge-form, .shop-slot-badge</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0;">
+              <span class="badge badge-category">🥦 Овощи</span>
+              <span class="badge badge-category">🥭 Фрукты</span>
+              <span class="badge badge-category">🐟 Морепродукты и рыба</span>
+              <span class="badge badge-form">Свежий (пучок)</span>
+              <span class="badge badge-form">Нарезка</span>
+              <span class="shop-slot-badge">⏰ Закупка в 05:00</span>
+            </div>
+          </div>
+
+          <!-- Buttons -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Кнопки действий и FAB</span>
+              <span class="component-box-class">.btn-primary, .btn-secondary, .btn-danger, .nav-fab-btn</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 8px 0;">
+              <button type="button" class="btn btn-primary" onclick="showToastDemo('Primary кнопка')">btn-primary</button>
+              <button type="button" class="btn btn-secondary" onclick="showToastDemo('Secondary кнопка')">btn-secondary</button>
+              <button type="button" class="btn btn-danger" onclick="showToastDemo('Danger кнопка')">btn-danger</button>
+              <button type="button" class="btn btn-primary btn-sm">btn-sm</button>
+              <button class="nav-fab-btn" type="button" title="FAB" onclick="showToastDemo('FAB кнопка добавления')">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 7: FORMS & INPUTS ================= -->
+      <section id="section-forms" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📝 Инпуты и Формы</h2>
+          <span class="section-tag">.text-input, .select-input, .replacement-option</span>
+        </div>
+
+        <div class="workbench-grid-2">
+          <!-- Form Inputs -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Базовые поля ввода</span>
+              <span class="component-box-class">.text-input & .select-input</span>
+            </div>
+            <div class="form-group">
+              <label class="field-label">Имя получателя</label>
+              <input type="text" class="text-input" placeholder="Введите имя..." value="Светлана" />
+              <span class="field-hint">Подсказка к полю</span>
+            </div>
+            <div class="form-group">
+              <label class="field-label">Категория продукта</label>
+              <select class="text-input select-input">
+                <option value="veg">🥦 Овощи</option>
+                <option value="fruit" selected>🥭 Фрукты</option>
+                <option value="herbs">🌿 Зелень и травы</option>
+                <option value="seafood">🐟 Морепродукты и рыба</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Replacement Options -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Селектор политики замен (Checkout)</span>
+              <span class="component-box-class">.replacement-option</span>
+            </div>
+            <div class="replacement-options">
+              <label class="replacement-option">
+                <input type="radio" name="demo_rep_group" value="agree" checked />
+                <div class="replacement-box">
+                  <span class="replacement-icon">📞</span>
+                  <div class="replacement-text">
+                    <b>Согласовать звонком</b>
+                    <span>Закупщик свяжется в Telegram / по телефону</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="replacement-option">
+                <input type="radio" name="demo_rep_group" value="picker" />
+                <div class="replacement-box">
+                  <span class="replacement-icon">🤝</span>
+                  <div class="replacement-text">
+                    <b>На усмотрение закупщика</b>
+                    <span>Выбрать лучший аналог на рынке</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 8: WIDGETS & STATES ================= -->
+      <section id="section-widgets" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📊 Виджеты и Состояния</h2>
+          <span class="section-tag">.market-schedule-banner & .empty-state</span>
+        </div>
+
+        <div class="workbench-grid-2">
+          <!-- Schedule Banner -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Баннер графика утреннего закупа</span>
+              <span class="component-box-class">.market-schedule-banner</span>
+            </div>
+            <div class="market-schedule-banner">
+              <span class="schedule-icon">🌅</span>
+              <div class="schedule-info">
+                <span class="schedule-title">Прием заказов до 23:00</span>
+                <span class="schedule-sub">Закупка на рынке в 05:00 • Доставка до 13:00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Пустое состояние списка</span>
+              <span class="component-box-class">.empty-state</span>
+            </div>
+            <div class="empty-state" style="padding: 10px 0;">
+              <div class="empty-icon">
+                <svg viewBox="0 0 120 120" width="60" height="60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <radialGradient id="basketInnerWb" cx="50%" cy="40%" r="60%">
+                      <stop offset="0%" stop-color="#4a3525" />
+                      <stop offset="70%" stop-color="#2c1d11" />
+                      <stop offset="100%" stop-color="#1a1109" />
+                    </radialGradient>
+                    <linearGradient id="basketRimWb" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#d4a373" />
+                      <stop offset="50%" stop-color="#bc6c25" />
+                      <stop offset="100%" stop-color="#8c4b14" />
+                    </linearGradient>
+                    <linearGradient id="basketBodyWb" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#dda15e" />
+                      <stop offset="40%" stop-color="#bc6c25" />
+                      <stop offset="100%" stop-color="#6f3a09" />
+                    </linearGradient>
+                  </defs>
+                  <ellipse cx="60" cy="52" rx="42" ry="16" fill="url(#basketInnerWb)" />
+                  <path d="M18 52 C22 84 32 98 60 98 C88 98 98 84 102 52 Z" fill="url(#basketBodyWb)" />
+                  <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="url(#basketRimWb)" stroke-width="4.5" />
+                </svg>
+              </div>
+              <h3 class="empty-title">В списке пока пусто</h3>
+              <p class="empty-desc">Добавьте первые продукты с утреннего рынка</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: BOTTOM NAVIGATION ================= -->
+      <section id="section-bottom-nav" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🔘 Нижняя навигация (Floating Island Dock)</h2>
+          <span class="section-tag">.bottom-nav & .nav-fab-btn</span>
+        </div>
+        <p class="section-desc">Парящая капсульная навигация с размытием фона (Backdrop Blur), мягкой активной подсветкой и центральной кнопкой действия (FAB).</p>
+
+        <div class="workbench-grid-2">
+          <!-- 1. Catalog Navigation -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">1. Навигация каталога номенклатуры (index.html)</span>
+              <span class="component-box-class">.bottom-nav + .nav-fab-btn</span>
+            </div>
+            <div class="mobile-frame-preview" style="min-height: 120px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.25); padding: 24px 12px;">
+              <nav class="bottom-nav" style="position: static; transform: none; width: 100%; max-width: 360px; margin: 0 auto;">
+                <button type="button" class="nav-item active" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5H15v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H4.5A1.5 1.5 0 0 1 3 20v-9.5z" />
+                    </svg>
+                  </div>
+                  <span class="nav-label">Главная</span>
+                </button>
+
+                <button class="nav-fab-btn" type="button" title="Добавить продукт">
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+
+                <button type="button" class="nav-item" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="8" y1="6" x2="21" y2="6"></line>
+                      <line x1="8" y1="12" x2="21" y2="12"></line>
+                      <line x1="8" y1="18" x2="21" y2="18"></line>
+                      <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                      <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                      <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                  </div>
+                  <span class="nav-label">Каталог</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          <!-- 2. Shop Client Navigation -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">2. Навигация клиентской витрины (shop.html)</span>
+              <span class="component-box-class">.bottom-nav + .nav-badge</span>
+            </div>
+            <div class="mobile-frame-preview" style="min-height: 120px; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.25); padding: 24px 12px;">
+              <nav class="bottom-nav" style="position: static; transform: none; width: 100%; max-width: 400px; margin: 0 auto;">
+                <button type="button" class="nav-item active" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <span class="nav-icon">🛍️</span>
+                  <span class="nav-label">Каталог</span>
+                </button>
+                <button type="button" class="nav-item" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <span class="nav-icon">🛒</span>
+                  <span class="nav-label">Корзина</span>
+                  <span class="nav-badge">3</span>
+                </button>
+                <button type="button" class="nav-item" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <span class="nav-icon">📋</span>
+                  <span class="nav-label">Заказы</span>
+                </button>
+                <button type="button" class="nav-item" onclick="this.parentElement.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); this.classList.add('active');">
+                  <span class="nav-icon">👤</span>
+                  <span class="nav-label">Профиль</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 9: ONBOARDING (3 SCREENS) ================= -->
+      <section id="section-onboarding" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📱 Сценарий Онбординга (3 слайда)</h2>
+          <span class="section-tag">.onboarding-overlay & .onboarding-card</span>
+        </div>
+        <p class="section-desc">Приветственные экраны первого запуска клиентского магазина с объяснением принципов утренней закупки, честных цен и прозрачной доставки.</p>
+
+        <!-- 3 Static Slides Side-by-Side Showcase -->
+        <div class="workbench-grid-3" style="margin-bottom: 24px;">
+          <!-- Slide 1 -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Слайд 1: Свежесть рынка</span>
+              <span class="component-box-class">data-slide="0"</span>
+            </div>
+            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
+              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
+                <span class="onboarding-emoji" style="font-size: 32px;">🥬</span>
+              </div>
+              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Свежесть утреннего рынка</h3>
+              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Закупаем зелень, овощи и фрукты в 05:00 утра прямо у проверенных торговцев.</p>
+              <div class="onboarding-dots" style="margin-top: 18px;">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2 -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Слайд 2: Честные цены и чеки</span>
+              <span class="component-box-class">data-slide="1"</span>
+            </div>
+            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
+              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
+                <span class="onboarding-emoji" style="font-size: 32px;">🧾</span>
+              </div>
+              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Честные цены и QR-чеки</h3>
+              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Рыночная стоимость без наценок + прозрачный чек с QR ABA KHQR при доставке.</p>
+              <div class="onboarding-dots" style="margin-top: 18px;">
+                <span class="dot"></span>
+                <span class="dot active"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3 -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Слайд 3: Быстрая доставка</span>
+              <span class="component-box-class">data-slide="2"</span>
+            </div>
+            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
+              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
+                <span class="onboarding-emoji" style="font-size: 32px;">🛵</span>
+              </div>
+              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Доставка до обеда</h3>
+              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Курьер привезет заказ прямо к вашей двери до 13:00 в день утренней закупки.</p>
+              <div class="onboarding-dots" style="margin-top: 18px;">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot active"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Mobile Player -->
+        <div class="workbench-grid-2">
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Интерактивный плеер онбординга</span>
+              <span class="component-box-class">Живое переключение слайдов</span>
+            </div>
+            <div class="mobile-frame-preview" style="background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; padding: 24px 16px;">
+              <div class="onboarding-card" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
+                <div class="onboarding-slider" style="min-height: 220px;">
+                  <!-- Live Slide 0 -->
+                  <div class="onboarding-slide active" id="demoOnbSlide0">
+                    <div class="onboarding-icon-wrap">
+                      <span class="onboarding-emoji">🥬</span>
+                    </div>
+                    <h3 class="onboarding-title">Свежесть утреннего рынка</h3>
+                    <p class="onboarding-desc">Закупаем зелень, овощи и фрукты в 05:00 утра прямо у проверенных торговцев.</p>
+                  </div>
+
+                  <!-- Live Slide 1 -->
+                  <div class="onboarding-slide" id="demoOnbSlide1">
+                    <div class="onboarding-icon-wrap">
+                      <span class="onboarding-emoji">🧾</span>
+                    </div>
+                    <h3 class="onboarding-title">Честные цены и QR-чеки</h3>
+                    <p class="onboarding-desc">Рыночная стоимость без наценок + прозрачный чек с QR ABA KHQR при доставке.</p>
+                  </div>
+
+                  <!-- Live Slide 2 -->
+                  <div class="onboarding-slide" id="demoOnbSlide2">
+                    <div class="onboarding-icon-wrap">
+                      <span class="onboarding-emoji">🛵</span>
+                    </div>
+                    <h3 class="onboarding-title">Доставка свежего заказа до обеда</h3>
+                    <p class="onboarding-desc">Курьер привезет заказ прямо к вашей двери до 13:00 в день утренней закупки.</p>
+                  </div>
+                </div>
+
+                <div class="onboarding-footer">
+                  <div class="onboarding-dots" id="demoOnbDots">
+                    <span class="dot active" onclick="setDemoOnbSlide(0)" style="cursor: pointer;"></span>
+                    <span class="dot" onclick="setDemoOnbSlide(1)" style="cursor: pointer;"></span>
+                    <span class="dot" onclick="setDemoOnbSlide(2)" style="cursor: pointer;"></span>
+                  </div>
+                  <div class="onboarding-btn-row">
+                    <button type="button" class="btn btn-secondary" id="btnDemoOnbSkip" onclick="setDemoOnbSlide(0)">Сначала</button>
+                    <button type="button" class="btn btn-primary" id="btnDemoOnbNext" onclick="nextDemoOnbSlide()">Далее →</button>
+                  </div>
+                  <label class="onboarding-dont-show">
+                    <input type="checkbox" checked />
+                    Больше не показывать
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="component-box" style="justify-content: center;">
+            <div class="component-box-header">
+              <span class="component-box-title">Особенности и спецификация</span>
+              <span class="component-box-class">UX Guidelines</span>
+            </div>
+            <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
+              <div>🔹 <b>Автономное состояние:</b> флаг просмотра сохраняется в <code>localStorage ('freshmarket_onboarding_seen')</code>.</div>
+              <div>🔹 <b>Анимация:</b> мягкий <code>fadeIn 0.3s</code> между слайдами и плавная трансформация индикаторов <code>.dot</code>.</div>
+              <div>🔹 <b>Доступность:</b> возможность пропустить в любой момент или перейти сразу к целевому экрану.</div>
+              <div>🔹 <b>CTA на последнем шаге:</b> на 3-м слайде кнопка динамически меняется на «Понятно, к покупкам! 🚀».</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 10: BOTTOM SHEET / MODAL ================= -->
+      <section id="section-bottom-sheet" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📑 Модальная шторка (Bottom Sheet)</h2>
+          <span class="section-tag">.modal-overlay & .modal-card</span>
+        </div>
+        <p class="section-desc">Шторка выезжает снизу экрана с эффектом размытия фона (Backdrop Blur), скругленными верхними углами и оптимизирована под мобильный жест свайпа.</p>
+
+        <div class="workbench-grid-2">
+          <!-- Static Sheet Preview inside Mobile Frame -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Структура шторки (Mobile Preview)</span>
+              <span class="component-box-class">.modal-card (Bottom Sheet)</span>
+            </div>
+            <div class="mobile-frame-preview" style="padding: 0; overflow: hidden; background: rgba(0, 0, 0, 0.4); display: flex; flex-direction: column; justify-content: flex-end;">
+              <!-- Simulated Modal Card inside Preview -->
+              <div style="background: var(--bg-card); border-top: 1px solid var(--border-subtle); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 18px 20px 18px; width: 100%;">
+                <!-- Drag Handle Bar -->
+                <div style="width: 36px; height: 4px; background: var(--border-subtle); border-radius: 4px; margin: 0 auto 12px auto;"></div>
+
+                <!-- Modal Header -->
+                <div class="modal-header" style="position: static; margin-bottom: 12px; padding-bottom: 8px;">
+                  <span class="modal-title" style="font-size: 16px;">🛒 Корзина заказа</span>
+                  <button type="button" class="modal-close-btn">✕</button>
+                </div>
+
+                <!-- Modal Sample Content -->
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; margin-bottom: 16px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-card-subtle); border-radius: var(--radius-sm);">
+                    <span>🥭 Манго желтое (2 кг)</span>
+                    <b>$5.00</b>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-card-subtle); border-radius: var(--radius-sm);">
+                    <span>🥦 Капуста пак-чой (1 кг)</span>
+                    <b>$1.80</b>
+                  </div>
+                </div>
+
+                <!-- Action Button in Bottom Sheet -->
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" class="btn btn-secondary btn-sm" style="flex: 1;">Очистить</button>
+                  <button type="button" class="btn btn-primary btn-sm" style="flex: 2;">К оформлению →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Sheet Launcher -->
+          <div class="component-box" style="justify-content: space-between;">
+            <div class="component-box-header">
+              <span class="component-box-title">Интерактивный запуск</span>
+              <span class="component-box-class">Живой полноэкранный оверлей</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
+                Нажмите кнопку ниже, чтобы протестировать настоящую мобильную шторку во весь экран: анимацию <code>slideUp</code> снизу, блюр оверлея и закрытие по клику вне контента или клавише Escape.
+              </p>
+              <button type="button" class="btn btn-primary" onclick="openDemoBottomSheet()" style="max-width: 260px;">
+                🚀 Открыть живую шторку
+              </button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-card-subtle); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              💡 <b>Классы системы:</b> <code>.modal-overlay</code>, <code>.modal-card</code>, <code>.modal-header</code>, <code>.modal-close-btn</code>.
+            </div>
+          </div>
+        </div>
+      <!-- ================= SECTION 11: SPLASH SCREENS ================= -->
+      <section id="section-splash" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">🌱 Сплэш-экраны (PWA Startup)</h2>
+          <span class="section-tag">.splash-screen & .splash-content</span>
+        </div>
+        <p class="section-desc">Экраны начальной загрузки при запуске веб-приложения или PWA с фирменной иконкой, анимацией появления и бейджем версии.</p>
+
+        <div class="workbench-grid-2">
+          <!-- Catalog Splash Card Preview -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Каталог (index.html)</span>
+              <span class="component-box-class">Иконка 🌱 + Версия v1.3.3</span>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%;">
+              <div style="font-size: 64px; line-height: 1;">🌱</div>
+              <div class="splash-title" style="font-size: 22px;">FreshMarket</div>
+              <div class="splash-version" style="margin-top: 2px;">v1.3.3</div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 10px;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="triggerDemoSplash('catalog')">Тест сплэша каталога</button>
+            </div>
+          </div>
+
+          <!-- Shop Splash Card Preview -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Магазин (shop.html)</span>
+              <span class="component-box-class">Иконка 🥬 + Подзаголовок + Версия v1.0.0</span>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+              <div style="font-size: 64px; line-height: 1;">🥬</div>
+              <div class="splash-title" style="font-size: 22px;">FreshMarket</div>
+              <div class="splash-subtitle" style="font-size: 13px;">Доставка свежих продуктов</div>
+              <div class="splash-version" style="margin-top: 4px;">v1.0.0</div>
+            </div>
+            <div style="display: flex; justify-content: center; margin-top: 10px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="triggerDemoSplash('shop')">Тест сплэша магазина</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Live Demo Bottom Sheet Modal -->
+  <div id="demoBottomSheetModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeDemoBottomSheet()">
+    <div class="modal-card" style="max-width: 480px; height: auto; max-height: 80vh;">
+      <div style="width: 36px; height: 4px; background: var(--border-subtle); border-radius: 4px; margin: 0 auto 12px auto;"></div>
+      <div class="modal-header">
+        <span class="modal-title">🛒 Демонстрационная шторка</span>
+        <button type="button" class="modal-close-btn" onclick="closeDemoBottomSheet()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin: 16px 0;">
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+          Это живая демонстрация компонента <b>Bottom Sheet</b> (<code>.modal-overlay</code> + <code>.modal-card</code>).
+        </p>
+        <div style="background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <div style="font-weight: 600; margin-bottom: 4px;">🥬 Утренняя закупка FreshMarket</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">Оформление заказа до 23:00, доставка на следующий день до 13:00.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" onclick="closeDemoBottomSheet()">Закрыть</button>
+        <button type="button" class="btn btn-primary" onclick="showToastDemo('Действие в шторке выполнено!'); closeDemoBottomSheet();">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Demo Splash Screen Overlay -->
+  <div id="demoSplashScreen" class="splash-screen hide" onclick="this.classList.add('hide')">
+    <div class="splash-content" id="demoSplashContent">
+      <div class="splash-icon-wrap">
+        <span class="splash-icon" id="demoSplashIcon">🥬</span>
+      </div>
+      <div class="splash-title">FreshMarket</div>
+      <div class="splash-subtitle" id="demoSplashSubtitle">Доставка свежих продуктов</div>
+      <div class="splash-version" id="demoSplashVersion">v1.0.0</div>
+    </div>
+  </div>
+
+  <script>
+    // Demo Splash Screen Controller
+    function triggerDemoSplash(type = 'shop') {
+      const splash = document.getElementById('demoSplashScreen');
+      const icon = document.getElementById('demoSplashIcon');
+      const subtitle = document.getElementById('demoSplashSubtitle');
+      const version = document.getElementById('demoSplashVersion');
+
+      if (type === 'catalog') {
+        if (icon) icon.textContent = '🌱';
+        if (subtitle) subtitle.style.display = 'none';
+        if (version) version.textContent = 'v1.3.3';
+      } else {
+        if (icon) icon.textContent = '🥬';
+        if (subtitle) {
+          subtitle.style.display = 'block';
+          subtitle.textContent = 'Доставка свежих продуктов';
+        }
+        if (version) version.textContent = 'v1.0.0';
+      }
+
+      if (splash) {
+        splash.classList.remove('hide');
+        setTimeout(() => {
+          splash.classList.add('hide');
+        }, 1200);
+      }
+    }
+
+    // Theme Switcher Controller
+    let currentTheme = localStorage.getItem('freshmarket_theme') || 'dark';
+    applyTheme(currentTheme);
+
+    function applyTheme(theme) {
+      currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('freshmarket_theme', theme);
+
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
+      if (label) label.textContent = theme === 'light' ? 'Темная тема' : 'Светлая тема';
+    }
+
+    document.getElementById('btnThemeToggle')?.addEventListener('click', () => {
+      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(nextTheme);
+      showToastDemo(nextTheme === 'light' ? '☀️ Включена светлая тема' : '🌙 Включена темная тема');
+    });
+
+    // Card Collapse Toggle Helper
+    function toggleCard(cardId) {
+      const card = document.getElementById(cardId);
+      if (card) card.classList.toggle('is-collapsed');
+    }
+
+    // Demo Qty Counter
+    let currentQty = 2;
+    function changeQty(delta) {
+      currentQty = Math.max(1, currentQty + delta);
+      const el = document.getElementById('demoQtyNumber');
+      if (el) el.textContent = `${currentQty} кг`;
+    }
+
+    // Interactive Toast Demo
+    function showToastDemo(msg) {
+      const container = document.getElementById('toastContainer');
+      const item = document.createElement('div');
+      item.className = 'toast-item';
+      item.innerHTML = `<span>${msg}</span><button class="toast-close-btn" onclick="this.parentElement.remove()">✕</button>`;
+      container.appendChild(item);
+      setTimeout(() => item.remove(), 2500);
+    }
+
+    // Interactive Category Pills Click
+    document.querySelectorAll('#demoPillsContainer .filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#demoPillsContainer .filter-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Demo Search Input Controller
+    const demoSearchInput = document.getElementById('demoSearchInput');
+    const demoSearchClear = document.getElementById('demoSearchClear');
+    if (demoSearchInput && demoSearchClear) {
+      demoSearchInput.addEventListener('input', () => {
+        demoSearchClear.style.display = demoSearchInput.value.trim() ? 'block' : 'none';
+      });
+      demoSearchClear.addEventListener('click', () => {
+        demoSearchInput.value = '';
+        demoSearchClear.style.display = 'none';
+        demoSearchInput.focus();
+        showToastDemo('Поисковый запрос очищен');
+      });
+    }
+
+    // Demo Onboarding Slider Controller
+    let demoOnbIndex = 0;
+    const demoOnbSlides = [
+      document.getElementById('demoOnbSlide0'),
+      document.getElementById('demoOnbSlide1'),
+      document.getElementById('demoOnbSlide2')
+    ];
+    const demoOnbDots = document.querySelectorAll('#demoOnbDots .dot');
+    const btnDemoOnbNext = document.getElementById('btnDemoOnbNext');
+
+    function setDemoOnbSlide(index) {
+      demoOnbIndex = (index + 3) % 3;
+      demoOnbSlides.forEach((slide, i) => {
+        if (slide) slide.classList.toggle('active', i === demoOnbIndex);
+      });
+      demoOnbDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === demoOnbIndex);
+      });
+      if (btnDemoOnbNext) {
+        btnDemoOnbNext.textContent = demoOnbIndex === 2 ? 'Понятно, к покупкам! 🚀' : 'Далее →';
+      }
+    }
+
+    function nextDemoOnbSlide() {
+      if (demoOnbIndex === 2) {
+        showToastDemo('Онбординг успешно завершен! 🎉');
+        setDemoOnbSlide(0);
+      } else {
+        setDemoOnbSlide(demoOnbIndex + 1);
+      }
+    }
+
+    // Demo Bottom Sheet Modal Controller
+    function openDemoBottomSheet() {
+      const modal = document.getElementById('demoBottomSheetModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeDemoBottomSheet() {
+      const modal = document.getElementById('demoBottomSheetModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDemoBottomSheet();
+      }
+    });
+
+    // Sidebar active link on scroll
+    const sections = document.querySelectorAll('.workbench-section');
+    const navItems = document.querySelectorAll('.sidebar-nav-item');
+    window.addEventListener('scroll', () => {
+      let currentSection = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 100;
+        if (window.scrollY >= top) {
+          currentSection = sec.getAttribute('id');
+        }
+      });
+      navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('href') === `#${currentSection}`);
+      });
+    });
+  </script>
+</body>
+
+</html>
