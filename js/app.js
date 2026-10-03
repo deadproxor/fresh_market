@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.3.3';
+const APP_VERSION = '1.3.4';
 window.APP_VERSION = APP_VERSION;
 
 // Safe UUID v4 generator for Supabase & LocalStorage
@@ -1766,14 +1766,14 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         throw new Error('Не удалось разобрать ответ ИИ');
       }
 
-      // Check against local dictionary for exact authentic names if matching
+      // Check against local dictionary for exact authentic names if matching (Dictionary has top priority)
       if (typeof PRODUCE_DICTIONARY !== 'undefined' && PRODUCE_DICTIONARY.length > 0) {
         const matched = this.matchWithLocalDictionary(parsed);
         if (matched) {
+          if (matched.kh) parsed.name_kh = matched.kh; // 100% priority for dictionary Khmer
+          if (matched.cat) parsed.category = matched.cat;
           parsed.name_en = matched.en || parsed.name_en;
           parsed.name_ru = matched.ru || parsed.name_ru;
-          if (matched.kh) parsed.name_kh = matched.kh;
-          if (matched.cat) parsed.category = matched.cat;
           if (matched.form && !parsed.form) parsed.form = matched.form;
           if (matched.desc && !parsed.description) parsed.description = matched.desc;
         }
@@ -1854,6 +1854,11 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.fieldDescription.value = data.description;
       this.highlightField(this.fieldDescription);
     }
+
+    // Instant duplicate check right after AI autofill
+    if (!isEdit) {
+      this.checkDuplicateProduct(data.name_en, data.name_ru, data.form);
+    }
   }
 
   highlightField(element) {
@@ -1865,16 +1870,29 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
   matchWithLocalDictionary(parsed) {
     if (!parsed || typeof PRODUCE_DICTIONARY === 'undefined' || PRODUCE_DICTIONARY.length === 0) return null;
-    const en = (parsed.name_en || '').toLowerCase().trim();
-    const ru = (parsed.name_ru || '').toLowerCase().trim();
+    const en = (parsed.name_en || '').trim();
+    const ru = (parsed.name_ru || '').trim();
 
+    // 1. Check with LookupService smart dictionary matching (handles aliases, stems, clean terms)
+    if (en) {
+      const match = LookupService.findInDictionary(en);
+      if (match) return match;
+    }
+    if (ru) {
+      const match = LookupService.findInDictionary(ru);
+      if (match) return match;
+    }
+
+    // 2. Direct partial scan fallback
+    const enLow = en.toLowerCase();
+    const ruLow = ru.toLowerCase();
     for (const item of PRODUCE_DICTIONARY) {
       const itemEn = (item.en || '').toLowerCase().trim();
       const itemRu = (item.ru || '').toLowerCase().trim();
-      if (en && (itemEn === en || en.includes(itemEn) || itemEn.includes(en))) {
+      if (enLow && (itemEn === enLow || enLow.includes(itemEn) || itemEn.includes(enLow))) {
         return item;
       }
-      if (ru && (itemRu === ru || ru.includes(itemRu) || itemRu.includes(ru))) {
+      if (ruLow && (itemRu === ruLow || ruLow.includes(itemRu) || itemRu.includes(ruLow))) {
         return item;
       }
     }
@@ -1980,14 +1998,17 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       const term = inputEl.value.trim();
       if (!term) return;
       const match = LookupService.findInDictionary(term);
-      if (match && match.cat) {
+      if (match) {
         if (!isEditModal) {
-          this.selectCategoryByName(match.cat);
+          if (match.kh) {
+            this.fieldNameKh.value = match.kh; // Priority dictionary Khmer
+            this.highlightField(this.fieldNameKh);
+          }
+          if (match.cat) {
+            this.selectCategoryByName(match.cat);
+          }
           if (match.form && (!this.selectedForm || this.selectedForm === FORMS[0].label)) {
             this.selectFormByName(match.form);
-          }
-          if (match.kh && !this.fieldNameKh.value.trim()) {
-            this.fieldNameKh.value = match.kh;
           }
           if (match.en && !this.fieldNameEn.value.trim()) {
             this.fieldNameEn.value = match.en;
@@ -1995,8 +2016,24 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           if (match.ru && !this.fieldNameRu.value.trim()) {
             this.fieldNameRu.value = match.ru;
           }
-        } else if (editCtx && editCtx.editCategory) {
-          editCtx.editCategory.value = match.cat;
+          if (match.desc && !this.fieldDescription.value.trim()) {
+            this.fieldDescription.value = match.desc;
+          }
+          this.checkDuplicateProduct(this.fieldNameEn.value, this.fieldNameRu.value, this.fieldForm.value || this.selectedForm);
+        } else if (editCtx) {
+          if (match.kh && editCtx.editNameKh) {
+            editCtx.editNameKh.value = match.kh; // Priority dictionary Khmer
+            this.highlightField(editCtx.editNameKh);
+          }
+          if (match.cat && editCtx.editCategory) {
+            editCtx.editCategory.value = match.cat;
+          }
+          if (match.form && editCtx.editFormSelect) {
+            editCtx.editFormSelect.value = match.form;
+          }
+          if (match.desc && editCtx.editDescription && !editCtx.editDescription.value.trim()) {
+            editCtx.editDescription.value = match.desc;
+          }
         }
       }
     };
@@ -2027,6 +2064,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         this.fieldDescription.value = item.desc;
       }
       this.showToast(`✨ Выбран «${item.en}»`);
+      this.checkDuplicateProduct(item.en, item.ru, item.form);
     } else if (editCtx) {
       editCtx.editNameEn.value = item.en;
       editCtx.editNameRu.value = item.ru;
@@ -2110,6 +2148,9 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           this.highlightField(descInput);
         }
         this.showToast(`✨ Найдено: ${result.name_en || result.name_ru}`);
+        if (!isEdit) {
+          this.checkDuplicateProduct(enInput.value, ruInput.value, this.fieldForm.value || this.selectedForm);
+        }
       } else {
         this.showToast('Не удалось найти перевод, заполните вручную');
       }
@@ -2136,6 +2177,46 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     });
+  }
+
+  // ------------------------------------------------------------------------
+  // Instant Duplicate Product Checker
+  // ------------------------------------------------------------------------
+  checkDuplicateProduct(nameEn, nameRu, form = '', showToastMessage = true, ignoreId = null) {
+    if (!nameEn && !nameRu) return null;
+    const enNorm = (nameEn || '').trim().toLowerCase();
+    const ruNorm = (nameRu || '').trim().toLowerCase();
+    const formNorm = (form || 'целый').trim().toLowerCase();
+
+    // Find matches by name in active catalog
+    const existingByName = (this.products || []).filter(p => {
+      if (ignoreId && p.id === ignoreId) return false;
+      const pEn = (p.name_en || '').trim().toLowerCase();
+      const pRu = (p.name_ru || '').trim().toLowerCase();
+      return (enNorm && pEn === enNorm) || (ruNorm && pRu === ruNorm);
+    });
+
+    if (existingByName.length === 0) return null;
+
+    // 1. Exact duplicate check: same name AND same form
+    const exactDuplicate = existingByName.find(p => {
+      const pForm = (p.form || 'Целый').trim().toLowerCase();
+      return pForm === formNorm;
+    });
+
+    if (exactDuplicate) {
+      if (showToastMessage) {
+        this.showToast(`⚠️ «${exactDuplicate.name_en}» (${exactDuplicate.form || 'Целый'}) уже есть в каталоге!`, 'warning');
+      }
+      return { type: 'exact', product: exactDuplicate };
+    }
+
+    // 2. Same name, different form: informative message
+    if (showToastMessage && existingByName.length > 0) {
+      const existingForms = existingByName.map(p => p.form || 'Целый').join(', ');
+      this.showToast(`ℹ️ «${existingByName[0].name_en}» уже есть в форме: ${existingForms}`, 'info');
+    }
+    return { type: 'different_form', existing: existingByName };
   }
 
   selectFormByName(formLabel) {
@@ -2180,10 +2261,10 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   async handleSubmit() {
     const nameEn = this.fieldNameEn.value.trim();
     const nameRu = this.fieldNameRu.value.trim();
-    const nameKh = this.fieldNameKh.value.trim();
-    const category = this.fieldCategory.value || this.selectedCategory;
-    const form = this.fieldForm.value || this.selectedForm;
-    const description = this.fieldDescription.value.trim();
+    let nameKh = this.fieldNameKh.value.trim();
+    let category = this.fieldCategory.value || this.selectedCategory;
+    let form = this.fieldForm.value || this.selectedForm;
+    let description = this.fieldDescription.value.trim();
 
     if (!nameEn) {
       this.showToast('Заполните поле Name (EN)');
@@ -2195,6 +2276,22 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.showToast('Заполните поле Название (RU)');
       this.fieldNameRu.focus();
       return;
+    }
+
+    // Prevent saving exact duplicate (same name AND same form)
+    const duplicateCheck = this.checkDuplicateProduct(nameEn, nameRu, form, false);
+    if (duplicateCheck && duplicateCheck.type === 'exact') {
+      this.showToast(`⚠️ «${duplicateCheck.product.name_en}» (${duplicateCheck.product.form || 'Целый'}) уже есть в каталоге!`, 'warning');
+      return;
+    }
+
+    // Final Dictionary Check: Dictionary data (especially Khmer) ALWAYS has priority
+    const dictMatch = LookupService.findInDictionary(nameEn) || LookupService.findInDictionary(nameRu);
+    if (dictMatch) {
+      if (dictMatch.kh) nameKh = dictMatch.kh;
+      if (dictMatch.cat) category = dictMatch.cat;
+      if (dictMatch.form && (!form || form === FORMS[0].label)) form = dictMatch.form;
+      if (dictMatch.desc && !description) description = dictMatch.desc;
     }
 
     let imgUrl = this.currentImageBase64;
@@ -2894,13 +2991,26 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         }
       }
 
+      // Final Dictionary Check on edit save: Dictionary has priority for Khmer & Category
+      let finalNameKh = document.getElementById('editNameKh').value.trim();
+      let finalCat = document.getElementById('editCategory').value;
+      let finalForm = document.getElementById('editFormSelect').value.trim();
+      let finalDesc = document.getElementById('editDescription').value.trim();
+
+      const dictMatch = LookupService.findInDictionary(nameEn) || LookupService.findInDictionary(nameRu);
+      if (dictMatch) {
+        if (dictMatch.kh) finalNameKh = dictMatch.kh;
+        if (dictMatch.cat) finalCat = dictMatch.cat;
+        if (dictMatch.desc && !finalDesc) finalDesc = dictMatch.desc;
+      }
+
       const updatedData = {
-        category: document.getElementById('editCategory').value,
+        category: finalCat,
         name_en: nameEn,
         name_ru: nameRu,
-        name_kh: document.getElementById('editNameKh').value.trim(),
-        form: document.getElementById('editFormSelect').value.trim(),
-        description: document.getElementById('editDescription').value.trim(),
+        name_kh: finalNameKh,
+        form: finalForm,
+        description: finalDesc,
         img_url: this.editModalImageBase64
       };
 

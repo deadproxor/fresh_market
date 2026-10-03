@@ -1254,12 +1254,12 @@
           <div class="component-box">
             <div class="component-box-header">
               <span class="component-box-title">Каталог (index.html)</span>
-              <span class="component-box-class">Иконка 🌱 + Версия v1.3.3</span>
+              <span class="component-box-class">Иконка 🌱 + Версия v1.3.4</span>
             </div>
             <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 32px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%;">
               <div style="font-size: 64px; line-height: 1;">🌱</div>
               <div class="splash-title" style="font-size: 22px;">FreshMarket</div>
-              <div class="splash-version" style="margin-top: 2px;">v1.3.3</div>
+              <div class="splash-version" style="margin-top: 2px;">v1.3.4</div>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 10px;">
               <button type="button" class="btn btn-secondary btn-sm" onclick="triggerDemoSplash('catalog')">Тест сплэша каталога</button>
@@ -1339,7 +1339,7 @@
       if (type === 'catalog') {
         if (icon) icon.textContent = '🌱';
         if (subtitle) subtitle.style.display = 'none';
-        if (version) version.textContent = 'v1.3.3';
+        if (version) version.textContent = 'v1.3.4';
       } else {
         if (icon) icon.textContent = '🥬';
         if (subtitle) {
@@ -1393,13 +1393,46 @@
     }
 
     // Interactive Toast Demo
-    function showToastDemo(msg) {
+    function showToastDemo(msg, type = 'auto') {
       const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      let toastType = type;
+      let icon = '';
+      let cleanMsg = String(msg || '').trim();
+
+      if (toastType === 'auto') {
+        if (/^✅|^🎉|успешно|сохранен|добавлен/i.test(cleanMsg)) {
+          toastType = 'success';
+        } else if (/^⚠️|^❌|ошибка|не удалось|danger/i.test(cleanMsg)) {
+          toastType = 'error';
+        } else {
+          toastType = 'info';
+        }
+      }
+
+      const emojiMatch = cleanMsg.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Emoji_Presentation}|\p{Extended_Pictographic})/u);
+      if (emojiMatch) {
+        icon = emojiMatch[0];
+        cleanMsg = cleanMsg.slice(icon.length).trim();
+      } else {
+        if (toastType === 'success') icon = '✅';
+        else if (toastType === 'error') icon = '⚠️';
+        else icon = 'ℹ️';
+      }
+
       const item = document.createElement('div');
-      item.className = 'toast-item';
-      item.innerHTML = `<span>${msg}</span><button class="toast-close-btn" onclick="this.parentElement.remove()">✕</button>`;
+      item.className = `toast-item toast-${toastType}`;
+      item.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-text">${cleanMsg}</span>
+        <button type="button" class="toast-close-btn" onclick="this.parentElement.remove()">✕</button>
+      `;
       container.appendChild(item);
-      setTimeout(() => item.remove(), 2500);
+      setTimeout(() => {
+        item.classList.add('toast-hiding');
+        setTimeout(() => item.remove(), 250);
+      }, 2800);
     }
 
     // Interactive Category Pills Click
