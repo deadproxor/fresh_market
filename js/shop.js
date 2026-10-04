@@ -3,8 +3,11 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.3.4';
+const SHOP_VERSION = '1.3.6';
 window.SHOP_VERSION = SHOP_VERSION;
+
+const DEFAULT_SUPABASE_URL = 'https://qifazsptdgcskrchfocc.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
 
 const FAB_ICONS = {
   cart: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
@@ -86,8 +89,8 @@ class ShopApp {
   // 1. Supabase Initialization
   // ------------------------------------------------------------------------
   initSupabase() {
-    const sbUrl = localStorage.getItem('freshmarket_supabase_url');
-    const sbKey = localStorage.getItem('freshmarket_supabase_key');
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || DEFAULT_SUPABASE_URL;
+    const sbKey = localStorage.getItem('freshmarket_supabase_key') || DEFAULT_SUPABASE_KEY;
     if (sbUrl && sbKey && window.supabase) {
       try {
         this.sb = window.supabase.createClient(sbUrl, sbKey);
@@ -313,12 +316,13 @@ class ShopApp {
 
     // Online/Offline status
     window.addEventListener('online', () => {
-      this.showToast('🟢 Соединение восстановлено');
+      this.showToast('🟢 Сеть восстановлена: обновляем каталог...');
       this.loadCatalog();
     });
 
     window.addEventListener('offline', () => {
-      this.showToast('📶 Офлайн-режим: каталог доступен из кэша');
+      this.showToast('📡 Потеряно соединение с интернетом');
+      this.showOfflineState();
     });
   }
 
@@ -413,11 +417,16 @@ class ShopApp {
   // 6. Catalog Loading & Rendering
   // ------------------------------------------------------------------------
   async loadCatalog() {
-    this.renderCategories();
     this.showLoadingState();
 
-    // 1. Try Supabase if online and initialized
-    if (navigator.onLine && this.sb) {
+    // 1. Check network connectivity
+    if (!navigator.onLine) {
+      this.showOfflineState();
+      return;
+    }
+
+    // 2. Fetch from Supabase
+    if (this.sb) {
       try {
         const { data, error } = await this.sb
           .from('products')
@@ -426,45 +435,65 @@ class ShopApp {
 
         if (!error && data && data.length > 0) {
           this.products = data;
-          try {
-            localStorage.setItem('freshmarket_products', JSON.stringify(data));
-          } catch (_) { }
           this.renderProducts();
           this.renderCategories();
           return;
+        } else if (error) {
+          console.warn('[FreshMarket Shop] Supabase fetch error:', error);
         }
       } catch (err) {
-        console.warn('[FreshMarket Shop] Supabase fetch error, fallback to local cache:', err.message || err);
+        console.warn('[FreshMarket Shop] Supabase connection error:', err);
       }
     }
 
-    // 2. Fallback: localStorage cache
-    try {
-      const localData = localStorage.getItem('freshmarket_products');
-      if (localData) {
-        this.products = JSON.parse(localData);
-        this.renderProducts();
-        this.renderCategories();
-        return;
-      }
-    } catch (err) {
-      console.warn('[FreshMarket Shop] localStorage parse failed:', err);
+    // 3. Fallback when fetch fails or returns empty
+    this.showOfflineState('Каталог пуст или недоступен', 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.');
+  }
+
+  showOfflineState(title = 'Нет подключения к сети', desc = 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.') {
+    this.products = [];
+    this.renderCategories();
+
+    if (this.shopProductsCount) {
+      this.shopProductsCount.textContent = 'Нет подключения к сети';
     }
 
-    // 3. Fallback: products_dictionary.json
-    try {
-      let res = await fetch('./data/products_dictionary.json');
-      if (!res.ok) {
-        res = await fetch('./products_dictionary.json');
+    if (this.shopProductsGrid) {
+      this.shopProductsGrid.innerHTML = `
+        <div class="empty-state offline-empty-state">
+          <div class="empty-icon">📡</div>
+          <div class="empty-title">${this.escapeHtml(title)}</div>
+          <div class="empty-desc">${this.escapeHtml(desc)}</div>
+          <button type="button" class="btn btn-primary btn-retry-catalog" id="btnRetryCatalog" style="margin-top: 14px; padding: 10px 24px;">
+            🔄 Попробовать снова
+          </button>
+        </div>
+      `;
+      const btn = this.shopProductsGrid.querySelector('#btnRetryCatalog');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          this.loadCatalog();
+        });
       }
-      if (res.ok) {
-        this.products = await res.json();
-        this.renderProducts();
-        this.renderCategories();
+    }
+
+    if (this.shopCategoryGrid) {
+      this.shopCategoryGrid.innerHTML = `
+        <div class="empty-state offline-empty-state" style="grid-column: 1 / -1; padding: 40px 20px;">
+          <div class="empty-icon">📡</div>
+          <div class="empty-title">${this.escapeHtml(title)}</div>
+          <div class="empty-desc">${this.escapeHtml(desc)}</div>
+          <button type="button" class="btn btn-primary" id="btnRetryCategories" style="margin-top: 14px; padding: 10px 24px;">
+            🔄 Попробовать снова
+          </button>
+        </div>
+      `;
+      const btnCat = this.shopCategoryGrid.querySelector('#btnRetryCategories');
+      if (btnCat) {
+        btnCat.addEventListener('click', () => {
+          this.loadCatalog();
+        });
       }
-    } catch (err) {
-      console.error('[FreshMarket Shop] Error loading fallback products dictionary:', err);
-      this.showToast('Каталог загружен в автономном режиме');
     }
   }
 
