@@ -197,17 +197,17 @@
         </div>
         <div class="modal-body cart-modal-body">
 
-          <!-- Cart Items List -->
-          <div id="cartItemsList" class="cart-items-list">
-            <!-- Items injected via JS -->
-          </div>
-
-          <!-- 1. Cart Auth Gate (Shown when NOT logged in) -->
+          <!-- 1. Cart Auth Gate (Shown when NOT logged in, placed FIRST above items) -->
           <div id="cartAuthGate" class="cart-auth-gate" style="display: none;">
             <div class="cart-auth-gate-icon">🔐</div>
             <div class="cart-auth-gate-title">Оформление доступно после входа</div>
-            <div class="cart-auth-gate-desc">Войдите через Google, Facebook или сохраните имя и контакты, чтобы оформить доставку на утренний закуп.</div>
+            <div class="cart-auth-gate-desc">Войдите через Google или Facebook, чтобы оформить доставку на утренний закуп.</div>
             <button type="button" class="btn btn-primary btn-auth-gate" id="btnCartAuthGate">Войти в аккаунт →</button>
+          </div>
+
+          <!-- 2. Cart Items List -->
+          <div id="cartItemsList" class="cart-items-list">
+            <!-- Items injected via JS -->
           </div>
 
           <!-- 2. Streamlined Checkout Form (Shown when logged in) -->
@@ -341,7 +341,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.1.0"></script>
+  <script src="js/shop.js?v=1.3.4"></script>
 </body>
 
 </html>

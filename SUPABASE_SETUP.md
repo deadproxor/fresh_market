@@ -46,15 +46,11 @@
    - В поле **Authorized redirect URIs** вставьте скопированный Callback URL.
 4. Скопируйте выданные **Client ID** и **Client Secret** и сохраните их в настройках Google Provider в Supabase.
 
-#### 2. Facebook Login (Опционально)
+#### 2. Facebook Login
 1. В Supabase перейдите в **Authentication** → **Providers** → **Facebook** (включить).
 2. В [Meta for Developers](https://developers.facebook.com/) создайте приложение, подключите продукт **Facebook Login**.
 3. Вставьте Callback URL из Supabase в настройки валидных URI перенаправления OAuth в Meta.
 4. Вставьте **App ID** и **App Secret** в Supabase.
-
-#### 3. Email / Magic Link / OTP (Без пароля)
-- Включен в Supabase по умолчанию в разделе **Authentication** → **Providers** → **Email**.
-- Позволяет покупателям входить по одноразовой ссылке или 6-значному коду на email.
 
 ---
 

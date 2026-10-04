@@ -20,9 +20,11 @@
   --text-muted: #636366;
   --text-khmer: #70c0e8;
 
-  --accent-emerald: #30d158;
-  --accent-emerald-light: #34c759;
-  --accent-emerald-glow: rgba(48, 209, 88, 0.18);
+  --accent-emerald: #10b981;
+  --accent-emerald-light: #34d399;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+  --accent-emerald-gradient: linear-gradient(135deg, #10b981, #059669);
+  --accent-emerald-gradient-hover: linear-gradient(135deg, #059669, #047857);
 
   --accent-cyan: #64d2ff;
   --accent-amber: #ff9f0a;
@@ -71,9 +73,11 @@
   --text-muted: #86868b;
   --text-khmer: #1a6896;
 
-  --accent-emerald: #248a3d;
-  --accent-emerald-light: #34c759;
-  --accent-emerald-glow: rgba(36, 138, 61, 0.15);
+  --accent-emerald: #10b981;
+  --accent-emerald-light: #34d399;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+  --accent-emerald-gradient: linear-gradient(135deg, #10b981, #059669);
+  --accent-emerald-gradient-hover: linear-gradient(135deg, #059669, #047857);
 
   --accent-cyan: #0071e3;
   --accent-amber: #b25e02;
@@ -315,17 +319,17 @@ body {
 }
 
 .tab-item.active {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: var(--accent-emerald-gradient);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
 }
 
 [data-theme="light"] .tab-item.active {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: rgba(15, 23, 42, 0.1);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  background: var(--accent-emerald-gradient);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
 }
 
 .category-filter-pills {
@@ -363,10 +367,11 @@ body {
 }
 
 .filter-pill.active {
-  background: var(--accent-emerald);
+  background: var(--accent-emerald-gradient);
   color: #ffffff;
-  border-color: var(--accent-emerald);
+  border-color: transparent;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 /* Category Cards Grid & Tiles */
@@ -474,6 +479,11 @@ body {
   border-color: rgba(48, 209, 88, 0.3);
 }
 
+.product-card.in-cart {
+  border-color: var(--accent-emerald, #10b981);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), var(--shadow-sm);
+}
+
 .card-names-block {
   display: flex;
   flex-direction: column;
@@ -551,7 +561,7 @@ body {
 
 .card-photo-container {
   width: 100%;
-  height: 170px;
+  height: 250px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--bg-card-subtle);
@@ -568,6 +578,217 @@ body {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.45;
+}
+
+/* Card Slider Viewport & Multi-Slide Layout */
+.card-slider-viewport {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+}
+
+.card-slider-track {
+  display: flex;
+  width: 200%;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card.is-options-open .card-slider-track {
+  transform: translateX(-50%);
+}
+
+.card-slide {
+  width: 50%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.card-slide-main {
+  gap: 10px;
+}
+
+.card-slide-options {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.card-options-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.btn-options-cancel {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.btn-options-cancel:hover {
+  color: var(--accent-rose, #f43f5e);
+}
+
+.card-options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.option-chip {
+  padding: 10px 4px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.option-chip.active,
+.option-chip.selected {
+  background: var(--accent-emerald-gradient);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+.option-chip:hover:not(.active) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+
+/* Floating Action Button (FAB) in Card */
+.btn-floating-cart {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-emerald-gradient);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  transition: transform 0.2s var(--ease-spring), background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-floating-cart:hover {
+  background: var(--accent-emerald-gradient-hover);
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.55);
+}
+
+.btn-floating-cart:active {
+  transform: scale(0.94);
+}
+
+.btn-floating-cart.is-confirm,
+.btn-floating-cart.is-in-cart {
+  background: linear-gradient(135deg, #10b981, #047857);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.55);
+}
+
+.btn-floating-cart .fab-icon,
+.btn-floating-cart .fab-svg,
+.btn-floating-remove .fab-icon,
+.btn-floating-remove .fab-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  stroke: #ffffff;
+}
+
+/* Floating Remove Button (Red FAB) */
+.btn-floating-remove {
+  position: absolute;
+  right: 64px;
+  bottom: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  transition: transform 0.2s var(--ease-spring), opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-floating-remove:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.55);
+}
+
+.btn-floating-remove:active {
+  transform: scale(0.94);
+}
+
+/* In-Cart Header Badge */
+.badge-in-cart {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 6px;
+  animation: badgePop 0.2s var(--ease-spring);
+}
+
+@keyframes badgePop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .shop-card-actions {
@@ -645,13 +866,13 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-emerald), #059669);
+  background: var(--accent-emerald-gradient);
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #34d399, #059669);
+  background: var(--accent-emerald-gradient-hover);
 }
 
 .btn-secondary {
@@ -661,9 +882,9 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #ffffff;
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
 }
 
 .btn-danger {
@@ -1004,7 +1225,7 @@ body {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--accent-emerald-gradient);
   border: none;
   color: #ffffff;
   display: inline-flex;
@@ -1020,6 +1241,7 @@ body {
 }
 
 .nav-fab-btn:hover {
+  background: var(--accent-emerald-gradient-hover);
   transform: scale(1.08);
   box-shadow: 0 8px 24px rgba(16, 185, 129, 0.58);
 }

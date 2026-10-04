@@ -50,9 +50,6 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
-  max-height: 220px;
-  overflow-y: auto;
-  padding-right: 4px;
 }
 
 .cart-item-row {
@@ -337,6 +334,43 @@
   margin-top: 4px;
 }
 
+/* Messenger Selector in Profile */
+.messenger-selector {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.messenger-pill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.messenger-pill.active {
+  background: var(--accent-emerald, #10b981);
+  color: #ffffff;
+  border-color: var(--accent-emerald, #10b981);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.messenger-pill:hover:not(.active) {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+}
+
 /* 9. Cart Auth Gate & Checkout User Badge */
 .cart-auth-gate {
   background: var(--bg-card-subtle, rgba(255, 255, 255, 0.03));
@@ -349,6 +383,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  margin-bottom: 2em;
 }
 
 .cart-auth-gate-icon {

@@ -3,8 +3,16 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.1.0';
+const SHOP_VERSION = '1.3.4';
 window.SHOP_VERSION = SHOP_VERSION;
+
+const FAB_ICONS = {
+  cart: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
+  close: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+  confirm: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+  edit: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+  trash: `<svg class="fab-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`
+};
 
 // Categories Configuration with Emojis (synced with app.js)
 const CATEGORIES = [
@@ -388,7 +396,7 @@ class ShopApp {
     dots.forEach((d, i) => d.classList.toggle('active', i === index));
 
     if (this.btnNextOnboarding) {
-      this.btnNextOnboarding.textContent = index === 2 ? 'Начать покупки 🎉' : 'Далее →';
+      this.btnNextOnboarding.textContent = index === 2 ? 'Начать' : 'Далее →';
     }
   }
 
@@ -420,7 +428,7 @@ class ShopApp {
           this.products = data;
           try {
             localStorage.setItem('freshmarket_products', JSON.stringify(data));
-          } catch (_) {}
+          } catch (_) { }
           this.renderProducts();
           this.renderCategories();
           return;
@@ -537,6 +545,32 @@ class ShopApp {
     }
   }
 
+  getProductOptions(product) {
+    const form = (product.form || '').toLowerCase();
+    const cat = (product.category || '').toLowerCase();
+
+    if (form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
+      return {
+        unit: 'пучок',
+        options: ['1 пучок', '2 пучка', '3 пучка', '4 пучка', '5 пучков', '10 пучков'],
+        defaultQty: '1 пучок'
+      };
+    }
+    if (form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('бутылк') || form.includes('банка') || form.includes('упаковк')) {
+      return {
+        unit: 'шт',
+        options: ['1 шт', '2 шт', '3 шт', '4 шт', '5 шт', '10 шт'],
+        defaultQty: '1 шт'
+      };
+    }
+    // Default Produce / Produce / Seafood / Meat weight
+    return {
+      unit: 'кг',
+      options: ['0.5 кг', '1 кг', '1.5 кг', '2 кг', '3 кг', '5 кг'],
+      defaultQty: '1 кг'
+    };
+  }
+
   renderProducts() {
     if (!this.shopProductsGrid) return;
 
@@ -585,17 +619,22 @@ class ShopApp {
 
     this.shopProductsGrid.innerHTML = filtered.map((item) => {
       const cartItem = this.cart[item.id];
-      const inCart = !!cartItem;
+      const inCart = Boolean(cartItem);
       const qtyText = cartItem ? cartItem.qty : '';
       const catObj = CATEGORIES.find((c) => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
+      const optionsConfig = this.getProductOptions(item);
+      const currentSelectedQty = inCart ? cartItem.qty : '';
 
       return `
-        <div class="product-card shop-product-card" data-id="${item.id}">
+        <div class="product-card shop-product-card ${inCart ? 'in-cart' : ''}" data-id="${item.id}">
           <div class="card-names-block">
-            <!-- Header with prominent EN Name and Minimalist Collapse Arrow -->
+            <!-- Header with prominent EN Name and In-Cart Badge -->
             <div class="card-header-row">
-              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+              <div class="card-name-title-wrap" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+                ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
+              </div>
               <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
                 <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="6 9 12 15 18 9"></polyline>
@@ -614,34 +653,56 @@ class ShopApp {
               ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
             </div>
 
-            ${item.img_url ? `
-              <div class="card-photo-container">
-                <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
-              </div>
-            ` : ''}
-
-            ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
-
-            <!-- Add to Cart / Quantity Selector -->
-            <div class="shop-card-actions">
-              ${inCart ? `
-                <div class="cart-qty-control">
-                  <button type="button" class="btn-qty-minus" data-id="${item.id}">−</button>
-                  <span class="qty-number">${this.escapeHtml(qtyText)}</span>
-                  <button type="button" class="btn-qty-plus" data-id="${item.id}">+</button>
+            <!-- 2-Slide Viewport: Slide 1 (Photo) <-> Slide 2 (Options) -->
+            <div class="card-slider-viewport">
+              <div class="card-slider-track">
+                <!-- Slide 1: Main View (Photo + Description) -->
+                <div class="card-slide card-slide-main">
+                  ${item.img_url ? `
+                    <div class="card-photo-container">
+                      <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                    </div>
+                  ` : `
+                    <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
+                      ${catIcon}
+                    </div>
+                  `}
+                  ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
                 </div>
-              ` : `
-                <button type="button" class="btn btn-primary btn-add-cart" data-id="${item.id}">
-                  + В заказ
-                </button>
-              `}
+
+                <!-- Slide 2: Options Selection View -->
+                <div class="card-slide card-slide-options">
+                  <div class="card-options-header">
+                    <div class="card-options-title">Выберите количество / вес:</div>
+                    <button type="button" class="btn-options-cancel" data-id="${item.id}">✕ Назад</button>
+                  </div>
+
+                  <div class="card-options-grid" data-id="${item.id}">
+                    ${optionsConfig.options.map((opt) => `
+                      <button type="button" class="option-chip ${currentSelectedQty === opt ? 'active' : ''}" data-id="${item.id}" data-val="${opt}">
+                        ${opt}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floating Remove Button (Red FAB, shown only during options edit for in-cart items) -->
+              <button type="button" class="btn-floating-remove" data-id="${item.id}" title="Убрать из корзины" style="display: none;">
+                <span class="fab-icon">${FAB_ICONS.trash}</span>
+              </button>
+
+              <!-- Floating Action Button (FAB) -->
+              <button type="button" class="btn-floating-cart ${inCart ? 'is-in-cart' : ''}" data-id="${item.id}" title="${inCart ? 'Изменить заказ' : 'Добавить в заказ'}">
+                <span class="fab-icon">${inCart ? FAB_ICONS.edit : FAB_ICONS.cart}</span>
+              </button>
             </div>
           </div>
         </div>
       `;
     }).join('');
 
-    // Toggle card collapse / expand
+    // Attach card collapse / expand toggle
     this.shopProductsGrid.querySelectorAll('.product-card').forEach((card) => {
       const namesBlock = card.querySelector('.card-names-block');
       const toggleBtn = card.querySelector('.btn-card-toggle');
@@ -661,25 +722,158 @@ class ShopApp {
       }
     });
 
-    // Attach Add to Cart & Qty buttons
-    this.shopProductsGrid.querySelectorAll('.btn-add-cart').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+    // Attach Option Chips Click Handlers
+    this.shopProductsGrid.querySelectorAll('.option-chip').forEach((chip) => {
+      chip.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        this.addToCart(id);
+        const val = e.currentTarget.dataset.val;
+        const card = e.currentTarget.closest('.product-card');
+        if (!card) return;
+
+        card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        // Switch FAB from ✕ to ✓
+        const fab = card.querySelector('.btn-floating-cart');
+        if (fab) {
+          fab.classList.add('is-confirm');
+          fab.title = 'Подтвердить и добавить в заказ';
+          const iconEl = fab.querySelector('.fab-icon');
+          if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
+        }
       });
     });
 
-    this.shopProductsGrid.querySelectorAll('.btn-qty-plus').forEach((btn) => {
+    // Cancel / Back Button Click Handlers
+    this.shopProductsGrid.querySelectorAll('.btn-options-cancel').forEach((btn) => {
       btn.addEventListener('click', (e) => {
+        const card = e.currentTarget.closest('.product-card');
         const id = e.currentTarget.dataset.id;
-        this.increaseQty(id);
+        if (!card) return;
+
+        card.classList.remove('is-options-open');
+        const btnRemove = card.querySelector('.btn-floating-remove');
+        if (btnRemove) btnRemove.style.display = 'none';
+
+        const fab = card.querySelector('.btn-floating-cart');
+        const inCart = Boolean(this.cart[id]);
+        if (fab) {
+          fab.classList.remove('is-confirm');
+          fab.classList.toggle('is-in-cart', inCart);
+          fab.title = inCart ? 'Изменить заказ' : 'Добавить в заказ';
+          const iconEl = fab.querySelector('.fab-icon');
+          if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
+        }
       });
     });
 
-    this.shopProductsGrid.querySelectorAll('.btn-qty-minus').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+    // Floating Remove Button (Red FAB) Click Handlers
+    this.shopProductsGrid.querySelectorAll('.btn-floating-remove').forEach((btnRemove) => {
+      btnRemove.addEventListener('click', (e) => {
+        e.stopPropagation();
         const id = e.currentTarget.dataset.id;
-        this.decreaseQty(id);
+        const card = e.currentTarget.closest('.product-card');
+        this.removeFromCart(id, false);
+
+        if (card) {
+          card.classList.remove('is-options-open', 'in-cart');
+          btnRemove.style.display = 'none';
+
+          const fab = card.querySelector('.btn-floating-cart');
+          if (fab) {
+            fab.classList.remove('is-confirm', 'is-in-cart');
+            fab.title = 'Добавить в заказ';
+            const iconEl = fab.querySelector('.fab-icon');
+            if (iconEl) iconEl.innerHTML = FAB_ICONS.cart;
+          }
+
+          const badge = card.querySelector(`#badge_${id}`);
+          if (badge) badge.style.display = 'none';
+
+          card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
+        }
+
+        this.showToast('🗑️ Товар убран из корзины');
+      });
+    });
+
+    // Floating Action Button (FAB) Click Handlers
+    this.shopProductsGrid.querySelectorAll('.btn-floating-cart').forEach((fab) => {
+      fab.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const card = e.currentTarget.closest('.product-card');
+        if (!card) return;
+
+        const isOptionsOpen = card.classList.contains('is-options-open');
+        const inCart = Boolean(this.cart[id]);
+        const btnRemove = card.querySelector('.btn-floating-remove');
+
+        if (!isOptionsOpen) {
+          // 1. OPEN OPTIONS (Slide to Left)
+          card.classList.add('is-options-open');
+
+          if (inCart) {
+            // Already in cart -> pre-selected, confirm icon (✓), show red remove FAB
+            fab.classList.add('is-confirm');
+            fab.title = 'Подтвердить изменения';
+            const iconEl = fab.querySelector('.fab-icon');
+            if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
+            if (btnRemove) btnRemove.style.display = 'flex';
+          } else {
+            // New item -> no selection, cross icon (✕), hide red remove FAB
+            card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
+            fab.classList.remove('is-confirm');
+            fab.title = 'Назад / Отмена';
+            const iconEl = fab.querySelector('.fab-icon');
+            if (iconEl) iconEl.innerHTML = FAB_ICONS.close;
+            if (btnRemove) btnRemove.style.display = 'none';
+          }
+        } else {
+          // 2. FAB CLICKED WHILE OPTIONS OPEN
+          const isConfirmState = fab.classList.contains('is-confirm');
+          const activeChip = card.querySelector('.option-chip.active');
+          const qty = activeChip?.dataset.val;
+
+          if (btnRemove) btnRemove.style.display = 'none';
+
+          if (!isConfirmState || !qty) {
+            // Act as Cancel / Back
+            card.classList.remove('is-options-open');
+            fab.classList.remove('is-confirm');
+            fab.classList.toggle('is-in-cart', inCart);
+            fab.title = inCart ? 'Изменить заказ' : 'Добавить в заказ';
+            const iconEl = fab.querySelector('.fab-icon');
+            if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
+          } else {
+            // Confirm & Save to Cart
+            const product = this.products.find((p) => p.id === id);
+            if (product) {
+              this.cart[id] = {
+                product: product,
+                qty: qty
+              };
+              this.saveCart();
+
+              // Slide back to main view
+              card.classList.remove('is-options-open');
+              card.classList.add('in-cart');
+              fab.classList.remove('is-confirm');
+              fab.classList.add('is-in-cart');
+              fab.title = 'Изменить заказ';
+              const iconEl = fab.querySelector('.fab-icon');
+              if (iconEl) iconEl.innerHTML = FAB_ICONS.edit;
+
+              // Update badge in header
+              const badge = card.querySelector(`#badge_${id}`);
+              if (badge) {
+                badge.textContent = `✓ ${qty}`;
+                badge.style.display = 'inline-flex';
+              }
+
+              this.showToast(`✅ В корзине: ${product.name_en} (${qty})`);
+            }
+          }
+        }
       });
     });
   }
@@ -755,10 +949,12 @@ class ShopApp {
     this.renderCartModalList();
   }
 
-  removeFromCart(productId) {
+  removeFromCart(productId, shouldReRender = true) {
     delete this.cart[productId];
     this.saveCart();
-    this.renderProducts();
+    if (shouldReRender) {
+      this.renderProducts();
+    }
     this.renderCartModalList();
   }
 
@@ -795,25 +991,24 @@ class ShopApp {
   }
 
   isUserAuthenticated() {
-    if (this.currentUser) return true;
-    const guestName = localStorage.getItem('freshmarket_customer_name');
-    const guestPhone = localStorage.getItem('freshmarket_customer_phone');
-    return Boolean(guestName && guestPhone);
+    return Boolean(this.currentUser);
   }
 
   getCurrentCustomerInfo() {
     let name = 'Покупатель';
-    let phone = '';
+    let email = '';
+    let messenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
+    let phone = localStorage.getItem('freshmarket_customer_phone') || '';
     let address = localStorage.getItem('freshmarket_customer_address') || '';
 
     if (this.currentUser) {
       name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
-      phone = localStorage.getItem('freshmarket_customer_phone') || this.currentUser.phone || this.currentUser.email || '';
-    } else {
-      name = localStorage.getItem('freshmarket_customer_name') || 'Покупатель';
-      phone = localStorage.getItem('freshmarket_customer_phone') || '';
+      email = this.currentUser.email || '';
+      if (!phone && this.currentUser.phone) {
+        phone = this.currentUser.phone;
+      }
     }
-    return { name, phone, address };
+    return { name, email, messenger, phone, address };
   }
 
   renderCartModalList() {
@@ -876,14 +1071,21 @@ class ShopApp {
   }
 
   prefillCheckoutData() {
-    const { name, phone, address } = this.getCurrentCustomerInfo();
+    const { name, messenger, phone, address } = this.getCurrentCustomerInfo();
 
     const nameBadge = document.getElementById('checkoutUserName');
     const phoneBadge = document.getElementById('checkoutUserPhone');
     const addressInput = document.getElementById('deliveryAddress');
 
     if (nameBadge) nameBadge.textContent = name;
-    if (phoneBadge) phoneBadge.textContent = phone ? `📞 ${phone}` : 'Контакты сохранены';
+    if (phoneBadge) {
+      if (!phone) {
+        phoneBadge.innerHTML = '<span style="color: var(--accent-amber, #f59e0b);">⚠️ Укажите контакт (Telegram / WhatsApp)</span>';
+      } else {
+        const messengerIcon = messenger === 'whatsapp' ? '💬 WhatsApp:' : messenger === 'phone' ? '📞 Телефон:' : '✈️ Telegram:';
+        phoneBadge.textContent = `${messengerIcon} ${phone}`;
+      }
+    }
     if (addressInput && !addressInput.value) addressInput.value = address;
   }
 
@@ -892,7 +1094,15 @@ class ShopApp {
   // ------------------------------------------------------------------------
   async handleCheckoutSubmit() {
     if (!this.isUserAuthenticated()) {
-      this.showToast('⚠️ Войдите в профиль для оформления заказа');
+      this.showToast('⚠️ Войдите через Google или Facebook для оформления заказа');
+      this.openAuthModal();
+      return;
+    }
+
+    const { name: customerName, messenger: customerMessenger, phone: customerPhone } = this.getCurrentCustomerInfo();
+
+    if (!customerPhone) {
+      this.showToast('⚠️ Укажите контакт (Telegram / WhatsApp) для связи с закупщиком');
       this.openAuthModal();
       return;
     }
@@ -917,8 +1127,6 @@ class ShopApp {
       return;
     }
 
-    const { name: customerName, phone: customerPhone } = this.getCurrentCustomerInfo();
-
     // Save profile address locally
     localStorage.setItem('freshmarket_customer_address', deliveryAddress);
 
@@ -935,6 +1143,7 @@ class ShopApp {
       order_number: orderNumber,
       user_id: this.currentUser?.id || null,
       customer_name: customerName,
+      customer_messenger: customerMessenger,
       customer_phone: customerPhone,
       delivery_address: deliveryAddress,
       customer_comment: customerComment,
@@ -1150,25 +1359,35 @@ class ShopApp {
     this.setActiveNav('navProfile');
     if (!this.authModalBody) return;
 
-    const guestName = localStorage.getItem('freshmarket_customer_name') || '';
-    const guestPhone = localStorage.getItem('freshmarket_customer_phone') || '';
-    const savedAddress = localStorage.getItem('freshmarket_customer_address') || '';
-
     if (this.currentUser) {
-      // 1. Supabase User Profile View
+      // 1. Supabase Authenticated User Profile View
       const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
+      const email = this.currentUser.email || '';
+      let currentMessenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
+      let phone = localStorage.getItem('freshmarket_customer_phone') || this.currentUser.phone || '';
+      let address = localStorage.getItem('freshmarket_customer_address') || '';
+
       this.authModalBody.innerHTML = `
         <div class="profile-view">
           <div class="profile-avatar">👤</div>
           <div class="profile-name">${this.escapeHtml(name)}</div>
-          <div class="profile-email">${this.escapeHtml(this.currentUser.email || '')}</div>
+          <div class="profile-email">${this.escapeHtml(email)}</div>
           
           <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <label class="field-label" for="profilePhone">Телефон или Telegram:</label>
-            <input type="tel" id="profilePhone" class="text-input" placeholder="+855... или @username" value="${this.escapeHtml(guestPhone)}" />
+            <label class="field-label" style="margin-bottom: 2px;">Предпочтительный мессенджер для связи *:</label>
+            <div class="messenger-selector" id="profileMessengerSelector">
+              <button type="button" class="messenger-pill ${currentMessenger === 'telegram' ? 'active' : ''}" data-messenger="telegram">✈️ Telegram</button>
+              <button type="button" class="messenger-pill ${currentMessenger === 'whatsapp' ? 'active' : ''}" data-messenger="whatsapp">💬 WhatsApp</button>
+              <button type="button" class="messenger-pill ${currentMessenger === 'phone' ? 'active' : ''}" data-messenger="phone">📞 Звонок</button>
+            </div>
 
-            <label class="field-label" for="profileAddress" style="margin-top: 10px;">Адрес или ориентир доставки:</label>
-            <textarea id="profileAddress" class="text-input" rows="2" placeholder="Улица, дом, ориентир">${this.escapeHtml(savedAddress)}</textarea>
+            <label class="field-label" for="profilePhone" id="profilePhoneLabel" style="margin-top: 8px;">
+              ${currentMessenger === 'telegram' ? 'Юзернейм Telegram (@username) или номер *:' : currentMessenger === 'whatsapp' ? 'Номер телефона WhatsApp (с кодом) *:' : 'Номер телефона для звонков *:'}
+            </label>
+            <input type="text" id="profilePhone" class="text-input" placeholder="${currentMessenger === 'telegram' ? '@username или +855...' : '+855 ...'}" value="${this.escapeHtml(phone)}" required />
+
+            <label class="field-label" for="profileAddress" style="margin-top: 10px;">Адрес или ориентир доставки по умолчанию:</label>
+            <textarea id="profileAddress" class="text-input" rows="2" placeholder="Улица, дом, квартира, ориентир">${this.escapeHtml(address)}</textarea>
             
             <button type="button" class="btn btn-primary btn-sm" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">Сохранить контакты</button>
           </div>
@@ -1181,6 +1400,30 @@ class ShopApp {
         </div>
       `;
 
+      // Messenger selector pill click handler
+      const selector = document.getElementById('profileMessengerSelector');
+      selector?.querySelectorAll('.messenger-pill').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          selector.querySelectorAll('.messenger-pill').forEach((b) => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          currentMessenger = e.currentTarget.dataset.messenger;
+          const phoneLabel = document.getElementById('profilePhoneLabel');
+          const phoneInput = document.getElementById('profilePhone');
+          if (phoneLabel && phoneInput) {
+            if (currentMessenger === 'telegram') {
+              phoneLabel.textContent = 'Юзернейм Telegram (@username) или номер *:';
+              phoneInput.placeholder = '@username или +855...';
+            } else if (currentMessenger === 'whatsapp') {
+              phoneLabel.textContent = 'Номер телефона WhatsApp (с кодом) *:';
+              phoneInput.placeholder = '+855 ... (номер WhatsApp)';
+            } else {
+              phoneLabel.textContent = 'Номер телефона для звонков *:';
+              phoneInput.placeholder = '+855 ...';
+            }
+          }
+        });
+      });
+
       document.getElementById('btnInstallAppUser')?.addEventListener('click', () => {
         this.triggerInstallPrompt();
       });
@@ -1188,7 +1431,13 @@ class ShopApp {
       document.getElementById('btnSaveProfileDetails')?.addEventListener('click', () => {
         const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
         const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
-        if (pPhone) localStorage.setItem('freshmarket_customer_phone', pPhone);
+        if (!pPhone) {
+          this.showToast('⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
+          document.getElementById('profilePhone')?.focus();
+          return;
+        }
+        localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
+        localStorage.setItem('freshmarket_customer_phone', pPhone);
         if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
         this.showToast('✅ Контакты сохранены');
         this.closeAuthModal();
@@ -1206,71 +1455,14 @@ class ShopApp {
         this.closeAuthModal();
         this.showToast('Вы вышли из профиля');
       });
-    } else if (guestName && guestPhone) {
-      // 2. Guest Profile View (Logged in via Saved Contact Info)
-      this.authModalBody.innerHTML = `
-        <div class="profile-view">
-          <div class="profile-avatar">👤</div>
-          <div class="profile-name">${this.escapeHtml(guestName)}</div>
-          <div class="profile-email">Гостевой профиль (${this.escapeHtml(guestPhone)})</div>
-          
-          <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <label class="field-label" for="editGuestName">Ваше имя:</label>
-            <input type="text" id="editGuestName" class="text-input" value="${this.escapeHtml(guestName)}" />
-
-            <label class="field-label" for="editGuestPhone" style="margin-top: 10px;">Телефон или Telegram:</label>
-            <input type="tel" id="editGuestPhone" class="text-input" value="${this.escapeHtml(guestPhone)}" />
-
-            <label class="field-label" for="editGuestAddress" style="margin-top: 10px;">Адрес или ориентир доставки:</label>
-            <textarea id="editGuestAddress" class="text-input" rows="2">${this.escapeHtml(savedAddress)}</textarea>
-            
-            <button type="button" class="btn btn-primary btn-sm" id="btnUpdateGuestDetails" style="margin-top: 10px; width: 100%;">Обновить данные</button>
-          </div>
-
-          <div class="form-actions" style="margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
-            <button type="button" class="btn btn-primary" id="btnInstallAppGuest" style="width: 100%;">📲 Установить приложение на телефон</button>
-            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">📖 Как работает FreshMarket</button>
-            <button type="button" class="btn btn-secondary" id="btnGuestLogout" style="width: 100%;">Сменить покупателя</button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btnInstallAppGuest')?.addEventListener('click', () => {
-        this.triggerInstallPrompt();
-      });
-
-      document.getElementById('btnUpdateGuestDetails')?.addEventListener('click', () => {
-        const n = document.getElementById('editGuestName')?.value.trim() || '';
-        const p = document.getElementById('editGuestPhone')?.value.trim() || '';
-        const a = document.getElementById('editGuestAddress')?.value.trim() || '';
-        if (n) localStorage.setItem('freshmarket_customer_name', n);
-        if (p) localStorage.setItem('freshmarket_customer_phone', p);
-        if (a) localStorage.setItem('freshmarket_customer_address', a);
-        this.showToast('✅ Данные обновлены');
-        this.closeAuthModal();
-      });
-
-      document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
-        this.closeAuthModal();
-        this.openOnboarding();
-      });
-
-      document.getElementById('btnGuestLogout')?.addEventListener('click', () => {
-        localStorage.removeItem('freshmarket_customer_name');
-        localStorage.removeItem('freshmarket_customer_phone');
-        this.updateUserAvatar();
-        this.openAuthModal();
-        this.showToast('Вы вышли из гостевого профиля');
-      });
     } else {
-      // 3. Login / Authorization Prompt View
+      // 2. Login Prompt View (Google & Facebook OAuth ONLY)
       this.authModalBody.innerHTML = `
         <div class="auth-buttons-column">
-          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 4px;">📲 Установить приложение на телефон</button>
-          <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%; margin-bottom: 6px;">📖 Как работает доставка и заказ</button>
+          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 6px;">📲 Установить приложение на телефон</button>
           
           <div class="auth-intro-text">
-            Войдите для быстрой связи с закупщиком и отслеживания заказа:
+            Войдите через Google или Facebook для связи с закупщиком и оформления заказов:
           </div>
 
           <button type="button" class="btn-auth-provider btn-auth-google" id="btnLoginGoogle">
@@ -1281,14 +1473,8 @@ class ShopApp {
             <span class="auth-provider-icon">📘</span> Войти через Facebook
           </button>
 
-          <div class="auth-divider"><span>или</span></div>
-
-          <div class="guest-profile-box" style="background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <div class="field-hint" style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Быстрый вход по контактам:</div>
-            <input type="text" id="quickName" class="text-input" placeholder="Ваше имя *" value="${this.escapeHtml(guestName)}" />
-            <input type="tel" id="quickPhone" class="text-input" style="margin-top: 8px;" placeholder="Телефон или Telegram *" value="${this.escapeHtml(guestPhone)}" />
-            <textarea id="quickAddress" class="text-input" style="margin-top: 8px;" rows="2" placeholder="Адрес доставки (необязательно)">${this.escapeHtml(savedAddress)}</textarea>
-            <button type="button" class="btn btn-primary" id="btnSaveGuest" style="margin-top: 10px; width: 100%;">Сохранить и войти</button>
+          <div style="margin-top: 14px; width: 100%;">
+            <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%;">📖 Как работает FreshMarket</button>
           </div>
         </div>
       `;
@@ -1316,25 +1502,6 @@ class ShopApp {
         } else {
           this.showToast('Supabase не подключен');
         }
-      });
-
-      document.getElementById('btnSaveGuest')?.addEventListener('click', () => {
-        const name = document.getElementById('quickName')?.value.trim();
-        const phone = document.getElementById('quickPhone')?.value.trim();
-        const address = document.getElementById('quickAddress')?.value.trim();
-
-        if (!name || !phone) {
-          this.showToast('⚠️ Укажите имя и телефон/Telegram');
-          return;
-        }
-
-        localStorage.setItem('freshmarket_customer_name', name);
-        localStorage.setItem('freshmarket_customer_phone', phone);
-        if (address) localStorage.setItem('freshmarket_customer_address', address);
-
-        this.updateUserAvatar();
-        this.showToast('✅ Профиль успешно создан!');
-        this.closeAuthModal();
       });
     }
 

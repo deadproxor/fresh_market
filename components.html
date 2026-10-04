@@ -457,10 +457,10 @@
             </div>
           </div>
           <div class="color-swatch-workbench">
-            <div class="swatch-box" style="background: var(--accent-emerald);"></div>
+            <div class="swatch-box" style="background: var(--accent-emerald-gradient);"></div>
             <div class="swatch-details">
-              <div class="swatch-title">Emerald Accent</div>
-              <div class="swatch-var-name">--accent-emerald</div>
+              <div class="swatch-title">Emerald Gradient (Brand)</div>
+              <div class="swatch-var-name">--accent-emerald-gradient</div>
             </div>
           </div>
           <div class="color-swatch-workbench">
@@ -738,17 +738,20 @@
             </div>
           </div>
 
-          <!-- 3. Client Shop Card with Actions -->
+          <!-- 3. Client Shop Card with Actions (2-Slide FAB Animation) -->
           <div class="component-box">
             <div class="component-box-header">
-              <span class="component-box-title">3. Карточка покупателя магазина</span>
-              <span class="component-box-class">.shop-card-actions + .cart-qty-control</span>
+              <span class="component-box-title">3. Карточка покупателя (Слайдер опций + FAB)</span>
+              <span class="component-box-class">.card-slider-viewport + .btn-floating-cart</span>
             </div>
             <div class="mobile-frame-preview">
-              <div class="product-card" id="cardDemo3">
+              <div class="product-card shop-product-card" id="cardDemo3">
                 <div class="card-names-block" onclick="toggleCard('cardDemo3')">
                   <div class="card-header-row">
-                    <div class="card-name-en">Ripe Sweet Mango</div>
+                    <div class="card-name-title-wrap" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                      <div class="card-name-en">Ripe Sweet Mango</div>
+                      <span class="badge-in-cart" id="demoBadgeInCart" style="display: none;">✓ 1.5 кг</span>
+                    </div>
                     <button type="button" class="btn-card-toggle" onclick="event.stopPropagation(); toggleCard('cardDemo3')">
                       <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="6 9 12 15 18 9"></polyline>
@@ -765,12 +768,50 @@
                     <span class="badge badge-form">Спелый</span>
                   </div>
 
-                  <div class="shop-card-actions">
-                    <div class="cart-qty-control">
-                      <button type="button" onclick="changeQty(-1)">−</button>
-                      <span class="qty-number" id="demoQtyNumber">2 кг</span>
-                      <button type="button" onclick="changeQty(1)">+</button>
+                  <!-- 2-Slide Viewport -->
+                  <div class="card-slider-viewport">
+                    <div class="card-slider-track">
+                      <!-- Slide 1: Photo & Description -->
+                      <div class="card-slide card-slide-main">
+                        <div class="card-photo-container">
+                          <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
+                        </div>
+                        <div class="card-desc">
+                          Сочное сладкое камбоджийское манго без волокон, сорт Кео Чен.
+                        </div>
+                      </div>
+
+                      <!-- Slide 2: Options Selection -->
+                      <div class="card-slide card-slide-options">
+                        <div class="card-options-header">
+                          <div class="card-options-title">Выберите вес / количество:</div>
+                          <button type="button" class="btn-options-cancel" onclick="demoCancelOptions()">✕ Назад</button>
+                        </div>
+
+                        <div class="card-options-grid" id="demoOptionsGrid">
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '0.5 кг')">0.5 кг</button>
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '1 кг')">1 кг</button>
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '1.5 кг')">1.5 кг</button>
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '2 кг')">2 кг</button>
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '3 кг')">3 кг</button>
+                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '5 кг')">5 кг</button>
+                        </div>
+                      </div>
                     </div>
+
+                    <!-- Floating Remove Button (Red FAB) -->
+                    <button type="button" class="btn-floating-remove" id="demoBtnRemove" onclick="demoRemoveFromCart()" title="Убрать из корзины" style="display: none;">
+                      <span class="fab-icon">
+                        <svg class="fab-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                      </span>
+                    </button>
+
+                    <!-- Floating Action Button (FAB) -->
+                    <button type="button" class="btn-floating-cart" id="demoFab" onclick="demoToggleFab()" title="Добавить в заказ">
+                      <span class="fab-icon" id="demoFabIcon">
+                        <svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                      </span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1384,12 +1425,128 @@
       if (card) card.classList.toggle('is-collapsed');
     }
 
-    // Demo Qty Counter
-    let currentQty = 2;
-    function changeQty(delta) {
-      currentQty = Math.max(1, currentQty + delta);
-      const el = document.getElementById('demoQtyNumber');
-      if (el) el.textContent = `${currentQty} кг`;
+    // Demo Product Card 2-Slide & FAB Controller
+    let demoInCart = false;
+    let demoSelectedQty = '';
+
+    const DEMO_FAB_ICONS = {
+      cart: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
+      close: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+      confirm: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+      edit: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+      trash: `<svg class="fab-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`
+    };
+
+    function demoToggleFab() {
+      const card = document.getElementById('cardDemo3');
+      const fab = document.getElementById('demoFab');
+      const fabIcon = document.getElementById('demoFabIcon');
+      const badge = document.getElementById('demoBadgeInCart');
+      const btnRemove = document.getElementById('demoBtnRemove');
+
+      if (!card || !fab) return;
+
+      const isOptionsOpen = card.classList.contains('is-options-open');
+
+      if (!isOptionsOpen) {
+        // Open options slide
+        card.classList.add('is-options-open');
+        if (btnRemove) btnRemove.style.display = demoInCart ? 'block' : 'none';
+
+        if (demoInCart) {
+          // In-cart: has selection, show confirm (✓)
+          fab.classList.add('is-confirm');
+          fab.title = 'Подтвердить изменения';
+          if (fabIcon) fabIcon.innerHTML = DEMO_FAB_ICONS.confirm;
+        } else {
+          // New item: no selection, show cross (✕)
+          document.querySelectorAll('#demoOptionsGrid .option-chip').forEach(c => c.classList.remove('active'));
+          fab.classList.remove('is-confirm');
+          fab.title = 'Назад / Отмена';
+          if (fabIcon) fabIcon.innerHTML = DEMO_FAB_ICONS.close;
+        }
+      } else {
+        // FAB clicked while options are open
+        const isConfirmState = fab.classList.contains('is-confirm');
+        const activeChip = document.querySelector('#demoOptionsGrid .option-chip.active');
+        const qty = activeChip?.textContent.trim();
+
+        if (!isConfirmState || !qty) {
+          // Cancel / Back
+          demoCancelOptions();
+        } else {
+          // Confirm & add/update in cart
+          demoInCart = true;
+          demoSelectedQty = qty;
+
+          card.classList.remove('is-options-open');
+          card.classList.add('in-cart');
+          fab.classList.remove('is-confirm');
+          fab.classList.add('is-in-cart');
+          fab.title = 'Изменить заказ';
+          if (fabIcon) fabIcon.innerHTML = DEMO_FAB_ICONS.edit;
+
+          if (badge) {
+            badge.textContent = `✓ ${demoSelectedQty}`;
+            badge.style.display = 'inline-flex';
+          }
+
+          showToastDemo(`✅ В корзине: Ripe Sweet Mango (${demoSelectedQty})`);
+        }
+      }
+    }
+
+    function demoCancelOptions() {
+      const card = document.getElementById('cardDemo3');
+      const fab = document.getElementById('demoFab');
+      const fabIcon = document.getElementById('demoFabIcon');
+      const btnRemove = document.getElementById('demoBtnRemove');
+      if (!card || !fab) return;
+
+      card.classList.remove('is-options-open');
+      if (btnRemove) btnRemove.style.display = 'none';
+      fab.classList.remove('is-confirm');
+      fab.classList.toggle('is-in-cart', demoInCart);
+      fab.title = demoInCart ? 'Изменить заказ' : 'Добавить в заказ';
+      if (fabIcon) fabIcon.innerHTML = demoInCart ? DEMO_FAB_ICONS.edit : DEMO_FAB_ICONS.cart;
+    }
+
+    function demoSelectChip(chipEl, val) {
+      document.querySelectorAll('#demoOptionsGrid .option-chip').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+
+      // Switch FAB from ✕ to ✓
+      const fab = document.getElementById('demoFab');
+      const fabIcon = document.getElementById('demoFabIcon');
+      if (fab) {
+        fab.classList.add('is-confirm');
+        fab.title = 'Подтвердить и добавить в заказ';
+        if (fabIcon) fabIcon.innerHTML = DEMO_FAB_ICONS.confirm;
+      }
+    }
+
+    function demoRemoveFromCart() {
+      demoInCart = false;
+      demoSelectedQty = '';
+      const card = document.getElementById('cardDemo3');
+      const fab = document.getElementById('demoFab');
+      const fabIcon = document.getElementById('demoFabIcon');
+      const badge = document.getElementById('demoBadgeInCart');
+      const btnRemove = document.getElementById('demoBtnRemove');
+
+      if (card) {
+        card.classList.remove('is-options-open', 'in-cart');
+        card.querySelectorAll('.option-chip').forEach(c => c.classList.remove('active'));
+      }
+      if (btnRemove) btnRemove.style.display = 'none';
+      if (fab) {
+        fab.classList.remove('is-confirm', 'is-in-cart');
+        fab.title = 'Добавить в заказ';
+      }
+      if (fabIcon) fabIcon.innerHTML = DEMO_FAB_ICONS.cart;
+      if (badge) badge.style.display = 'none';
+
+      showToastDemo('🗑️ Товар убран из корзины', 'info');
     }
 
     // Interactive Toast Demo
