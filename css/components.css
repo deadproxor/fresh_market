@@ -1056,7 +1056,7 @@ body {
   height: 88dvh;
   max-height: 88dvh;
   overflow-y: auto;
-  padding: 20px 18px calc(24px + var(--safe-bottom)) 18px;
+  padding: 0 18px calc(24px + var(--safe-bottom)) 18px;
   animation: slideUp 0.25s var(--ease-fast) forwards;
 }
 
@@ -1080,6 +1080,7 @@ body {
   background: var(--bg-card);
   z-index: 10;
   padding-bottom: 8px;
+  padding-top: 20px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -1401,6 +1402,7 @@ body {
     transform: translateY(-14px) scale(0.94);
     opacity: 0;
   }
+
   to {
     transform: translateY(0) scale(1);
     opacity: 1;
@@ -1492,6 +1494,7 @@ body {
     opacity: 0;
     transform: scale(0.92);
   }
+
   to {
     opacity: 1;
     transform: scale(1);

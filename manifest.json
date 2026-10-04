@@ -1,11 +1,13 @@
 {
-  "name": "FreshMarket",
-  "short_name": "FreshMarket",
-  "description": "Простой каталог продуктов для рынка (RU, EN, KH)",
+  "id": "freshmarket-admin-catalog",
+  "name": "FreshMarket Каталог",
+  "short_name": "FM Каталог",
+  "description": "Каталог продуктов (RU, EN, KH)",
   "start_url": "./index.html",
+  "scope": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f5f7",
-  "theme_color": "#f5f5f7",
+  "background_color": "#0b1120",
+  "theme_color": "#0b1120",
   "orientation": "portrait",
   "icons": [
     {

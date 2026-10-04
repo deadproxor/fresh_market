@@ -3130,17 +3130,14 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
   initServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const registration of registrations) {
-          registration.unregister();
-        }
-      });
-    }
-    if ('caches' in window) {
-      caches.keys().then((keys) => {
-        for (const key of keys) {
-          caches.delete(key);
-        }
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './index.html' })
+          .then((reg) => {
+            console.log('[FreshMarket Catalog] Service Worker active with scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[FreshMarket Catalog] Service Worker registration failed:', err);
+          });
       });
     }
   }

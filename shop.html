@@ -31,7 +31,7 @@
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
   <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/shop.css?v=v1.4.0" />
+  <link rel="stylesheet" href="css/shop.css?v=1.1.0" />
 </head>
 
 <body>
@@ -43,7 +43,7 @@
       </div>
       <div class="splash-title">FreshMarket</div>
       <div class="splash-subtitle">Доставка свежих продуктов</div>
-      <div class="splash-version" id="splashVersion">v1.0.0</div>
+      <div class="splash-version" id="splashVersion">v1.1.0</div>
     </div>
   </div>
 
@@ -202,18 +202,27 @@
             <!-- Items injected via JS -->
           </div>
 
-          <!-- Checkout Form -->
-          <form id="checkoutForm" class="checkout-form" novalidate>
+          <!-- 1. Cart Auth Gate (Shown when NOT logged in) -->
+          <div id="cartAuthGate" class="cart-auth-gate" style="display: none;">
+            <div class="cart-auth-gate-icon">🔐</div>
+            <div class="cart-auth-gate-title">Оформление доступно после входа</div>
+            <div class="cart-auth-gate-desc">Войдите через Google, Facebook или сохраните имя и контакты, чтобы оформить доставку на утренний закуп.</div>
+            <button type="button" class="btn btn-primary btn-auth-gate" id="btnCartAuthGate">Войти в аккаунт →</button>
+          </div>
+
+          <!-- 2. Streamlined Checkout Form (Shown when logged in) -->
+          <form id="checkoutForm" class="checkout-form" novalidate style="display: none;">
             <div class="checkout-section-title">📦 Детали доставки</div>
 
-            <div class="form-group">
-              <label class="field-label" for="customerName">Ваше имя *</label>
-              <input type="text" id="customerName" class="text-input" placeholder="Например, Андрей" required />
-            </div>
-
-            <div class="form-group">
-              <label class="field-label" for="customerPhone">Телефон / Telegram *</label>
-              <input type="tel" id="customerPhone" class="text-input" placeholder="+855 ... или @username" required />
+            <div class="checkout-user-badge" id="checkoutUserBadge">
+              <div class="user-badge-info">
+                <span class="user-badge-icon">👤</span>
+                <div class="user-badge-text">
+                  <div class="user-badge-name" id="checkoutUserName">Покупатель</div>
+                  <div class="user-badge-phone" id="checkoutUserPhone">+855...</div>
+                </div>
+              </div>
+              <button type="button" class="btn-link-action" id="btnChangeUserProfile">Профиль</button>
             </div>
 
             <div class="form-group">
@@ -272,8 +281,7 @@
 
             <div class="form-actions" style="margin-top: 16px;">
               <button type="button" class="btn btn-secondary" id="btnCancelCheckout">Назад</button>
-              <button type="submit" class="btn btn-primary" id="btnSubmitOrder">Отправить заказ на утренний закуп
-                →</button>
+              <button type="submit" class="btn btn-primary" id="btnSubmitOrder">Отправить заказ на утренний закуп →</button>
             </div>
           </form>
         </div>
@@ -333,7 +341,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=v1.4.0"></script>
+  <script src="js/shop.js?v=1.1.0"></script>
 </body>
 
 </html>

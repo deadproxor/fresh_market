@@ -3,7 +3,7 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.0.0';
+const SHOP_VERSION = '1.1.0';
 window.SHOP_VERSION = SHOP_VERSION;
 
 // Categories Configuration with Emojis (synced with app.js)
@@ -58,6 +58,7 @@ class ShopApp {
     this.initOnboarding();
     this.loadCatalog();
     this.updateCartUi();
+    this.initServiceWorker();
   }
 
   // ------------------------------------------------------------------------
@@ -148,6 +149,9 @@ class ShopApp {
     this.btnCancelCheckout = document.getElementById('btnCancelCheckout');
     this.cartItemsList = document.getElementById('cartItemsList');
     this.checkoutForm = document.getElementById('checkoutForm');
+    this.cartAuthGate = document.getElementById('cartAuthGate');
+    this.btnCartAuthGate = document.getElementById('btnCartAuthGate');
+    this.btnChangeUserProfile = document.getElementById('btnChangeUserProfile');
 
     this.ordersModal = document.getElementById('ordersModal');
     this.btnCloseOrders = document.getElementById('btnCloseOrders');
@@ -217,6 +221,18 @@ class ShopApp {
     }
     if (this.btnCancelCheckout) {
       this.btnCancelCheckout.addEventListener('click', () => this.closeCartModal());
+    }
+    if (this.btnCartAuthGate) {
+      this.btnCartAuthGate.addEventListener('click', () => {
+        this.closeCartModal();
+        this.openAuthModal();
+      });
+    }
+    if (this.btnChangeUserProfile) {
+      this.btnChangeUserProfile.addEventListener('click', () => {
+        this.closeCartModal();
+        this.openAuthModal();
+      });
     }
     if (this.cartModal) {
       this.cartModal.addEventListener('click', (e) => {
@@ -778,6 +794,28 @@ class ShopApp {
     }
   }
 
+  isUserAuthenticated() {
+    if (this.currentUser) return true;
+    const guestName = localStorage.getItem('freshmarket_customer_name');
+    const guestPhone = localStorage.getItem('freshmarket_customer_phone');
+    return Boolean(guestName && guestPhone);
+  }
+
+  getCurrentCustomerInfo() {
+    let name = 'Покупатель';
+    let phone = '';
+    let address = localStorage.getItem('freshmarket_customer_address') || '';
+
+    if (this.currentUser) {
+      name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
+      phone = localStorage.getItem('freshmarket_customer_phone') || this.currentUser.phone || this.currentUser.email || '';
+    } else {
+      name = localStorage.getItem('freshmarket_customer_name') || 'Покупатель';
+      phone = localStorage.getItem('freshmarket_customer_phone') || '';
+    }
+    return { name, phone, address };
+  }
+
   renderCartModalList() {
     if (!this.cartItemsList) return;
     const items = Object.values(this.cart);
@@ -791,10 +829,19 @@ class ShopApp {
         </div>
       `;
       if (this.checkoutForm) this.checkoutForm.style.display = 'none';
+      if (this.cartAuthGate) this.cartAuthGate.style.display = 'none';
       return;
     }
 
-    if (this.checkoutForm) this.checkoutForm.style.display = 'block';
+    const isAuth = this.isUserAuthenticated();
+    if (!isAuth) {
+      if (this.checkoutForm) this.checkoutForm.style.display = 'none';
+      if (this.cartAuthGate) this.cartAuthGate.style.display = 'flex';
+    } else {
+      if (this.cartAuthGate) this.cartAuthGate.style.display = 'none';
+      if (this.checkoutForm) this.checkoutForm.style.display = 'block';
+      this.prefillCheckoutData();
+    }
 
     this.cartItemsList.innerHTML = items.map(({ product, qty }) => `
       <div class="cart-item-row" data-id="${product.id}">
@@ -829,37 +876,38 @@ class ShopApp {
   }
 
   prefillCheckoutData() {
-    const savedName = localStorage.getItem('freshmarket_customer_name') || '';
-    const savedPhone = localStorage.getItem('freshmarket_customer_phone') || '';
-    const savedAddress = localStorage.getItem('freshmarket_customer_address') || '';
+    const { name, phone, address } = this.getCurrentCustomerInfo();
 
-    const nameInput = document.getElementById('customerName');
-    const phoneInput = document.getElementById('customerPhone');
+    const nameBadge = document.getElementById('checkoutUserName');
+    const phoneBadge = document.getElementById('checkoutUserPhone');
     const addressInput = document.getElementById('deliveryAddress');
 
-    if (nameInput && !nameInput.value) nameInput.value = savedName;
-    if (phoneInput && !phoneInput.value) phoneInput.value = savedPhone;
-    if (addressInput && !addressInput.value) addressInput.value = savedAddress;
+    if (nameBadge) nameBadge.textContent = name;
+    if (phoneBadge) phoneBadge.textContent = phone ? `📞 ${phone}` : 'Контакты сохранены';
+    if (addressInput && !addressInput.value) addressInput.value = address;
   }
 
   // ------------------------------------------------------------------------
   // 9. Checkout Submission
   // ------------------------------------------------------------------------
   async handleCheckoutSubmit() {
-    const nameInput = document.getElementById('customerName');
-    const phoneInput = document.getElementById('customerPhone');
+    if (!this.isUserAuthenticated()) {
+      this.showToast('⚠️ Войдите в профиль для оформления заказа');
+      this.openAuthModal();
+      return;
+    }
+
     const addressInput = document.getElementById('deliveryAddress');
     const commentInput = document.getElementById('customerComment');
     const replacementRadio = document.querySelector('input[name="replacementPolicy"]:checked');
 
-    const customerName = nameInput?.value.trim();
-    const customerPhone = phoneInput?.value.trim();
     const deliveryAddress = addressInput?.value.trim();
     const customerComment = commentInput?.value.trim() || '';
     const replacementPolicy = replacementRadio?.value || 'call_to_agree';
 
-    if (!customerName || !customerPhone || !deliveryAddress) {
-      this.showToast('⚠️ Пожалуйста, заполните имя, телефон и адрес');
+    if (!deliveryAddress) {
+      this.showToast('⚠️ Пожалуйста, укажите адрес или ориентир доставки');
+      if (addressInput) addressInput.focus();
       return;
     }
 
@@ -869,9 +917,9 @@ class ShopApp {
       return;
     }
 
-    // Save profile details locally
-    localStorage.setItem('freshmarket_customer_name', customerName);
-    localStorage.setItem('freshmarket_customer_phone', customerPhone);
+    const { name: customerName, phone: customerPhone } = this.getCurrentCustomerInfo();
+
+    // Save profile address locally
     localStorage.setItem('freshmarket_customer_address', deliveryAddress);
 
     const orderNumber = generateOrderNumber();
@@ -953,7 +1001,7 @@ class ShopApp {
       this.saveCart();
       this.renderProducts();
       this.closeCartModal();
-      this.showToast(`Заказ сохранен локально: ${orderNumber}`);
+      this.showToast(`Заказ сохранен: ${orderNumber}`);
       this.openOrdersModal();
     }
   }
@@ -1102,8 +1150,12 @@ class ShopApp {
     this.setActiveNav('navProfile');
     if (!this.authModalBody) return;
 
+    const guestName = localStorage.getItem('freshmarket_customer_name') || '';
+    const guestPhone = localStorage.getItem('freshmarket_customer_phone') || '';
+    const savedAddress = localStorage.getItem('freshmarket_customer_address') || '';
+
     if (this.currentUser) {
-      // User Profile View
+      // 1. Supabase User Profile View
       const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
       this.authModalBody.innerHTML = `
         <div class="profile-view">
@@ -1111,16 +1163,42 @@ class ShopApp {
           <div class="profile-name">${this.escapeHtml(name)}</div>
           <div class="profile-email">${this.escapeHtml(this.currentUser.email || '')}</div>
           
-          <div class="form-actions" style="margin-top: 20px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+          <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label class="field-label" for="profilePhone">Телефон или Telegram:</label>
+            <input type="tel" id="profilePhone" class="text-input" placeholder="+855... или @username" value="${this.escapeHtml(guestPhone)}" />
+
+            <label class="field-label" for="profileAddress" style="margin-top: 10px;">Адрес или ориентир доставки:</label>
+            <textarea id="profileAddress" class="text-input" rows="2" placeholder="Улица, дом, ориентир">${this.escapeHtml(savedAddress)}</textarea>
+            
+            <button type="button" class="btn btn-primary btn-sm" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">Сохранить контакты</button>
+          </div>
+
+          <div class="form-actions" style="margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn btn-primary" id="btnInstallAppUser" style="width: 100%;">📲 Установить приложение на телефон</button>
             <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">📖 Как работает FreshMarket</button>
             <button type="button" class="btn btn-secondary" id="btnLogout" style="width: 100%;">Выйти из аккаунта</button>
           </div>
         </div>
       `;
+
+      document.getElementById('btnInstallAppUser')?.addEventListener('click', () => {
+        this.triggerInstallPrompt();
+      });
+
+      document.getElementById('btnSaveProfileDetails')?.addEventListener('click', () => {
+        const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
+        const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
+        if (pPhone) localStorage.setItem('freshmarket_customer_phone', pPhone);
+        if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
+        this.showToast('✅ Контакты сохранены');
+        this.closeAuthModal();
+      });
+
       document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
         this.closeAuthModal();
         this.openOnboarding();
       });
+
       document.getElementById('btnLogout')?.addEventListener('click', async () => {
         if (this.sb) await this.sb.auth.signOut();
         this.currentUser = null;
@@ -1128,14 +1206,71 @@ class ShopApp {
         this.closeAuthModal();
         this.showToast('Вы вышли из профиля');
       });
+    } else if (guestName && guestPhone) {
+      // 2. Guest Profile View (Logged in via Saved Contact Info)
+      this.authModalBody.innerHTML = `
+        <div class="profile-view">
+          <div class="profile-avatar">👤</div>
+          <div class="profile-name">${this.escapeHtml(guestName)}</div>
+          <div class="profile-email">Гостевой профиль (${this.escapeHtml(guestPhone)})</div>
+          
+          <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <label class="field-label" for="editGuestName">Ваше имя:</label>
+            <input type="text" id="editGuestName" class="text-input" value="${this.escapeHtml(guestName)}" />
+
+            <label class="field-label" for="editGuestPhone" style="margin-top: 10px;">Телефон или Telegram:</label>
+            <input type="tel" id="editGuestPhone" class="text-input" value="${this.escapeHtml(guestPhone)}" />
+
+            <label class="field-label" for="editGuestAddress" style="margin-top: 10px;">Адрес или ориентир доставки:</label>
+            <textarea id="editGuestAddress" class="text-input" rows="2">${this.escapeHtml(savedAddress)}</textarea>
+            
+            <button type="button" class="btn btn-primary btn-sm" id="btnUpdateGuestDetails" style="margin-top: 10px; width: 100%;">Обновить данные</button>
+          </div>
+
+          <div class="form-actions" style="margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn btn-primary" id="btnInstallAppGuest" style="width: 100%;">📲 Установить приложение на телефон</button>
+            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">📖 Как работает FreshMarket</button>
+            <button type="button" class="btn btn-secondary" id="btnGuestLogout" style="width: 100%;">Сменить покупателя</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btnInstallAppGuest')?.addEventListener('click', () => {
+        this.triggerInstallPrompt();
+      });
+
+      document.getElementById('btnUpdateGuestDetails')?.addEventListener('click', () => {
+        const n = document.getElementById('editGuestName')?.value.trim() || '';
+        const p = document.getElementById('editGuestPhone')?.value.trim() || '';
+        const a = document.getElementById('editGuestAddress')?.value.trim() || '';
+        if (n) localStorage.setItem('freshmarket_customer_name', n);
+        if (p) localStorage.setItem('freshmarket_customer_phone', p);
+        if (a) localStorage.setItem('freshmarket_customer_address', a);
+        this.showToast('✅ Данные обновлены');
+        this.closeAuthModal();
+      });
+
+      document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
+        this.closeAuthModal();
+        this.openOnboarding();
+      });
+
+      document.getElementById('btnGuestLogout')?.addEventListener('click', () => {
+        localStorage.removeItem('freshmarket_customer_name');
+        localStorage.removeItem('freshmarket_customer_phone');
+        this.updateUserAvatar();
+        this.openAuthModal();
+        this.showToast('Вы вышли из гостевого профиля');
+      });
     } else {
-      // Login Form View
+      // 3. Login / Authorization Prompt View
       this.authModalBody.innerHTML = `
         <div class="auth-buttons-column">
+          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 4px;">📲 Установить приложение на телефон</button>
           <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%; margin-bottom: 6px;">📖 Как работает доставка и заказ</button>
           
           <div class="auth-intro-text">
-            Войдите для сохранения адресов доставки и быстрой оплаты:
+            Войдите для быстрой связи с закупщиком и отслеживания заказа:
           </div>
 
           <button type="button" class="btn-auth-provider btn-auth-google" id="btnLoginGoogle">
@@ -1148,14 +1283,19 @@ class ShopApp {
 
           <div class="auth-divider"><span>или</span></div>
 
-          <div class="guest-profile-box">
-            <div class="field-hint" style="margin-bottom: 8px;">Быстрый гостевой вход (без пароля):</div>
-            <input type="text" id="quickName" class="text-input" placeholder="Ваше имя" value="${this.escapeHtml(localStorage.getItem('freshmarket_customer_name') || '')}" />
-            <input type="tel" id="quickPhone" class="text-input" style="margin-top: 8px;" placeholder="Телефон или Telegram" value="${this.escapeHtml(localStorage.getItem('freshmarket_customer_phone') || '')}" />
-            <button type="button" class="btn btn-primary" id="btnSaveGuest" style="margin-top: 10px; width: 100%;">Сохранить данные</button>
+          <div class="guest-profile-box" style="background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div class="field-hint" style="margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">Быстрый вход по контактам:</div>
+            <input type="text" id="quickName" class="text-input" placeholder="Ваше имя *" value="${this.escapeHtml(guestName)}" />
+            <input type="tel" id="quickPhone" class="text-input" style="margin-top: 8px;" placeholder="Телефон или Telegram *" value="${this.escapeHtml(guestPhone)}" />
+            <textarea id="quickAddress" class="text-input" style="margin-top: 8px;" rows="2" placeholder="Адрес доставки (необязательно)">${this.escapeHtml(savedAddress)}</textarea>
+            <button type="button" class="btn btn-primary" id="btnSaveGuest" style="margin-top: 10px; width: 100%;">Сохранить и войти</button>
           </div>
         </div>
       `;
+
+      document.getElementById('btnInstallAppIntro')?.addEventListener('click', () => {
+        this.triggerInstallPrompt();
+      });
 
       document.getElementById('btnShowOnboardingGuest')?.addEventListener('click', () => {
         this.closeAuthModal();
@@ -1181,9 +1321,19 @@ class ShopApp {
       document.getElementById('btnSaveGuest')?.addEventListener('click', () => {
         const name = document.getElementById('quickName')?.value.trim();
         const phone = document.getElementById('quickPhone')?.value.trim();
-        if (name) localStorage.setItem('freshmarket_customer_name', name);
-        if (phone) localStorage.setItem('freshmarket_customer_phone', phone);
-        this.showToast('Данные профиля сохранены');
+        const address = document.getElementById('quickAddress')?.value.trim();
+
+        if (!name || !phone) {
+          this.showToast('⚠️ Укажите имя и телефон/Telegram');
+          return;
+        }
+
+        localStorage.setItem('freshmarket_customer_name', name);
+        localStorage.setItem('freshmarket_customer_phone', phone);
+        if (address) localStorage.setItem('freshmarket_customer_address', address);
+
+        this.updateUserAvatar();
+        this.showToast('✅ Профиль успешно создан!');
         this.closeAuthModal();
       });
     }
@@ -1194,16 +1344,64 @@ class ShopApp {
   closeAuthModal() {
     if (this.authModal) this.authModal.style.display = 'none';
     this.setActiveNav('navCatalog');
+    this.updateUserAvatar();
+    if (this.cartModal && this.cartModal.style.display === 'flex') {
+      this.renderCartModalList();
+    }
   }
 
   updateUserAvatar() {
     if (this.userAvatarIcon) {
-      this.userAvatarIcon.textContent = this.currentUser ? '🟢' : '👤';
+      const isAuth = this.isUserAuthenticated();
+      this.userAvatarIcon.textContent = isAuth ? '🟢' : '👤';
     }
   }
 
   // ------------------------------------------------------------------------
-  // 12. Helpers & Toast Notifications
+  // 12. PWA Service Worker & Installation Prompts
+  // ------------------------------------------------------------------------
+  initServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw-shop.js', { scope: './shop.html' })
+          .then((reg) => {
+            console.log('[FreshMarket Shop] Service Worker active with scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[FreshMarket Shop] Service Worker registration failed:', err);
+          });
+      });
+    }
+
+    // Capture beforeinstallprompt for manual 1-click trigger
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredInstallPrompt = e;
+      console.log('[FreshMarket Shop] PWA install prompt ready');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      this.deferredInstallPrompt = null;
+      this.showToast('🎉 Приложение FreshMarket успешно установлено!');
+    });
+  }
+
+  triggerInstallPrompt() {
+    if (!this.deferredInstallPrompt) {
+      this.showToast('ℹ️ Чтобы установить: нажмите «Поделиться / Меню» в браузере и выберите «На экран Домой»');
+      return;
+    }
+    this.deferredInstallPrompt.prompt();
+    this.deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        this.showToast('✅ Установка приложения начата');
+      }
+      this.deferredInstallPrompt = null;
+    });
+  }
+
+  // ------------------------------------------------------------------------
+  // 13. Helpers & Toast Notifications
   // ------------------------------------------------------------------------
   showToast(msg, type = 'auto', duration = 3000) {
     const container = document.getElementById('toastContainer');

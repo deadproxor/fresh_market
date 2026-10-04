@@ -1,8 +1,10 @@
 {
+  "id": "freshmarket-client-shop",
   "name": "FreshMarket — Свежие продукты с рынка",
   "short_name": "FreshMarket",
-  "description": "Заказ и доставка свежих фруктов, овощей и зелени с утреннего рынка",
+  "description": "Заказ и доставка свежих продуктов с утреннего рынка",
   "start_url": "./shop.html",
+  "scope": "./shop.html",
   "display": "standalone",
   "background_color": "#0b1120",
   "theme_color": "#0b1120",
