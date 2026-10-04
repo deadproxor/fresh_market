@@ -1,6 +1,8 @@
 .DS_Store
 *.log
 *.code-workspace
-AGENTS.md
+*.md
+**/*.md
 bump.js
 bump.py
+
