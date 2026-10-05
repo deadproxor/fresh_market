@@ -708,10 +708,7 @@ class App {
     this.selectedForm = FORMS[0].label;
     this.currentImageBase64 = '';
     this.editModalImageBase64 = '';
-    this.currentTheme = localStorage.getItem('freshmarket_theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-
     this.initElements();
-    this.initTheme();
     this.initEventListeners();
     this.initAutocomplete();
     this.renderCategoryChips();
@@ -739,9 +736,7 @@ class App {
   }
 
   initElements() {
-    // Header & Theme
-    this.btnThemeToggle = document.getElementById('btnThemeToggle');
-    this.themeIcon = document.getElementById('themeIcon');
+    // Header
     this.headerCountBadge = document.getElementById('headerCountBadge');
 
     // Navigation
@@ -848,11 +843,6 @@ class App {
   }
 
   initEventListeners() {
-    // Theme toggle button
-    if (this.btnThemeToggle) {
-      this.btnThemeToggle.addEventListener('click', () => this.toggleTheme());
-    }
-
     // View switching
     this.navBtnAdd.addEventListener('click', () => this.switchView('viewAdd'));
     this.navBtnList.addEventListener('click', () => this.switchView('viewList'));
@@ -996,45 +986,6 @@ class App {
     });
   }
 
-  // ------------------------------------------------------------------------
-  // Theme Controller (Light / Dark Mode)
-  // ------------------------------------------------------------------------
-  initTheme() {
-    this.applyTheme(this.currentTheme, false);
-  }
-
-  applyTheme(theme, showFeedback = false) {
-    this.currentTheme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('freshmarket_theme', theme);
-
-    if (this.themeIcon) {
-      this.themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
-    }
-
-    if (this.btnThemeToggle) {
-      this.btnThemeToggle.setAttribute('title', theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему');
-    }
-
-    // Update PWA meta theme-color
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#0b1120');
-    }
-
-    if (showFeedback) {
-      this.showToast(theme === 'light' ? '☀️ Светлая тема включена' : '🌙 Темная тема включена');
-    }
-  }
-
-  toggleTheme() {
-    const nextTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-    this.applyTheme(nextTheme, true);
-  }
-
-  setTheme(theme, showFeedback = false) {
-    this.applyTheme(theme, showFeedback);
-  }
 
   // ------------------------------------------------------------------------
   // Navigation & Modals
@@ -1543,8 +1494,7 @@ class App {
           folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
           apiKey: (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
           apiSecret: (this.settingCloudinaryApiSecret?.value || localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim()
-        },
-        theme: localStorage.getItem('freshmarket_theme') || 'dark'
+        }
       }
     };
   }
@@ -1694,10 +1644,6 @@ class App {
       }
     }
 
-    // 4. Theme
-    if (s.theme && ['light', 'dark'].includes(s.theme)) {
-      this.applyTheme(s.theme, false);
-    }
 
     // Re-initialize storage adapter instance
     storage = getActiveStorage();

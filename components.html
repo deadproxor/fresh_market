@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 
 <head>
   <meta charset="UTF-8" />
@@ -130,24 +130,7 @@
       justify-content: space-between;
     }
 
-    .theme-toggle-workbench {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      color: var(--text-primary);
-      padding: 6px 12px;
-      border-radius: var(--radius-md);
-      font-size: 12.5px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
 
-    .theme-toggle-workbench:hover {
-      border-color: var(--accent-emerald);
-    }
 
     /* 2. Right Main Content Workbench */
     .workbench-main {
@@ -398,12 +381,7 @@
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <button type="button" class="theme-toggle-workbench" id="btnThemeToggle">
-          <span id="themeIcon">☀️</span>
-          <span id="themeLabel">Светлая тема</span>
-        </button>
-      </div>
+
     </aside>
 
     <!-- ================= 2. MAIN WORKBENCH CANVAS ================= -->
@@ -423,9 +401,9 @@
       <section id="section-colors" class="workbench-section">
         <div class="section-title-wrap">
           <h2 class="section-title">🎨 Цветовые токены (CSS Custom Properties)</h2>
-          <span class="section-tag">:root / [data-theme]</span>
+          <span class="section-tag">:root</span>
         </div>
-        <p class="section-desc">Калиброванные переменные палитры Apple Titanium Dark / Cupertino Light.</p>
+        <p class="section-desc">Калиброванные переменные палитры Apple Cupertino Light.</p>
 
         <div class="workbench-grid-4">
           <div class="color-swatch-workbench">
@@ -536,8 +514,7 @@
                   </div>
                 </div>
                 <div class="header-right">
-                  <button type="button" class="theme-toggle-btn" title="Настройки"><span class="theme-icon">⚙️</span></button>
-                  <button type="button" class="theme-toggle-btn" title="Тема"><span class="theme-icon">☀️</span></button>
+                  <button type="button" class="btn-logout" title="Настройки">⚙️</button>
                 </div>
               </header>
             </div>
@@ -559,8 +536,7 @@
                   </div>
                 </div>
                 <div class="header-right">
-                  <button type="button" class="theme-toggle-btn" title="Профиль"><span class="theme-icon">👤</span></button>
-                  <button type="button" class="theme-toggle-btn" title="Тема"><span class="theme-icon">☀️</span></button>
+                  <button type="button" class="btn-logout" title="Профиль">👤</button>
                 </div>
               </header>
             </div>
@@ -1398,26 +1374,7 @@
       }
     }
 
-    // Theme Switcher Controller
-    let currentTheme = localStorage.getItem('freshmarket_theme') || 'dark';
-    applyTheme(currentTheme);
 
-    function applyTheme(theme) {
-      currentTheme = theme;
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('freshmarket_theme', theme);
-
-      const icon = document.getElementById('themeIcon');
-      const label = document.getElementById('themeLabel');
-      if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
-      if (label) label.textContent = theme === 'light' ? 'Темная тема' : 'Светлая тема';
-    }
-
-    document.getElementById('btnThemeToggle')?.addEventListener('click', () => {
-      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
-      applyTheme(nextTheme);
-      showToastDemo(nextTheme === 'light' ? '☀️ Включена светлая тема' : '🌙 Включена темная тема');
-    });
 
     // Card Collapse Toggle Helper
     function toggleCard(cardId) {

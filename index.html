@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 
 <head>
   <meta charset="UTF-8" />
@@ -21,7 +21,7 @@
 
   <!-- PWA & Mobile settings -->
   <link rel="manifest" href="manifest-shop.json" />
-  <meta name="theme-color" content="#0b1120" />
+  <meta name="theme-color" content="#f5f5f7" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -361,9 +361,6 @@
       <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта">
         Выйти 🚪
       </button>
-      <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Сменить тему">
-        <span class="theme-icon" id="themeIcon">☀️</span>
-      </button>
       <a href="shop.html" class="btn btn-primary btn-sm" style="padding: 8px 18px; border-radius: var(--radius-full);">
         В магазин 🛒
       </a>
@@ -498,26 +495,9 @@
     </div>
   </footer>
 
-  <!-- Theme Script -->
+  <!-- Customer Session Script -->
   <script>
     (function () {
-      const savedTheme = localStorage.getItem('freshmarket_theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-
-      const btn = document.getElementById('themeToggleBtn');
-      const icon = document.getElementById('themeIcon');
-      if (icon) icon.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
-
-      if (btn) {
-        btn.addEventListener('click', () => {
-          const current = document.documentElement.getAttribute('data-theme') || 'dark';
-          const next = current === 'dark' ? 'light' : 'dark';
-          document.documentElement.setAttribute('data-theme', next);
-          localStorage.setItem('freshmarket_theme', next);
-          if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
-        });
-      }
-
       // Check customer authentication for logout button
       try {
         const rawAuth = localStorage.getItem('freshmarket_customer_auth');

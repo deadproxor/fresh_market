@@ -57,13 +57,11 @@ class ShopApp {
     this.searchQuery = '';
     this.activeHomeTab = 'categories';
     this.cart = this.loadCart();
-    this.currentTheme = localStorage.getItem('freshmarket_theme') || 'dark';
     this.currentUser = null;
     this.currentSlide = 0;
 
     this.initSplashScreen();
     this.initSupabase();
-    this.initTheme();
     this.initDomElements();
     this.initEventListeners();
     this.initOnboarding();
@@ -111,39 +109,13 @@ class ShopApp {
     }
   }
 
-  // ------------------------------------------------------------------------
-  // 2. Theme Controller
-  // ------------------------------------------------------------------------
-  initTheme() {
-    document.documentElement.setAttribute('data-theme', this.currentTheme);
-    localStorage.setItem('freshmarket_theme', this.currentTheme);
-    this.updateThemeIcon();
-  }
 
-  toggleTheme() {
-    this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', this.currentTheme);
-    localStorage.setItem('freshmarket_theme', this.currentTheme);
-    this.updateThemeIcon();
-  }
-
-  updateThemeIcon() {
-    const icon = document.getElementById('themeIcon');
-    if (icon) {
-      icon.textContent = this.currentTheme === 'light' ? '🌙' : '☀️';
-    }
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', this.currentTheme === 'light' ? '#f1f5f9' : '#0b1120');
-    }
-  }
 
   // ------------------------------------------------------------------------
   // 3. DOM Elements & Navigation
   // ------------------------------------------------------------------------
   initDomElements() {
     // Header & Search
-    this.btnThemeToggle = document.getElementById('btnThemeToggle');
     this.btnAuthProfile = document.getElementById('btnAuthProfile');
     this.btnShopHeaderLogout = document.getElementById('btnShopHeaderLogout');
     this.userAvatarIcon = document.getElementById('userAvatarIcon');
@@ -198,11 +170,6 @@ class ShopApp {
   // 4. Event Listeners
   // ------------------------------------------------------------------------
   initEventListeners() {
-    // Theme
-    if (this.btnThemeToggle) {
-      this.btnThemeToggle.addEventListener('click', () => this.toggleTheme());
-    }
-
     // Profile & Auth
     if (this.btnAuthProfile) {
       this.btnAuthProfile.addEventListener('click', () => this.openAuthModal());

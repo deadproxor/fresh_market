@@ -718,7 +718,7 @@
   touch-action: pan-y;
 }
 
-/* Underlay Action Buttons (Sleek Minimalist Dark Theme) */
+/* Underlay Action Buttons */
 .swipe-actions-underlay {
   position: absolute;
   right: 6px;
