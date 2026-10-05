@@ -93,7 +93,14 @@ class ShopApp {
     const sbKey = localStorage.getItem('freshmarket_supabase_key') || DEFAULT_SUPABASE_KEY;
     if (sbUrl && sbKey && window.supabase) {
       try {
-        this.sb = window.supabase.createClient(sbUrl, sbKey);
+        this.sb = window.supabase.createClient(sbUrl, sbKey, {
+          auth: {
+            storageKey: 'freshmarket_customer_auth',
+            storage: window.localStorage,
+            persistSession: true,
+            autoRefreshToken: true
+          }
+        });
         this.sb.auth.onAuthStateChange((event, session) => {
           this.currentUser = session?.user || null;
           this.updateUserAvatar();
@@ -138,6 +145,7 @@ class ShopApp {
     // Header & Search
     this.btnThemeToggle = document.getElementById('btnThemeToggle');
     this.btnAuthProfile = document.getElementById('btnAuthProfile');
+    this.btnShopHeaderLogout = document.getElementById('btnShopHeaderLogout');
     this.userAvatarIcon = document.getElementById('userAvatarIcon');
     this.shopSearchInput = document.getElementById('shopSearchInput');
     this.shopSearchClear = document.getElementById('shopSearchClear');
@@ -198,6 +206,15 @@ class ShopApp {
     // Profile & Auth
     if (this.btnAuthProfile) {
       this.btnAuthProfile.addEventListener('click', () => this.openAuthModal());
+    }
+
+    if (this.btnShopHeaderLogout) {
+      this.btnShopHeaderLogout.addEventListener('click', async () => {
+        if (this.sb) await this.sb.auth.signOut();
+        this.currentUser = null;
+        this.updateUserAvatar();
+        this.showToast('Вы вышли из профиля');
+      });
     }
 
     // Search
@@ -1519,7 +1536,13 @@ class ShopApp {
 
       document.getElementById('btnLoginGoogle')?.addEventListener('click', () => {
         if (this.sb) {
-          this.sb.auth.signInWithOAuth({ provider: 'google' });
+          const redirectTo = window.location.origin + window.location.pathname;
+          this.sb.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo
+            }
+          });
         } else {
           this.showToast('Supabase не подключен');
         }
@@ -1527,7 +1550,13 @@ class ShopApp {
 
       document.getElementById('btnLoginFacebook')?.addEventListener('click', () => {
         if (this.sb) {
-          this.sb.auth.signInWithOAuth({ provider: 'facebook' });
+          const redirectTo = window.location.origin + window.location.pathname;
+          this.sb.auth.signInWithOAuth({
+            provider: 'facebook',
+            options: {
+              redirectTo
+            }
+          });
         } else {
           this.showToast('Supabase не подключен');
         }
@@ -1547,9 +1576,12 @@ class ShopApp {
   }
 
   updateUserAvatar() {
+    const isAuth = this.isUserAuthenticated();
     if (this.userAvatarIcon) {
-      const isAuth = this.isUserAuthenticated();
       this.userAvatarIcon.textContent = isAuth ? '🟢' : '👤';
+    }
+    if (this.btnShopHeaderLogout) {
+      this.btnShopHeaderLogout.style.display = isAuth ? 'inline-flex' : 'none';
     }
   }
 

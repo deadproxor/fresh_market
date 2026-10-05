@@ -7,8 +7,18 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.3.4';
+const APP_VERSION = '1.4.0';
 window.APP_VERSION = APP_VERSION;
+
+// Safe URL sanitizer for image URLs to prevent XSS
+function sanitizeUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const clean = url.trim();
+  if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
+    return clean.replace(/"/g, '&quot;');
+  }
+  return '';
+}
 
 // Safe UUID v4 generator for Supabase & LocalStorage
 function generateUUID() {
@@ -58,7 +68,10 @@ const CUSTOM_DICT_KEY = 'freshmarket_custom_produce_dictionary';
 // Load produce dictionary from standalone JSON file + localStorage custom items
 async function loadProduceDictionary() {
   try {
-    let response = await fetch('./data/products_dictionary.json');
+    let response = await fetch('../data/products_dictionary.json');
+    if (!response.ok) {
+      response = await fetch('./data/products_dictionary.json');
+    }
     if (!response.ok) {
       response = await fetch('./products_dictionary.json');
     }
@@ -66,7 +79,7 @@ async function loadProduceDictionary() {
       PRODUCE_DICTIONARY = await response.json();
     }
   } catch (err) {
-    console.warn('[FreshMarket] Could not load external products_dictionary.json, using fallback', err);
+    console.warn('[FreshMarket Admin] Could not load external products_dictionary.json, using fallback', err);
   }
 
   // Merge custom user-added items from localStorage
@@ -362,9 +375,20 @@ class SupabaseAdapter {
   }
 
   get headers() {
+    let token = this.key;
+    try {
+      const rawSession = sessionStorage.getItem('freshmarket_admin_auth');
+      if (rawSession) {
+        const parsed = JSON.parse(rawSession);
+        if (parsed?.access_token) {
+          token = parsed.access_token;
+        }
+      }
+    } catch (e) {}
+
     return {
       'apikey': this.key,
-      'Authorization': `Bearer ${this.key}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     };
@@ -1723,9 +1747,12 @@ Analyze the food product in this image and return a JSON object with:
 
 Return ONLY raw valid JSON, no markdown code block fences.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: [{
             parts: [
@@ -3131,20 +3158,27 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   initServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js', { scope: './index.html' })
+        navigator.serviceWorker.register('./sw-admin.js', { scope: './' })
           .then((reg) => {
-            console.log('[FreshMarket Catalog] Service Worker active with scope:', reg.scope);
+            console.log('[FreshMarket Admin] Service Worker active with scope:', reg.scope);
           })
           .catch((err) => {
-            console.warn('[FreshMarket Catalog] Service Worker registration failed:', err);
+            console.warn('[FreshMarket Admin] Service Worker registration failed:', err);
           });
       });
     }
   }
 }
 
+// Global initialization helper for Admin Auth gate
+window.initAdminCatalog = function() {
+  if (!window.app) {
+    window.app = new App();
+    window.showToast = (msg, type, duration) => window.app?.showToast(msg, type, duration);
+  }
+};
+
 // Instantiate on DOM load
 document.addEventListener('DOMContentLoaded', () => {
-  window.app = new App();
-  window.showToast = (msg, type, duration) => window.app?.showToast(msg, type, duration);
+  window.initAdminCatalog();
 });

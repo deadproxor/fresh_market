@@ -1,611 +1,541 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Immediate OAuth Auto-Forward: If auth tokens arrive at landing, seamlessly forward to shop
+    (function () {
+      var h = window.location.hash || '';
+      var s = window.location.search || '';
+      if (h.indexOf('access_token') !== -1 || h.indexOf('error') !== -1 || s.indexOf('code=') !== -1) {
+        window.location.replace('shop.html' + s + h);
+      }
+    })();
+  </script>
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FreshMarket — Каталог продуктов</title>
+  <title>FreshMarket — Доставка свежих продуктов с рынка Samaki (Кампот)</title>
+  <meta name="description"
+    content="Утренняя доставка свежих фермерских продуктов с рынка Samaki Market в Кампоте. Персональный закупщик, честные цены по чеку, доставка до двери." />
 
   <!-- PWA & Mobile settings -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#f5f5f7" />
+  <link rel="manifest" href="manifest-shop.json" />
+  <meta name="theme-color" content="#0b1120" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" type="image/svg+xml" href="assets/icon-192.svg" />
   <link rel="apple-touch-icon" href="assets/icon-192.svg" />
 
-  <!-- Google Fonts: Inter & Noto Sans Khmer for authentic Khmer script support -->
+  <!-- Google Fonts: Inter & Noto Sans Khmer -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@500;600;700;800&display=swap"
     rel="stylesheet" />
 
-  <!-- Master Design System Components & Catalog Styles -->
+  <!-- Master Design System Components -->
   <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/products.css?v=v1.3.3" />
+
+  <style>
+    /* Landing Dedicated Page Styles */
+    .landing-body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-base);
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    .landing-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .landing-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .landing-brand-icon {
+      font-size: 28px;
+    }
+
+    .landing-brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: var(--accent-emerald-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .landing-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 20px 60px 20px;
+      width: 100%;
+      box-sizing: border-box;
+      flex: 1;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      text-align: center;
+      padding: 36px 0 48px 0;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-emerald-light);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-size: clamp(30px, 6vw, 50px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin: 0 0 18px 0;
+      color: var(--text-primary);
+    }
+
+    .hero-title span {
+      background: var(--accent-emerald-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: clamp(15px, 2.5vw, 18px);
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 32px auto;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-hero {
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin: 40px 0;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 28px 24px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .feature-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+    }
+
+    .feature-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: var(--text-primary);
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    /* Delivery Zones Section */
+    .zones-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 30px 24px;
+      margin: 40px 0;
+      text-align: center;
+    }
+
+    .zones-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .zones-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .zones-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      text-align: left;
+    }
+
+    .zone-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .zone-badge {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent-emerald);
+      margin-bottom: 6px;
+    }
+
+    .zone-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .zone-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Steps Section */
+    .steps-section {
+      margin: 48px 0;
+      text-align: center;
+    }
+
+    .steps-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 28px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      text-align: left;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-emerald-gradient);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .step-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.45;
+    }
+
+    /* Footer */
+    .landing-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 24px 20px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+
+    .landing-footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .landing-footer a:hover {
+      color: var(--accent-emerald);
+    }
+
+    .btn-logout {
+      background: var(--bg-card-subtle, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+      color: var(--text-secondary);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-logout:hover {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+  </style>
 </head>
 
-<body>
-  <!-- PWA Startup Splash Screen -->
-  <div id="splashScreen" class="splash-screen">
-    <div class="splash-content">
-      <div class="splash-icon-wrap">
-        <span class="splash-icon">🌱</span>
-      </div>
-      <div class="splash-title">FreshMarket</div>
-      <div class="splash-version" id="splashVersion">v1.3.4</div>
-    </div>
-  </div>
+<body class="landing-body">
 
-  <div id="app" class="app-container">
-
-    <!-- Top Minimal Bar -->
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-icon">🌱</div>
-        <div class="brand-text">
-          <span class="brand-title">FreshMarket</span>
-          <span class="brand-subtitle">База продуктов</span>
-        </div>
-      </div>
-      <div class="header-right">
-        <button type="button" class="theme-toggle-btn" id="btnSettings" title="Настройки AI (Gemini API)"
-          onclick="window.app ? window.app.openSettingsModal() : (document.getElementById('settingsModal').style.display='flex')">
-          <span class="theme-icon">⚙️</span>
-        </button>
-        <button type="button" class="theme-toggle-btn" id="btnThemeToggle" title="Сменить тему (светлая / темная)">
-          <span class="theme-icon" id="themeIcon">☀️</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Content Views Container -->
-    <main class="main-content">
-
-      <!-- ================= SCREEN 1: DASHBOARD / ADD TRIGGER ================= -->
-      <section id="viewAdd" class="view active">
-
-        <!-- Expanded Statistics Widget -->
-        <div class="stats-card-container">
-          <!-- Top summary row -->
-          <div class="stats-summary-row">
-            <div class="stat-item">
-              <span class="stat-number" id="statCategoriesRatio">0 / 9</span>
-              <span class="stat-label">Категорий</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-number" id="statDictCount">0</span>
-              <span class="stat-label">В словаре</span>
-            </div>
-            <div class="stat-divider"></div>
-            <div class="stat-item">
-              <span class="stat-number" id="statProductsCount">0</span>
-              <span class="stat-label">В списке</span>
-            </div>
-          </div>
-
-          <!-- Category Breakdown Section -->
-          <div class="stats-breakdown-section">
-            <div class="categories-stats-grid" id="categoryStatsGrid">
-              <!-- Injected via JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Additions Preview Section on Home Screen -->
-        <div class="recent-section">
-          <div class="recent-header">
-            <h3 class="recent-title">Недавно в каталоге</h3>
-            <button type="button" class="btn-link" id="btnViewAllRecent">Все продукты →</button>
-          </div>
-          <div class="recent-list" id="recentList">
-            <!-- Injected via JS -->
-          </div>
-        </div>
-
-      </section>
-
-      <!-- ================= SCREEN 2: PRODUCT LIST ================= -->
-      <section id="viewList" class="view">
-
-        <!-- Search & Filter Bar -->
-        <div class="search-filter-bar">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" class="search-input" placeholder="Поиск по EN, KH или RU..."
-              autocomplete="off" />
-            <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none;">✕</button>
-          </div>
-
-          <!-- Category filter horizontal pills -->
-          <div class="category-filter-pills" id="categoryFilterPills">
-            <!-- Injected via JS -->
-          </div>
-        </div>
-
-        <!-- Product List Cards Container -->
-        <div class="products-grid" id="productsGrid">
-          <!-- Injected via JS -->
-        </div>
-
-        <!-- Empty State -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-          <div class="empty-icon">
-            <svg viewBox="0 0 120 120" width="84" height="84" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="basketInner" cx="50%" cy="40%" r="60%">
-                  <stop offset="0%" stop-color="#4a3525" />
-                  <stop offset="70%" stop-color="#2c1d11" />
-                  <stop offset="100%" stop-color="#1a1109" />
-                </radialGradient>
-                <linearGradient id="basketRim" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#d4a373" />
-                  <stop offset="50%" stop-color="#bc6c25" />
-                  <stop offset="100%" stop-color="#8c4b14" />
-                </linearGradient>
-                <linearGradient id="basketBody" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="#dda15e" />
-                  <stop offset="40%" stop-color="#bc6c25" />
-                  <stop offset="100%" stop-color="#6f3a09" />
-                </linearGradient>
-                <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#e9c46a" />
-                  <stop offset="60%" stop-color="#b06b2a" />
-                  <stop offset="100%" stop-color="#58310c" />
-                </linearGradient>
-                <filter id="basketGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.35" />
-                </filter>
-              </defs>
-
-              <!-- Back Handle -->
-              <path d="M36 50 C36 18 84 18 84 50" stroke="url(#handleGrad)" stroke-width="6.5" stroke-linecap="round"
-                fill="none" opacity="0.85" />
-              <path d="M36 50 C36 18 84 18 84 50" stroke="#432818" stroke-width="1.5" stroke-linecap="round" fill="none"
-                stroke-dasharray="3 4" opacity="0.7" />
-
-              <!-- Empty Basket Interior (Deep Dark Cavity) -->
-              <ellipse cx="60" cy="52" rx="42" ry="16" fill="url(#basketInner)" />
-
-              <!-- Basket Outer Body -->
-              <path d="M18 52 C22 84 32 98 60 98 C88 98 98 84 102 52 Z" fill="url(#basketBody)"
-                filter="url(#basketGlow)" />
-
-              <!-- Wicker Horizontal Weave Ribs -->
-              <path d="M22 64 C35 74 85 74 98 64" stroke="#e9c46a" stroke-width="3" stroke-linecap="round"
-                opacity="0.4" />
-              <path d="M25 76 C38 86 82 86 95 76" stroke="#e9c46a" stroke-width="2.8" stroke-linecap="round"
-                opacity="0.35" />
-              <path d="M32 88 C44 94 76 94 88 88" stroke="#e9c46a" stroke-width="2.5" stroke-linecap="round"
-                opacity="0.3" />
-
-              <!-- Wicker Vertical Cross Weaves -->
-              <g stroke="#582f0e" stroke-width="2.2" stroke-linecap="round" opacity="0.55">
-                <path d="M34 56 L38 94" />
-                <path d="M46 58 L48 97" />
-                <path d="M60 59 L60 98" />
-                <path d="M74 58 L72 97" />
-                <path d="M86 56 L82 94" />
-              </g>
-
-              <!-- Basket Thick Woven Rim -->
-              <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="url(#basketRim)" stroke-width="5.5" />
-              <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="#ffe8d6" stroke-width="1.2" opacity="0.4"
-                stroke-dasharray="6 4" />
-
-              <!-- Handle Attachment Rings -->
-              <circle cx="28" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
-              <circle cx="92" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
-            </svg>
-          </div>
-          <h3 class="empty-title">В списке пока пусто</h3>
-          <p class="empty-desc">Добавьте первые рыночные находки и продукты</p>
-          <button type="button" class="btn btn-primary btn-sm" id="btnEmptyGoAdd">
-            Добавить продукт
-          </button>
-        </div>
-
-      </section>
-
-    </main>
-
-    <!-- Bottom Navigation Bar (Floating Island Dock) -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" id="navBtnAdd" data-view="viewAdd" title="Главная" aria-label="Главная">
-        <div class="nav-icon">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5H15v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H4.5A1.5 1.5 0 0 1 3 20v-9.5z" />
-          </svg>
-        </div>
-        <span class="nav-label">Главная</span>
+  <!-- Top Navigation Header -->
+  <header class="landing-header">
+    <a href="index.html" class="landing-brand">
+      <span class="landing-brand-icon">🌱</span>
+      <span class="landing-brand-title">FreshMarket</span>
+    </a>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта">
+        Выйти 🚪
       </button>
-
-      <button class="nav-fab-btn" id="navBtnFabAdd" type="button" title="Добавить продукт"
-        aria-label="Добавить продукт">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6"
-          stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
+      <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="Сменить тему">
+        <span class="theme-icon" id="themeIcon">☀️</span>
       </button>
+      <a href="shop.html" class="btn btn-primary btn-sm" style="padding: 8px 18px; border-radius: var(--radius-full);">
+        В магазин 🛒
+      </a>
+    </div>
+  </header>
 
-      <button class="nav-item" id="navBtnList" data-view="viewList" title="Каталог" aria-label="Каталог">
-        <div class="nav-icon">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
+  <main class="landing-container">
+
+    <!-- 1. Hero Section -->
+    <section class="hero-section">
+      <div class="hero-badge">
+        <span>📍 Рынок Samaki Market • Кампот, Камбоджа</span>
+      </div>
+      <h1 class="hero-title">
+        Свежайшие продукты с утреннего рынка — <span>прямо к вашей двери</span>
+      </h1>
+      <p class="hero-desc">
+        Мы лично отбираем для вас отборные фрукты, овощи, зелень и морепродукты на базаре Samaki к утреннему столу.
+        Честный расчёт по реальному чеку + 10% за заботливую закупку.
+      </p>
+      <div class="hero-actions">
+        <a href="shop.html" class="btn btn-primary btn-hero">
+          🛍️ Открыть каталог и заказать
+        </a>
+        <a href="#howItWorks" class="btn btn-secondary btn-hero">
+          Как устроен сервис ↓
+        </a>
+      </div>
+    </section>
+
+    <!-- 2. Features Grid -->
+    <section class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🌅</div>
+        <h3 class="feature-title">Утренний закуп (06:00–09:00)</h3>
+        <p class="feature-desc">
+          Байер выходит на рынок Samaki на рассвете, когда привозят самый свежий товар от местных фермеров и рыбаков.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🧾</div>
+        <h3 class="feature-title">Честная цена по чеку</h3>
+        <p class="feature-desc">
+          Никаких скрытых наценок: вы платите реальную рыночную стоимость по чеку торговца + 10% за услугу отбора.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🛵</div>
+        <h3 class="feature-title">Доставка до двери</h3>
+        <p class="feature-desc">
+          Курьер бережно доставит продукты к обеду (до 13:00) по всему Кампоту с фиксированным тарифом по зонам.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. How It Works -->
+    <section id="howItWorks" class="steps-section">
+      <h2 class="steps-title">Как это работает</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-text">Вы выбираете продукты, желаемый вес и правила замен на витрине</div>
         </div>
-        <span class="nav-label">Каталог</span>
-      </button>
-    </nav>
-
-    <!-- ================= MODAL: ADD PRODUCT FORM ================= -->
-    <div id="addModal" class="modal-overlay" style="display: none;">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Новый продукт</h3>
-          <button type="button" class="modal-close-btn" id="addModalCloseBtn">✕</button>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-text">Указываете зону доставки и отправляете заявку до 06:00 утра</div>
         </div>
-        <div class="modal-body">
-          <form id="productForm" class="product-form" novalidate>
-
-            <!-- 1. PHOTO / IMAGE (First - triggers visual AI analysis) -->
-            <div class="form-group photo-block">
-              <div class="photo-block-header">
-                <label class="field-label">1. Фото продукта</label>
-                <span class="ai-badge">✨ AI Автозаполнение</span>
-              </div>
-              <div class="image-picker-zone" id="imagePickerZone">
-                <input type="file" id="fieldImageFile" accept="image/*" class="file-input-hidden" />
-                <div class="image-placeholder" id="imagePlaceholder">
-                  <div class="cam-icon">📷</div>
-                  <span class="picker-text">Сделайте фото или выберите из галереи</span>
-                  <span class="picker-subtext">ИИ автоматически определит продукт и заполнит поля</span>
-                </div>
-                <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
-                  <img id="imagePreview" alt="Превью" />
-                  <div class="ai-scan-overlay" id="aiScanOverlay" style="display: none;">
-                    <div class="ai-scan-line"></div>
-                    <div class="ai-scan-status">
-                      <span class="spinner ai-spinner"></span>
-                      <span class="ai-scan-text">Распознаём продукт...</span>
-                    </div>
-                  </div>
-                  <button type="button" class="btn-remove-photo" id="btnRemovePhoto" title="Удалить фото">✕</button>
-                </div>
-              </div>
-              <input type="hidden" id="fieldImgUrl" name="img_url" />
-            </div>
-
-            <!-- 2. NAMES BLOCK (EN, RU mandatory, KH Khmer with (transcription) + Online Lookup) -->
-            <div class="form-group names-block">
-              <div class="names-block-header">
-                <label class="field-label">2. Названия <span class="req-star">*</span></label>
-                <button type="button" class="btn-lookup" id="btnLookup"
-                  title="Автоматически найти перевод и кхмерское название с транскрипцией">
-                  <span class="lookup-icon">✨</span>
-                  <span class="lookup-text">Автопоиск (EN/RU/KH)</span>
-                  <span class="spinner" id="lookupSpinner"></span>
-                </button>
-              </div>
-
-              <!-- EN Name (Mandatory) -->
-              <div class="input-wrap has-suggestions">
-                <span class="input-lang-badge">EN *</span>
-                <input type="text" id="fieldNameEn" name="name_en" class="text-input"
-                  placeholder="e.g. Chicken, Lemongrass, Garlic" autocomplete="off" required />
-                <div class="suggestions-popup" id="suggestionsEn" style="display:none;"></div>
-              </div>
-
-              <!-- RU Name (Mandatory) -->
-              <div class="input-wrap has-suggestions">
-                <span class="input-lang-badge">RU *</span>
-                <input type="text" id="fieldNameRu" name="name_ru" class="text-input"
-                  placeholder="напр. Курица, Лемонграсс, Чеснок" autocomplete="off" required />
-                <div class="suggestions-popup" id="suggestionsRu" style="display:none;"></div>
-              </div>
-
-              <!-- KH Name (Khmer script + English transcription in brackets) -->
-              <div class="input-wrap khmer-wrap">
-                <span class="input-lang-badge kh-badge">KH</span>
-                <input type="text" id="fieldNameKh" name="name_kh" class="text-input khmer-input"
-                  placeholder="напр. សាច់មាន់ (Sach Moan), ស្លឹកគ្រៃ (Sloek Krey)" autocomplete="off" />
-              </div>
-              <div class="field-hint">Подсказки появляются автоматически при вводе или анализе фото.</div>
-            </div>
-
-            <!-- 3. CATEGORY -->
-            <div class="form-group">
-              <label class="field-label">3. Категория <span class="req-star">*</span></label>
-              <div class="chip-group category-chips" id="categoryChips">
-                <!-- Injected via JS -->
-              </div>
-              <input type="hidden" id="fieldCategory" name="category" required />
-            </div>
-
-            <!-- 4. FORM / STATE -->
-            <div class="form-group">
-              <label class="field-label">4. Форма / Состояние продукта</label>
-              <div class="chip-group form-chips" id="formChips">
-                <!-- Injected via JS -->
-              </div>
-              <div class="custom-form-wrap" id="customFormWrap" style="display:none; margin-top:8px;">
-                <input type="text" id="fieldCustomForm" class="text-input"
-                  placeholder="Укажите свою форму (напр. маринованный, кубиками)" />
-              </div>
-              <input type="hidden" id="fieldForm" name="form" value="Целый" />
-            </div>
-
-            <!-- 5. DESCRIPTION / NOTES -->
-            <div class="form-group">
-              <label class="field-label">5. Описание / Заметки</label>
-              <textarea id="fieldDescription" name="description" class="text-input textarea-input" rows="3"
-                placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять..."></textarea>
-            </div>
-
-            <!-- FORM ACTIONS -->
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="btnSave">
-                Сохранить
-              </button>
-            </div>
-          </form>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-text">Закупщик отбирает продукты на базаре и прикрепляет фото чека</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-text">Курьер привозит заказ, вы оплачиваете наличными или через ABA KHQR</div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ================= MODAL: EDIT PRODUCT ================= -->
-    <div id="editModal" class="modal-overlay" style="display:none;">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Редактировать продукт</h3>
-          <button type="button" class="modal-close-btn" id="modalCloseBtn">✕</button>
+    <!-- 4. Delivery Zones -->
+    <section class="zones-card">
+      <h2 class="zones-title">Зоны доставки по Кампоту</h2>
+      <p class="zones-subtitle">Прозрачные фиксированные тарифы без скрытых доплат</p>
+      <div class="zones-grid">
+        <div class="zone-item">
+          <div>
+            <div class="zone-badge">$1.00</div>
+            <div class="zone-name">Зона 1: Центр</div>
+            <div class="zone-desc">Центр города, Старый рынок, Набережная реки Кампот</div>
+          </div>
         </div>
-        <div class="modal-body" id="modalBody">
-          <!-- Injected dynamically -->
-        </div>
-      </div>
-    </div>
 
-    <!-- ================= MODAL: DELETE CONFIRM ================= -->
-    <div id="deleteModal" class="modal-overlay" style="display:none;">
-      <div class="modal-card modal-confirm-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Удаление продукта</h3>
-          <button type="button" class="modal-close-btn" id="deleteModalCloseBtn">✕</button>
+        <div class="zone-item">
+          <div>
+            <div class="zone-badge">$2.00</div>
+            <div class="zone-name">Зона 2: Остров и пригород</div>
+            <div class="zone-desc">Рыбный остров (Fish Island), Ближний пригород, Теплые ключи</div>
+          </div>
         </div>
-        <div class="modal-body">
-          <p class="confirm-message" id="deleteConfirmMsg">Вы уверены, что хотите удалить этот продукт из каталога?</p>
-          <div class="form-actions" style="margin-top:18px;">
-            <button type="button" class="btn btn-secondary" id="btnCancelDelete">Отмена</button>
-            <button type="button" class="btn btn-danger" id="btnConfirmDelete">🗑️ Удалить</button>
+
+        <div class="zone-item">
+          <div>
+            <div class="zone-badge">$3.00</div>
+            <div class="zone-name">Зона 3: Дальние виллы</div>
+            <div class="zone-desc">River Road (вверх по реке), отдаленные виллы и курорты</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- ================= MODAL: SETTINGS (AI, SUPABASE, CLOUDINARY) ================= -->
-    <div id="settingsModal" class="modal-overlay" style="display:none;">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Настройки приложения</h3>
-          <button type="button" class="modal-close-btn" id="settingsModalCloseBtn"
-            onclick="window.app ? window.app.closeSettingsModal() : (document.getElementById('settingsModal').style.display='none')">✕</button>
-        </div>
-        <div class="modal-body">
-          <form id="settingsForm" class="product-form" novalidate>
-
-            <!-- SECTION 1: AI (GEMINI) -->
-            <div class="settings-section is-collapsed">
-              <div class="settings-section-header">
-                <div class="settings-section-title">Gemini Vision</div>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
-              <div class="settings-section-body">
-                <div class="form-group">
-                  <label class="field-label" for="settingApiKey">Google Gemini API Key</label>
-                  <input type="text" id="settingApiKey" class="text-input" placeholder="AIzaSy..."
-                    autocomplete="off" spellcheck="false" />
-                  <div class="field-hint">Для автозаполнения полей по фото и перевода.</div>
-                </div>
-                <div class="form-group">
-                  <label class="field-label" for="settingModel">Модель Gemini</label>
-                  <select id="settingModel" class="text-input select-input">
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Рекомендуется)</option>
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                    <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
-                    <option value="custom">Другая модель (ввести вручную)...</option>
-                  </select>
-                  <div id="customModelWrap" style="display:none; margin-top:8px;">
-                    <input type="text" id="settingCustomModel" class="text-input"
-                      placeholder="например, gemini-2.5-flash" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 2: STORAGE (SUPABASE) -->
-            <div class="settings-section is-collapsed">
-              <div class="settings-section-header">
-                <div class="settings-section-title">Supabase</div>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
-              <div class="settings-section-body">
-                <div class="form-group">
-                  <label class="field-label">Хранилище данных</label>
-                  <div class="storage-provider-toggle">
-                    <label class="provider-option">
-                      <input type="radio" name="storageProvider" value="local" id="providerLocal" />
-                      <span class="provider-box">
-                        <span class="provider-icon">📱</span>
-                        <span class="provider-name">Локально</span>
-                        <span class="provider-desc">LocalStorage</span>
-                      </span>
-                    </label>
-                    <label class="provider-option">
-                      <input type="radio" name="storageProvider" value="supabase" id="providerSupabase" checked />
-                      <span class="provider-box">
-                        <span class="provider-icon">☁️</span>
-                        <span class="provider-name">Supabase</span>
-                        <span class="provider-desc">Облачная база</span>
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-                <div id="supabaseFieldsWrap">
-                  <div class="form-group">
-                    <label class="field-label" for="settingSupabaseUrl">Supabase Project URL</label>
-                    <input type="text" id="settingSupabaseUrl" class="text-input"
-                      placeholder="https://xyzcompany.supabase.co" autocomplete="off" />
-                  </div>
-                  <div class="form-group">
-                    <label class="field-label" for="settingSupabaseKey">Supabase Anon Key</label>
-                    <input type="text" id="settingSupabaseKey" class="text-input" placeholder="eyJhbGciOi..."
-                      autocomplete="off" spellcheck="false" />
-                  </div>
-                  <div class="settings-buttons-row">
-                    <button type="button" class="btn-settings-action" id="btnTestSupabase">
-                      Проверить подключение
-                    </button>
-                    <button type="button" class="btn-settings-action" id="btnMigrateToSupabase">
-                      Перенести локальные данные в облако
-                    </button>
-                  </div>
-                  <div class="settings-status-box" id="supabaseStatusBox">
-                    <span class="status-dot" id="supabaseStatusDot"></span>
-                    <span class="status-text" id="supabaseStatusText">Статус: не проверено</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 3: PHOTOS (CLOUDINARY) -->
-            <div class="settings-section is-collapsed">
-              <div class="settings-section-header">
-                <div class="settings-section-title">Cloudinary</div>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
-              <div class="settings-section-body">
-                <div class="form-group">
-                  <label class="field-label" for="settingCloudinaryName">Cloud Name</label>
-                  <input type="text" id="settingCloudinaryName" class="text-input" placeholder="например, dn8xxxxxx"
-                    autocomplete="off" />
-                </div>
-                <div class="form-group">
-                  <label class="field-label" for="settingCloudinaryPreset">Upload Preset (Unsigned)</label>
-                  <input type="text" id="settingCloudinaryPreset" class="text-input"
-                    placeholder="например, freshmarket_preset" autocomplete="off" />
-                </div>
-                <div class="form-group">
-                  <label class="field-label" for="settingCloudinaryFolder">Папка на Cloudinary</label>
-                  <input type="text" id="settingCloudinaryFolder" class="text-input" value="freshmarket"
-                    placeholder="freshmarket" autocomplete="off" />
-                  <div class="field-hint">Директория в медиатеке Cloudinary для фото каталога.</div>
-                </div>
-                <div class="form-group">
-                  <label class="field-label" for="settingCloudinaryApiKey">Cloudinary API Key (для удаления фото)</label>
-                  <input type="text" id="settingCloudinaryApiKey" class="text-input" placeholder="например, 123456789012345"
-                    autocomplete="off" />
-                </div>
-                <div class="form-group">
-                  <label class="field-label" for="settingCloudinaryApiSecret">Cloudinary API Secret (для удаления фото)</label>
-                  <input type="text" id="settingCloudinaryApiSecret" class="text-input" placeholder="например, abcdEFGH1234..."
-                    autocomplete="off" spellcheck="false" />
-                  <div class="field-hint">Требуются для автоматического стирания фото из облака Cloudinary при удалении продукта.</div>
-                </div>
-                <div class="settings-buttons-row">
-                  <button type="button" class="btn-settings-action" id="btnTestCloudinary">
-                    Проверить Cloudinary
-                  </button>
-                </div>
-                <div class="settings-status-box" id="cloudinaryStatusBox">
-                  <span class="status-dot" id="cloudinaryStatusDot"></span>
-                  <span class="status-text" id="cloudinaryStatusText">Статус: не проверено</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION 4: BACKUP & IMPORT/EXPORT -->
-            <div class="settings-section">
-              <div class="settings-section-header">
-                <div class="settings-section-title">Резервная копия настроек</div>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
-              <div class="settings-section-body">
-                <div class="field-hint" style="margin-bottom: 6px;">
-                  Экспорт и импорт параметров (API-ключи, Supabase, Cloudinary) для быстрого переноса между устройствами.
-                </div>
-                <div class="settings-buttons-row">
-                  <button type="button" class="btn-settings-action" id="btnExportSettings">
-                    Экспорт настроек в файл
-                  </button>
-                  <button type="button" class="btn-settings-action" id="btnImportSettings">
-                    Импорт настроек из файла
-                  </button>
-                  <input type="file" id="inputImportSettingsFile" accept=".json,application/json"
-                    style="display: none;" />
-                  <button type="button" class="btn-settings-action" id="btnCopySettingsClipboard">
-                    Скопировать настройки в буфер
-                  </button>
-                  <button type="button" class="btn-settings-action" id="btnPasteSettingsClipboard">
-                    Вставить настройки из буфера
-                  </button>
-                </div>
-                <div class="settings-status-box" id="backupStatusBox" style="display: none;">
-                  <span class="status-dot" id="backupStatusDot"></span>
-                  <span class="status-text" id="backupStatusText"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-actions" style="margin-top: 20px;">
-              <button type="button" class="btn btn-secondary" id="btnCancelSettings"
-                onclick="window.app ? window.app.closeSettingsModal() : (document.getElementById('settingsModal').style.display='none')">Отмена</button>
-              <button type="submit" class="btn btn-primary" id="btnSaveSettings">Сохранить настройки</button>
-            </div>
-            <div class="settings-version-footer">
-              FreshMarket <span id="settingsAppVersion">v1.3.4</span>
-            </div>
-          </form>
-        </div>
+      <div style="margin-top: 24px;">
+        <a href="shop.html" class="btn btn-primary" style="padding: 12px 28px; border-radius: var(--radius-full);">
+          Перейти к выбору продуктов →
+        </a>
       </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div style="max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px;">
+      <div>🌱 <b>FreshMarket</b> — Сервис утренней доставки продуктов с рынка Samaki Market (Кампот, Камбоджа)</div>
+      <div style="display: flex; justify-content: center; gap: 16px; margin-top: 4px;">
+        <a href="shop.html">Магазин</a>
+        <span>•</span>
+        <a href="components.html">UI Kit</a>
+        <span>•</span>
+        <a href="admin/index.html" style="opacity: 0.6;">Вход для закупщика 🔒</a>
+      </div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">v1.4.0 • PWA Ready</div>
     </div>
-  </div>
+  </footer>
 
-  <!-- Dynamic Toast Notification Stack Container (Direct Body Child for Max Layering) -->
-  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <!-- Theme Script -->
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem('freshmarket_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
 
-  <!-- Main JavaScript App -->
-  <script src="js/app.js?v=v1.3.3"></script>
+      const btn = document.getElementById('themeToggleBtn');
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const current = document.documentElement.getAttribute('data-theme') || 'dark';
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('freshmarket_theme', next);
+          if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+        });
+      }
+
+      // Check customer authentication for logout button
+      try {
+        const rawAuth = localStorage.getItem('freshmarket_customer_auth');
+        const btnLogout = document.getElementById('btnLandingLogout');
+        if (rawAuth && btnLogout) {
+          const parsed = JSON.parse(rawAuth);
+          if (parsed && (parsed.access_token || parsed.user)) {
+            btnLogout.style.display = 'inline-flex';
+            btnLogout.addEventListener('click', () => {
+              localStorage.removeItem('freshmarket_customer_auth');
+              btnLogout.style.display = 'none';
+              window.location.reload();
+            });
+          }
+        }
+      } catch (err) {}
+    })();
+  </script>
 </body>
 
 </html>

@@ -1,25 +1,27 @@
 /**
- * FreshMarket Catalog - Admin PWA Service Worker
- * Strategy: Network-First with Cache Fallback for offline resilience
+ * FreshMarket Admin - Buyer Workspace PWA Service Worker
+ * Strategy: Network-First with Cache Fallback for offline market resilience
  */
 
-const CACHE_NAME = 'freshmarket-catalog-v1.3.4';
+const CACHE_NAME = 'freshmarket-admin-v1.4.0';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
-  './css/components.css',
-  './css/products.css',
-  './js/app.js',
-  './data/products_dictionary.json',
-  './assets/icon-192.svg',
-  './assets/icon-512.svg'
+  './css/admin.css',
+  '../css/components.css',
+  '../css/products.css',
+  './js/admin-auth.js',
+  './js/admin-catalog.js',
+  '../data/products_dictionary.json',
+  '../assets/icon-192.svg',
+  '../assets/icon-512.svg'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW-Catalog] Pre-cache warning:', err);
+        console.warn('[SW-Admin] Pre-cache warning:', err);
       });
     })
   );
@@ -31,7 +33,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME && key.startsWith('freshmarket-catalog')) {
+          if (key !== CACHE_NAME && key.startsWith('freshmarket-admin')) {
             return caches.delete(key);
           }
         })
