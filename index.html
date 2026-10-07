@@ -37,6 +37,7 @@
 
   <!-- Master Design System Components -->
   <link rel="stylesheet" href="css/components.css" />
+  <script src="js/shared/i18n.js"></script>
 
   <style>
     /* Landing Dedicated Page Styles */
@@ -325,27 +326,6 @@
     .landing-footer a:hover {
       color: var(--accent-emerald);
     }
-
-    .btn-logout {
-      background: var(--bg-card-subtle, rgba(255, 255, 255, 0.05));
-      border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-      color: var(--text-secondary);
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 5px 12px;
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn-logout:hover {
-      background: rgba(239, 68, 68, 0.12);
-      color: #ef4444;
-      border-color: rgba(239, 68, 68, 0.3);
-    }
   </style>
 </head>
 
@@ -358,10 +338,11 @@
       <span class="landing-brand-title">FreshMarket</span>
     </a>
     <div style="display: flex; align-items: center; gap: 10px;">
-      <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта">
+      <div data-lang-picker></div>
+      <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта" data-i18n="common.logout">
         Выйти 🚪
       </button>
-      <a href="shop.html" class="btn btn-primary btn-sm" style="padding: 8px 18px; border-radius: var(--radius-full);">
+      <a href="shop.html" class="btn btn-primary btn-sm" style="padding: 8px 18px; border-radius: var(--radius-full);" data-i18n="header.btn_to_shop">
         В магазин 🛒
       </a>
     </div>
@@ -372,20 +353,21 @@
     <!-- 1. Hero Section -->
     <section class="hero-section">
       <div class="hero-badge">
-        <span>📍 Рынок Samaki Market • Кампот, Камбоджа</span>
+        <span data-i18n="landing.hero_badge">📍 Рынок Samaki Market • Кампот, Камбоджа</span>
       </div>
       <h1 class="hero-title">
-        Свежайшие продукты с утреннего рынка — <span>прямо к вашей двери</span>
+        <span data-i18n="landing.hero_title">Свежайшие продукты с утреннего рынка —</span>
+        <span data-i18n="landing.hero_title_accent">прямо к вашей двери</span>
       </h1>
-      <p class="hero-desc">
+      <p class="hero-desc" data-i18n="landing.hero_desc">
         Мы лично отбираем для вас отборные фрукты, овощи, зелень и морепродукты на базаре Samaki к утреннему столу.
         Честный расчёт по реальному чеку + 10% за заботливую закупку.
       </p>
       <div class="hero-actions">
-        <a href="shop.html" class="btn btn-primary btn-hero">
+        <a href="shop.html" class="btn btn-primary btn-hero" data-i18n="landing.hero_btn_catalog">
           🛍️ Открыть каталог и заказать
         </a>
-        <a href="#howItWorks" class="btn btn-secondary btn-hero">
+        <a href="#howItWorks" class="btn btn-secondary btn-hero" data-i18n="landing.hero_btn_how">
           Как устроен сервис ↓
         </a>
       </div>
@@ -395,24 +377,24 @@
     <section class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">🌅</div>
-        <h3 class="feature-title">Утренний закуп (06:00–09:00)</h3>
-        <p class="feature-desc">
+        <h3 class="feature-title" data-i18n="landing.feature1_title">Утренний закуп (06:00–09:00)</h3>
+        <p class="feature-desc" data-i18n="landing.feature1_desc">
           Байер выходит на рынок Samaki на рассвете, когда привозят самый свежий товар от местных фермеров и рыбаков.
         </p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon">🧾</div>
-        <h3 class="feature-title">Честная цена по чеку</h3>
-        <p class="feature-desc">
+        <h3 class="feature-title" data-i18n="landing.feature2_title">Честная цена по чеку</h3>
+        <p class="feature-desc" data-i18n="landing.feature2_desc">
           Никаких скрытых наценок: вы платите реальную рыночную стоимость по чеку торговца + 10% за услугу отбора.
         </p>
       </div>
 
       <div class="feature-card">
         <div class="feature-icon">🛵</div>
-        <h3 class="feature-title">Доставка до двери</h3>
-        <p class="feature-desc">
+        <h3 class="feature-title" data-i18n="landing.feature4_title">Доставка до двери</h3>
+        <p class="feature-desc" data-i18n="landing.feature4_desc">
           Курьер бережно доставит продукты к обеду (до 13:00) по всему Кампоту с фиксированным тарифом по зонам.
         </p>
       </div>

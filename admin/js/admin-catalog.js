@@ -63,6 +63,9 @@ const FORMS = [
 
 // Produce Dictionary loaded dynamically from external products_dictionary.json + persistent custom extensions
 let PRODUCE_DICTIONARY = [];
+let PRODUCE_DICTIONARY_SECTIONS = { core: [], from_database: [] };
+window.PRODUCE_DICTIONARY = PRODUCE_DICTIONARY;
+window.PRODUCE_DICTIONARY_SECTIONS = PRODUCE_DICTIONARY_SECTIONS;
 const CUSTOM_DICT_KEY = 'freshmarket_custom_produce_dictionary';
 
 // Load produce dictionary from standalone JSON file + localStorage custom items
@@ -76,7 +79,19 @@ async function loadProduceDictionary() {
       response = await fetch('./products_dictionary.json');
     }
     if (response.ok) {
-      PRODUCE_DICTIONARY = await response.json();
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        PRODUCE_DICTIONARY = data;
+        PRODUCE_DICTIONARY_SECTIONS = { core: data, from_database: [] };
+      } else if (data && typeof data === 'object') {
+        const core = Array.isArray(data.core) ? data.core : [];
+        const fromDb = Array.isArray(data.from_database) ? data.from_database : [];
+        PRODUCE_DICTIONARY_SECTIONS = { core, from_database: fromDb };
+        // Core dictionary has 100% priority, then additions from database
+        PRODUCE_DICTIONARY = [...core, ...fromDb];
+      }
+      window.PRODUCE_DICTIONARY = PRODUCE_DICTIONARY;
+      window.PRODUCE_DICTIONARY_SECTIONS = PRODUCE_DICTIONARY_SECTIONS;
     }
   } catch (err) {
     console.warn('[FreshMarket Admin] Could not load external products_dictionary.json, using fallback', err);
@@ -103,9 +118,14 @@ async function loadProduceDictionary() {
     console.error('Error loading custom dictionary items', err);
   }
 
-  console.log(`[FreshMarket] Loaded ${PRODUCE_DICTIONARY.length} produce definitions`);
-  if (window.app && typeof window.app.updateStats === 'function') {
-    window.app.updateStats();
+  console.log(`[FreshMarket] Loaded ${PRODUCE_DICTIONARY.length} produce definitions (${PRODUCE_DICTIONARY_SECTIONS.core.length} core, ${PRODUCE_DICTIONARY_SECTIONS.from_database.length} from db)`);
+  if (window.app) {
+    if (typeof window.app.updateStats === 'function') {
+      window.app.updateStats();
+    }
+    if (typeof window.app.renderSettingsDictionary === 'function') {
+      window.app.renderSettingsDictionary();
+    }
   }
 }
 
@@ -703,7 +723,8 @@ class App {
     this.products = [];
     this.activeFilterCategory = 'all';
     this.searchQuery = '';
-    this.currentView = 'viewAdd';
+    this.currentMainView = 'viewCatalog';
+    this.activeCatalogTab = 'categories';
     this.selectedCategory = CATEGORIES[0].name;
     this.selectedForm = FORMS[0].label;
     this.currentImageBase64 = '';
@@ -714,6 +735,7 @@ class App {
     this.renderCategoryChips();
     this.renderFormChips();
     this.renderCategoryFilterPills();
+    this.renderCategoriesGrid();
     this.loadData();
     this.initServiceWorker();
     this.renderAppVersion();
@@ -736,12 +758,31 @@ class App {
   }
 
   initElements() {
-    // Header
+    // Header & Tech Settings
     this.headerCountBadge = document.getElementById('headerCountBadge');
+    this.btnTechSettings = document.getElementById('btnTechSettings');
 
-    // Navigation
-    this.navBtnAdd = document.getElementById('navBtnAdd');
+    // Section Views
+    this.viewCatalog = document.getElementById('viewCatalog');
+    this.viewOrders = document.getElementById('viewOrders');
+    this.viewSettings = document.getElementById('viewSettings');
+
+    // Bottom Navigation Elements
+    this.navBtnCatalog = document.getElementById('navBtnCatalog');
+    this.navBtnOrders = document.getElementById('navBtnOrders');
+    this.navBtnSettings = document.getElementById('navBtnSettings');
     this.navBtnFabAdd = document.getElementById('navBtnFabAdd');
+
+    // Catalog Mode Switcher Tabs (Categories vs All Products)
+    this.adminHomeTabs = document.getElementById('adminHomeTabs');
+    this.adminTabBtnCategories = document.getElementById('adminTabBtnCategories');
+    this.adminTabBtnProducts = document.getElementById('adminTabBtnProducts');
+    this.adminTabViewCategories = document.getElementById('adminTabViewCategories');
+    this.adminTabViewProducts = document.getElementById('adminTabViewProducts');
+    this.adminCategoryGrid = document.getElementById('adminCategoryGrid');
+
+    // Legacy Navigation fallbacks
+    this.navBtnAdd = document.getElementById('navBtnAdd');
     this.navBtnList = document.getElementById('navBtnList');
     this.viewAdd = document.getElementById('viewAdd');
     this.viewList = document.getElementById('viewList');
@@ -840,17 +881,100 @@ class App {
     this.btnConfirmDelete = document.getElementById('btnConfirmDelete');
     this.pendingDeleteId = null;
     this.pendingDeleteName = '';
+
+    // Settings Draft Dictionary Elements
+    this.settingsDictCountBadge = document.getElementById('settingsDictCountBadge');
+    this.settingsDictSearchInput = document.getElementById('settingsDictSearchInput');
+    this.settingsDictSearchClear = document.getElementById('settingsDictSearchClear');
+    this.settingsDictList = document.getElementById('settingsDictList');
+    this.dictFilterAll = document.getElementById('dictFilterAll');
+    this.dictFilterCore = document.getElementById('dictFilterCore');
+    this.dictFilterDb = document.getElementById('dictFilterDb');
+    this.activeDictFilter = 'all';
+    this.dictSearchQuery = '';
   }
 
   initEventListeners() {
-    // View switching
-    this.navBtnAdd.addEventListener('click', () => this.switchView('viewAdd'));
-    this.navBtnList.addEventListener('click', () => this.switchView('viewList'));
+    // Header Tech Settings (Gear button)
+    if (this.btnTechSettings) {
+      this.btnTechSettings.addEventListener('click', () => this.openSettingsModal());
+    }
+
+    // Bottom Navigation View switching
+    if (this.navBtnCatalog) {
+      this.navBtnCatalog.addEventListener('click', () => this.switchMainView('viewCatalog'));
+    }
+    if (this.navBtnOrders) {
+      this.navBtnOrders.addEventListener('click', () => this.switchMainView('viewOrders'));
+    }
+    if (this.navBtnSettings) {
+      this.navBtnSettings.addEventListener('click', () => this.switchMainView('viewSettings'));
+    }
+
+    // Catalog Segmented Tabs (Categories vs All Products)
+    if (this.adminTabBtnCategories) {
+      this.adminTabBtnCategories.addEventListener('click', () => this.setCatalogTab('categories'));
+    }
+    if (this.adminTabBtnProducts) {
+      this.adminTabBtnProducts.addEventListener('click', () => this.setCatalogTab('products'));
+    }
+
+    // Floating Action Button (FAB) Add Product
     if (this.navBtnFabAdd) {
       this.navBtnFabAdd.addEventListener('click', () => this.openAddModal());
     }
-    this.btnEmptyGoAdd.addEventListener('click', () => this.openAddModal());
-    this.btnViewAllRecent.addEventListener('click', () => this.switchView('viewList'));
+    if (this.btnEmptyGoAdd) {
+      this.btnEmptyGoAdd.addEventListener('click', () => this.openAddModal());
+    }
+
+    // Legacy fallbacks
+    if (this.navBtnAdd) {
+      this.navBtnAdd.addEventListener('click', () => this.openAddModal());
+    }
+    if (this.navBtnList) {
+      this.navBtnList.addEventListener('click', () => {
+        this.switchMainView('viewCatalog');
+        this.setCatalogTab('products');
+      });
+    }
+    if (this.btnViewAllRecent) {
+      this.btnViewAllRecent.addEventListener('click', () => {
+        this.switchMainView('viewCatalog');
+        this.setCatalogTab('products');
+      });
+    }
+
+    // Draft Dictionary in Settings Events
+    if (this.settingsDictSearchInput) {
+      this.settingsDictSearchInput.addEventListener('input', (e) => {
+        this.dictSearchQuery = e.target.value.trim().toLowerCase();
+        if (this.settingsDictSearchClear) {
+          this.settingsDictSearchClear.style.display = this.dictSearchQuery ? 'flex' : 'none';
+        }
+        this.renderSettingsDictionary();
+      });
+    }
+    if (this.settingsDictSearchClear) {
+      this.settingsDictSearchClear.addEventListener('click', () => {
+        if (this.settingsDictSearchInput) {
+          this.settingsDictSearchInput.value = '';
+          this.dictSearchQuery = '';
+          this.settingsDictSearchClear.style.display = 'none';
+          this.renderSettingsDictionary();
+        }
+      });
+    }
+    const dictFilterBtns = [this.dictFilterAll, this.dictFilterCore, this.dictFilterDb];
+    dictFilterBtns.forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          dictFilterBtns.forEach(b => b && b.classList.remove('active'));
+          btn.classList.add('active');
+          this.activeDictFilter = btn.dataset.dictFilter || 'all';
+          this.renderSettingsDictionary();
+        });
+      }
+    });
 
     // Delete Modal Events
     this.deleteModalCloseBtn.addEventListener('click', () => this.closeDeleteModal());
@@ -961,18 +1085,30 @@ class App {
     });
 
     // Search input
-    this.searchInput.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value.trim().toLowerCase();
-      this.searchClearBtn.style.display = this.searchQuery ? 'block' : 'none';
-      this.renderProductsList();
-    });
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value.trim().toLowerCase();
+        if (this.searchClearBtn) {
+          this.searchClearBtn.style.display = this.searchQuery ? 'flex' : 'none';
+        }
+        if (this.searchQuery) {
+          this.setCatalogTab('products');
+        }
+        this.renderProductsList();
+      });
+    }
 
-    this.searchClearBtn.addEventListener('click', () => {
-      this.searchInput.value = '';
-      this.searchQuery = '';
-      this.searchClearBtn.style.display = 'none';
-      this.renderProductsList();
-    });
+    if (this.searchClearBtn) {
+      this.searchClearBtn.addEventListener('click', () => {
+        if (this.searchInput) {
+          this.searchInput.value = '';
+          this.searchQuery = '';
+          this.searchClearBtn.style.display = 'none';
+          this.searchInput.focus();
+          this.renderProductsList();
+        }
+      });
+    }
 
     // Edit Modal Close
     this.modalCloseBtn.addEventListener('click', () => {
@@ -990,20 +1126,118 @@ class App {
   // ------------------------------------------------------------------------
   // Navigation & Modals
   // ------------------------------------------------------------------------
-  switchView(viewId) {
-    this.currentView = viewId;
-    if (viewId === 'viewAdd') {
-      this.viewAdd.classList.add('active');
-      this.viewList.classList.remove('active');
-      this.navBtnAdd.classList.add('active');
-      this.navBtnList.classList.remove('active');
-      this.renderRecentList();
-    } else {
-      this.viewList.classList.add('active');
-      this.viewAdd.classList.remove('active');
-      this.navBtnList.classList.add('active');
-      this.navBtnAdd.classList.remove('active');
+  switchMainView(viewId) {
+    this.currentMainView = viewId;
+
+    const views = {
+      viewCatalog: this.viewCatalog,
+      viewOrders: this.viewOrders,
+      viewSettings: this.viewSettings
+    };
+
+    const navBtns = {
+      viewCatalog: this.navBtnCatalog,
+      viewOrders: this.navBtnOrders,
+      viewSettings: this.navBtnSettings
+    };
+
+    Object.entries(views).forEach(([id, el]) => {
+      if (el) {
+        const isTarget = (id === viewId);
+        el.style.display = isTarget ? 'flex' : 'none';
+        el.classList.toggle('active', isTarget);
+      }
+    });
+
+    Object.entries(navBtns).forEach(([id, btn]) => {
+      if (btn) {
+        btn.classList.toggle('active', id === viewId);
+      }
+    });
+
+    // FAB Add button is always available at page level
+    if (this.navBtnFabAdd) {
+      this.navBtnFabAdd.style.display = 'flex';
+    }
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    if (viewId === 'viewOrders') {
+      if (window.adminAuth && typeof window.adminAuth.loadAdminOrders === 'function') {
+        window.adminAuth.loadAdminOrders();
+      }
+    } else if (viewId === 'viewSettings') {
+      this.renderSettingsDictionary();
+    } else if (viewId === 'viewCatalog') {
+      this.renderCategoriesGrid();
       this.renderProductsList();
+    }
+  }
+
+  setCatalogTab(tabName) {
+    this.activeCatalogTab = tabName;
+    if (this.adminTabBtnCategories) {
+      this.adminTabBtnCategories.classList.toggle('active', tabName === 'categories');
+    }
+    if (this.adminTabBtnProducts) {
+      this.adminTabBtnProducts.classList.toggle('active', tabName === 'products');
+    }
+    if (this.adminTabViewCategories) {
+      this.adminTabViewCategories.style.display = (tabName === 'categories') ? 'block' : 'none';
+    }
+    if (this.adminTabViewProducts) {
+      this.adminTabViewProducts.style.display = (tabName === 'products') ? 'block' : 'none';
+    }
+    if (tabName === 'categories') {
+      this.renderCategoriesGrid();
+    } else if (tabName === 'products') {
+      this.renderProductsList();
+    }
+  }
+
+  renderCategoriesGrid() {
+    if (!this.adminCategoryGrid) return;
+
+    // Calculate count per category
+    const counts = {};
+    CATEGORIES.forEach((cat) => {
+      counts[cat.name] = this.products.filter(
+        (p) => p.category === cat.name || p.category === cat.id
+      ).length;
+    });
+
+    this.adminCategoryGrid.innerHTML = CATEGORIES.map((cat) => {
+      const count = counts[cat.name] || 0;
+      const isActive = this.activeFilterCategory === cat.name ? 'active' : '';
+      return `
+        <div class="category-card ${isActive}" data-category="${cat.name}">
+          <div class="cat-card-left">
+            <span class="cat-card-icon">${cat.icon}</span>
+            <span class="cat-card-name">${cat.name}</span>
+          </div>
+          <span class="cat-card-count">${count}</span>
+        </div>
+      `;
+    }).join('');
+
+    this.adminCategoryGrid.querySelectorAll('.category-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const catName = card.dataset.category;
+        this.activeFilterCategory = catName;
+        this.updateActiveFilterPills();
+        this.setCatalogTab('products');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  // Backward-compatible alias for previous view switches
+  switchView(viewId) {
+    if (viewId === 'viewAdd') {
+      this.openAddModal();
+    } else {
+      this.switchMainView('viewCatalog');
+      this.setCatalogTab('products');
     }
   }
 
@@ -1073,13 +1307,29 @@ class App {
   }
 
   renderCategoryFilterPills() {
+    if (!this.categoryFilterPills) return;
     this.categoryFilterPills.innerHTML = '';
+
+    const countMap = {};
+    (this.products || []).forEach(p => {
+      const cat = p.category;
+      if (cat) {
+        countMap[cat] = (countMap[cat] || 0) + 1;
+      }
+    });
+
+    const totalCount = (this.products || []).length;
 
     // "All" Pill
     const allPill = document.createElement('button');
     allPill.type = 'button';
     allPill.className = `filter-pill ${this.activeFilterCategory === 'all' ? 'active' : ''}`;
-    allPill.textContent = '🌟 Все';
+    allPill.dataset.category = 'all';
+    allPill.innerHTML = `
+      <span class="category-icon">🌟</span>
+      <span class="category-name">Все</span>
+      <span class="category-count">${totalCount}</span>
+    `;
     allPill.addEventListener('click', () => {
       this.activeFilterCategory = 'all';
       this.updateActiveFilterPills();
@@ -1089,10 +1339,16 @@ class App {
 
     // Specific Category Pills
     CATEGORIES.forEach(cat => {
+      const count = (countMap[cat.name] || 0) + (countMap[cat.id] || 0);
       const pill = document.createElement('button');
       pill.type = 'button';
       pill.className = `filter-pill ${this.activeFilterCategory === cat.name ? 'active' : ''}`;
-      pill.textContent = `${cat.icon} ${cat.name}`;
+      pill.dataset.category = cat.name;
+      pill.innerHTML = `
+        <span class="category-icon">${cat.icon}</span>
+        <span class="category-name">${this.escapeHtml(cat.name)}</span>
+        <span class="category-count">${count}</span>
+      `;
       pill.addEventListener('click', () => {
         this.activeFilterCategory = cat.name;
         this.updateActiveFilterPills();
@@ -1103,11 +1359,10 @@ class App {
   }
 
   updateActiveFilterPills() {
+    if (!this.categoryFilterPills) return;
     const pills = this.categoryFilterPills.querySelectorAll('.filter-pill');
     pills.forEach(pill => {
-      const isAll = pill.textContent.includes('Все') && this.activeFilterCategory === 'all';
-      const isCat = pill.textContent.includes(this.activeFilterCategory);
-      if (isAll || (this.activeFilterCategory !== 'all' && isCat)) {
+      if (pill.dataset.category === this.activeFilterCategory) {
         pill.classList.add('active');
       } else {
         pill.classList.remove('active');
@@ -2422,7 +2677,77 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     if (this.statProductsCount) this.statProductsCount.textContent = userProductsCount;
 
     this.renderCategoryStatsBreakdown();
+    this.renderCategoriesGrid();
+    this.renderCategoryFilterPills();
+    this.renderSettingsDictionary();
   }
+
+  renderSettingsDictionary() {
+    if (!this.settingsDictList) return;
+    const core = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && PRODUCE_DICTIONARY_SECTIONS.core) ? PRODUCE_DICTIONARY_SECTIONS.core : (PRODUCE_DICTIONARY || []);
+    const fromDb = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && PRODUCE_DICTIONARY_SECTIONS.from_database) ? PRODUCE_DICTIONARY_SECTIONS.from_database : [];
+    const total = core.length + fromDb.length;
+
+    if (this.settingsDictCountBadge) {
+      this.settingsDictCountBadge.textContent = `${total} слов (${core.length} баз. + ${fromDb.length} из базы)`;
+    }
+
+    if (this.dictFilterAll) this.dictFilterAll.textContent = `Все (${total})`;
+    if (this.dictFilterCore) this.dictFilterCore.textContent = `Базовые (${core.length})`;
+    if (this.dictFilterDb) this.dictFilterDb.textContent = `Из базы (${fromDb.length})`;
+
+    let items = [];
+    if (this.activeDictFilter === 'core') {
+      items = [...core];
+    } else if (this.activeDictFilter === 'database') {
+      items = [...fromDb];
+    } else {
+      items = [...core, ...fromDb];
+    }
+
+    if (this.dictSearchQuery) {
+      const q = this.dictSearchQuery;
+      items = items.filter(item =>
+        (item.ru && item.ru.toLowerCase().includes(q)) ||
+        (item.en && item.en.toLowerCase().includes(q)) ||
+        (item.kh && item.kh.toLowerCase().includes(q)) ||
+        (item.cat && item.cat.toLowerCase().includes(q))
+      );
+    }
+
+    if (items.length === 0) {
+      this.settingsDictList.innerHTML = `
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+          Ничего не найдено в словаре
+        </div>
+      `;
+      return;
+    }
+
+    this.settingsDictList.innerHTML = items.map(item => {
+      const isDb = item.source === 'database';
+      const badgeHtml = isDb
+        ? `<span class="badge badge-warning" style="font-size: 10px; padding: 2px 6px;">📦 Из базы</span>`
+        : `<span class="badge" style="font-size: 10px; padding: 2px 6px; background: rgba(0,0,0,0.06); color: var(--text-secondary);">Базовый</span>`;
+
+      return `
+        <div class="dict-draft-item">
+          <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+            <div class="dict-draft-title-row">
+              <span>${this.escapeHtml(item.ru || item.en)}</span>
+              <span style="color: var(--text-secondary); font-weight: 400; font-size: 12px;">/ ${this.escapeHtml(item.en || '')}</span>
+            </div>
+            <div class="dict-draft-kh">${this.escapeHtml(item.kh || '')}</div>
+          </div>
+          <div class="dict-draft-meta">
+            <span class="badge" style="font-size: 10px; background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald);">${this.escapeHtml(item.cat || '')}</span>
+            ${badgeHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
 
   renderCategoryStatsBreakdown() {
     if (!this.categoryStatsGrid) return;

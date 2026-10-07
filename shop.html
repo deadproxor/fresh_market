@@ -31,6 +31,7 @@
   <!-- Master Design System Components & Shop Dedicated Styles -->
   <link rel="stylesheet" href="css/components.css" />
   <link rel="stylesheet" href="css/shop.css?v=1.1.0" />
+  <script src="js/shared/i18n.js"></script>
 </head>
 
 <body>
@@ -40,8 +41,8 @@
       <div class="splash-icon-wrap">
         <span class="splash-icon">🥬</span>
       </div>
-      <div class="splash-title">FreshMarket</div>
-      <div class="splash-subtitle">Доставка свежих продуктов</div>
+      <div class="splash-title" data-i18n="splash.title">FreshMarket</div>
+      <div class="splash-subtitle" data-i18n="splash.subtitle">Доставка свежих продуктов</div>
       <div class="splash-version" id="splashVersion">v1.1.0</div>
     </div>
   </div>
@@ -58,8 +59,8 @@
             <div class="onboarding-icon-wrap">
               <span class="onboarding-emoji">🥬</span>
             </div>
-            <h2 class="onboarding-title">Свежесть утреннего рынка</h2>
-            <p class="onboarding-desc">
+            <h2 class="onboarding-title" data-i18n="onboarding.slide1_title">Свежесть утреннего рынка</h2>
+            <p class="onboarding-desc" data-i18n="onboarding.slide1_desc">
               Отборные фермерские овощи, фрукты, травы и специи прямо с первого утреннего привоза без посредников.
             </p>
           </div>
@@ -69,8 +70,8 @@
             <div class="onboarding-icon-wrap">
               <span class="onboarding-emoji">🧾</span>
             </div>
-            <h2 class="onboarding-title">Честные цены и QR-чеки</h2>
-            <p class="onboarding-desc">
+            <h2 class="onboarding-title" data-i18n="onboarding.slide2_title">Честные цены и QR-чеки</h2>
+            <p class="onboarding-desc" data-i18n-html="onboarding.slide2_desc">
               Наш закупщик покупает товары по реальным ценам рынка и прикрепляет фото каждого чека. Вы платите: <b>чеки
                 + услуга + доставка</b>.
             </p>
@@ -81,8 +82,8 @@
             <div class="onboarding-icon-wrap">
               <span class="onboarding-emoji">🛵</span>
             </div>
-            <h2 class="onboarding-title">Доставка свежего заказа до обеда</h2>
-            <p class="onboarding-desc">
+            <h2 class="onboarding-title" data-i18n="onboarding.slide3_title">Доставка свежего заказа до обеда</h2>
+            <p class="onboarding-desc" data-i18n-html="onboarding.slide3_desc">
               Заказывайте сегодня до <b>23:00</b> — закупаем в <b>05:00</b> на рассвете и доставляем к вашей двери до
               обеда.
             </p>
@@ -97,12 +98,14 @@
             <span class="dot"></span>
           </div>
           <div class="onboarding-btn-row">
-            <button type="button" class="btn btn-secondary" id="btnSkipOnboarding">Пропустить</button>
-            <button type="button" class="btn btn-primary" id="btnNextOnboarding">Далее →</button>
+            <button type="button" class="btn btn-secondary" id="btnSkipOnboarding"
+              data-i18n="common.skip">Пропустить</button>
+            <button type="button" class="btn btn-primary" id="btnNextOnboarding" data-i18n="onboarding.btn_next">Далее
+              →</button>
           </div>
           <label class="onboarding-dont-show">
             <input type="checkbox" id="chkDontShowOnboarding" />
-            <span>Больше не показывать</span>
+            <span data-i18n="onboarding.dont_show">Больше не показывать</span>
           </label>
         </div>
       </div>
@@ -114,223 +117,247 @@
         <div class="brand-icon">🥬</div>
         <div class="brand-text">
           <span class="brand-title">FreshMarket</span>
-          <span class="brand-subtitle">Доставка свежих продуктов</span>
+          <span class="brand-subtitle" data-i18n="splash.subtitle">Доставка свежих продуктов</span>
         </div>
       </div>
       <div class="header-right">
-        <button type="button" class="btn-logout" id="btnShopHeaderLogout" style="display: none;" title="Выйти из аккаунта">
-          Выйти 🚪
-        </button>
-        <button type="button" class="icon-btn" id="btnAuthProfile" title="Профиль и Вход">
-          <span id="userAvatarIcon">👤</span>
-        </button>
+        <div data-lang-picker></div>
       </div>
     </header>
 
-    <!-- ================= CONTROLS: SEARCH & TABS ================= -->
-    <div class="shop-controls-section">
-      <!-- Search Box (Shared Design System) -->
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="shopSearchInput" class="search-input" placeholder="Поиск: Mango, Манго, ស្វាយ..."
-          autocomplete="off" />
-        <button type="button" id="shopSearchClear" class="search-clear-btn" style="display: none;">✕</button>
-      </div>
-
-      <!-- Home Screen Mode Tabs: Categories vs List -->
-      <div class="segmented-tabs" id="shopHomeTabs">
-        <button type="button" class="tab-item active" id="tabBtnCategories" data-tab="categories">
-          <span>🗂️</span>
-          <span>Категории</span>
-        </button>
-        <button type="button" class="tab-item" id="tabBtnProducts" data-tab="products">
-          <span>📦</span>
-          <span>Все товары</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ================= 3. MAIN SHOP VIEWS (TABS) ================= -->
+    <!-- ================= 3. MAIN SHOP VIEWS (4 TABS) ================= -->
     <main class="shop-main-content">
-      <!-- TAB 1: Categories Grid Tiles -->
-      <section class="shop-tab-pane" id="tabViewCategories">
-        <div class="categories-grid" id="shopCategoryGrid">
+
+      <!-- ================= VIEW 1: CATALOG ================= -->
+      <section class="shop-view-page active" id="viewCatalog">
+        <!-- 1. Sticky Search Wrap -->
+        <div class="shop-sticky-search-wrap">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="shopSearchInput" class="search-input" placeholder="Поиск: Mango, Манго, ស្វាយ..."
+              data-i18n-placeholder="header.search_placeholder" autocomplete="off" />
+            <button type="button" id="shopSearchClear" class="search-clear-btn" style="display: none;">✕</button>
+          </div>
+        </div>
+
+        <!-- 2. Home Screen Mode Tabs: Categories vs List (Scrolls naturally) -->
+        <div class="shop-segmented-tabs-wrap">
+          <div class="segmented-tabs" id="shopHomeTabs">
+            <button type="button" class="tab-item active" id="tabBtnCategories" data-tab="categories">
+              <span data-i18n="tabs.categories">Категории</span>
+            </button>
+            <button type="button" class="tab-item" id="tabBtnProducts" data-tab="products">
+              <span data-i18n="tabs.all_products">Все продукты</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 1: Categories Grid Tiles -->
+        <div class="shop-tab-pane" id="tabViewCategories">
+          <div class="categories-grid" id="shopCategoryGrid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- TAB 2: Products List View with Filter Pills -->
+        <div class="shop-tab-pane" id="tabViewProducts" style="display: none;">
+          <!-- Sticky Categories Horizontal Scroll Pills -->
+          <div class="shop-sticky-pills-wrap">
+            <div class="category-filter-pills" id="shopCategoriesContainer">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+          <!-- Products Grid -->
+          <div class="products-grid shop-products-grid" id="shopProductsGrid">
+            <!-- Cards injected dynamically -->
+          </div>
+        </div>
+
+        <!-- Schedule Info Banner (Market schedule footer) -->
+        <div class="market-schedule-banner" style="margin-top: 24px;">
+          <span class="schedule-icon">🌅</span>
+          <div class="schedule-info">
+            <span class="schedule-title" data-i18n="shop.schedule_title">Прием заказов до 23:00</span>
+            <span class="schedule-sub" data-i18n="shop.schedule_sub">Закупка на рынке в 05:00 • Доставка до 13:00</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW 2: CART & CHECKOUT ================= -->
+      <section class="shop-view-page" id="viewCart" style="display: none;">
+        <div class="view-page-header">
+          <h2 class="view-page-title" data-i18n="cart.modal_title">Корзина заказа</h2>
+        </div>
+
+        <!-- 1. Cart Auth Gate (Shown when NOT logged in, placed FIRST above items) -->
+        <div id="cartAuthGate" class="cart-auth-gate" style="display: none;">
+          <div class="cart-auth-gate-icon">🔐</div>
+          <div class="cart-auth-gate-title" data-i18n="cart.auth_gate_title">Оформление доступно после входа</div>
+          <div class="cart-auth-gate-desc" data-i18n="cart.auth_gate_desc">
+            Войдите через Google или Facebook, чтобы оформить доставку на утренний закуп.
+          </div>
+          <button type="button" class="btn btn-primary btn-auth-gate" id="btnCartAuthGate"
+            data-i18n="cart.auth_gate_btn">Войти в аккаунт →</button>
+        </div>
+
+        <!-- 2. Cart Items List -->
+        <div id="cartItemsList" class="cart-items-list">
+          <!-- Items or Empty State injected via JS -->
+        </div>
+
+        <!-- 3. Streamlined Checkout Form (Shown when logged in) -->
+        <form id="checkoutForm" class="checkout-form" novalidate style="display: none;">
+          <div class="checkout-section-title" data-i18n="cart.delivery_details_title">📦 Детали доставки</div>
+
+          <div class="checkout-user-badge" id="checkoutUserBadge">
+            <div class="user-badge-info">
+              <span class="user-badge-icon">👤</span>
+              <div class="user-badge-text">
+                <div class="user-badge-name" id="checkoutUserName" data-i18n="common.customer">Покупатель</div>
+                <div class="user-badge-phone" id="checkoutUserPhone">+855...</div>
+              </div>
+            </div>
+            <button type="button" class="btn-link-action" id="btnChangeUserProfile"
+              data-i18n="header.btn_profile">Профиль</button>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="deliveryAddress" data-i18n="cart.address_label">Адрес или ориентир
+              доставки *</label>
+            <textarea id="deliveryAddress" class="text-input" rows="2"
+              placeholder="Улица, дом, квартира или ссылка на метку карты"
+              data-i18n-placeholder="cart.address_placeholder" required></textarea>
+          </div>
+
+          <!-- Replacement Policy -->
+          <div class="form-group">
+            <label class="field-label" data-i18n="cart.substitutions_title">Если нужного товара нет на рынке:</label>
+            <div class="replacement-options">
+              <label class="replacement-option">
+                <input type="radio" name="replacementPolicy" value="call_to_agree" checked />
+                <span class="replacement-box">
+                  <span class="replacement-icon">📞</span>
+                  <span class="replacement-text">
+                    <b data-i18n="cart.sub_call_title">Позвонить / написать</b>
+                    <span data-i18n="cart.sub_call_desc">Сборщик согласует замену с вами</span>
+                  </span>
+                </span>
+              </label>
+              <label class="replacement-option">
+                <input type="radio" name="replacementPolicy" value="picker_choice" />
+                <span class="replacement-box">
+                  <span class="replacement-icon">🔄</span>
+                  <span class="replacement-text">
+                    <b data-i18n="cart.sub_picker_title">На усмотрение закупщика</b>
+                    <span data-i18n="cart.sub_picker_desc">Выберет лучший свежий аналог</span>
+                  </span>
+                </span>
+              </label>
+              <label class="replacement-option">
+                <input type="radio" name="replacementPolicy" value="do_not_replace" />
+                <span class="replacement-box">
+                  <span class="replacement-icon">❌</span>
+                  <span class="replacement-text">
+                    <b data-i18n="cart.sub_remove_title">Не заменять</b>
+                    <span data-i18n="cart.sub_remove_desc">Просто убрать позицию из чека</span>
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="customerComment" data-i18n="cart.comment_label">Пожелания к заказу
+              (необязательно)</label>
+            <input type="text" id="customerComment" class="text-input"
+              placeholder="Например: спелое манго, свежая мята" data-i18n-placeholder="cart.comment_placeholder" />
+          </div>
+
+          <div class="checkout-pricing-note" data-i18n-html="cart.pricing_formula_note">
+            ℹ️ <b>Формула расчета:</b> Итоговый чек формируется по фактическим ценам рынка + услуга закупщика ($3.00)
+            + доставка ($1.50).
+          </div>
+
+          <div class="form-actions" style="margin-top: 16px;">
+            <button type="button" class="btn btn-secondary" id="btnCancelCheckout"
+              data-i18n="common.back">Назад</button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitOrder" data-i18n="cart.submit_btn">Отправить
+              заказ на утренний закуп
+              →</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ================= VIEW 3: MY ORDERS ================= -->
+      <section class="shop-view-page" id="viewOrders" style="display: none;">
+        <div class="view-page-header">
+          <h2 class="view-page-title" data-i18n="orders.modal_title">Мои заказы</h2>
+        </div>
+        <div id="ordersModalBody">
           <!-- Injected via JS -->
         </div>
       </section>
 
-      <!-- TAB 2: Products List View with Filter Pills -->
-      <section class="shop-tab-pane" id="tabViewProducts" style="display: none;">
-        <!-- Categories Horizontal Scroll Pills -->
-        <div class="category-filter-pills" id="shopCategoriesContainer" style="margin-bottom: 12px;">
-          <!-- Injected via JS -->
+      <!-- ================= VIEW 4: USER PROFILE ================= -->
+      <section class="shop-view-page" id="viewProfile" style="display: none;">
+        <div class="view-page-header">
+          <h2 class="view-page-title" id="authModalTitle" data-i18n="auth.modal_title">Профиль и Вход</h2>
         </div>
-
-        <div class="shop-products-header">
-          <div class="shop-products-count" id="shopProductsCount">Загрузка каталога...</div>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="products-grid shop-products-grid" id="shopProductsGrid">
-          <!-- Cards injected dynamically -->
-        </div>
-      </section>
-
-      <!-- Schedule Info Banner (Market schedule footer) -->
-      <div class="market-schedule-banner" style="margin-top: 24px;">
-        <span class="schedule-icon">🌅</span>
-        <div class="schedule-info">
-          <span class="schedule-title">Прием заказов до 23:00</span>
-          <span class="schedule-sub">Закупка на рынке в 05:00 • Доставка до 13:00</span>
-        </div>
-      </div>
-    </main>
-
-
-    <!-- ================= 5. MODAL: CART & CHECKOUT ================= -->
-    <div id="cartModal" class="modal-overlay" style="display: none;">
-      <div class="modal-card cart-modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Корзина заказа</h3>
-          <button type="button" class="modal-close-btn" id="btnCloseCart">✕</button>
-        </div>
-        <div class="modal-body cart-modal-body">
-
-          <!-- 1. Cart Auth Gate (Shown when NOT logged in, placed FIRST above items) -->
-          <div id="cartAuthGate" class="cart-auth-gate" style="display: none;">
-            <div class="cart-auth-gate-icon">🔐</div>
-            <div class="cart-auth-gate-title">Оформление доступно после входа</div>
-            <div class="cart-auth-gate-desc">Войдите через Google или Facebook, чтобы оформить доставку на утренний закуп.</div>
-            <button type="button" class="btn btn-primary btn-auth-gate" id="btnCartAuthGate">Войти в аккаунт →</button>
-          </div>
-
-          <!-- 2. Cart Items List -->
-          <div id="cartItemsList" class="cart-items-list">
-            <!-- Items injected via JS -->
-          </div>
-
-          <!-- 2. Streamlined Checkout Form (Shown when logged in) -->
-          <form id="checkoutForm" class="checkout-form" novalidate style="display: none;">
-            <div class="checkout-section-title">📦 Детали доставки</div>
-
-            <div class="checkout-user-badge" id="checkoutUserBadge">
-              <div class="user-badge-info">
-                <span class="user-badge-icon">👤</span>
-                <div class="user-badge-text">
-                  <div class="user-badge-name" id="checkoutUserName">Покупатель</div>
-                  <div class="user-badge-phone" id="checkoutUserPhone">+855...</div>
-                </div>
-              </div>
-              <button type="button" class="btn-link-action" id="btnChangeUserProfile">Профиль</button>
-            </div>
-
-            <div class="form-group">
-              <label class="field-label" for="deliveryAddress">Адрес или ориентир доставки *</label>
-              <textarea id="deliveryAddress" class="text-input" rows="2"
-                placeholder="Улица, дом, квартира или ссылка на метку карты" required></textarea>
-            </div>
-
-            <!-- Replacement Policy -->
-            <div class="form-group">
-              <label class="field-label">Если нужного товара нет на рынке:</label>
-              <div class="replacement-options">
-                <label class="replacement-option">
-                  <input type="radio" name="replacementPolicy" value="call_to_agree" checked />
-                  <span class="replacement-box">
-                    <span class="replacement-icon">📞</span>
-                    <span class="replacement-text">
-                      <b>Позвонить / написать</b>
-                      <span>Сборщик согласует замену с вами</span>
-                    </span>
-                  </span>
-                </label>
-                <label class="replacement-option">
-                  <input type="radio" name="replacementPolicy" value="picker_choice" />
-                  <span class="replacement-box">
-                    <span class="replacement-icon">🔄</span>
-                    <span class="replacement-text">
-                      <b>На усмотрение закупщика</b>
-                      <span>Выберет лучший свежий аналог</span>
-                    </span>
-                  </span>
-                </label>
-                <label class="replacement-option">
-                  <input type="radio" name="replacementPolicy" value="do_not_replace" />
-                  <span class="replacement-box">
-                    <span class="replacement-icon">❌</span>
-                    <span class="replacement-text">
-                      <b>Не заменять</b>
-                      <span>Просто убрать позицию из чека</span>
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="field-label" for="customerComment">Пожелания к заказу (необязательно)</label>
-              <input type="text" id="customerComment" class="text-input"
-                placeholder="Например: спелое манго, свежая мята" />
-            </div>
-
-            <div class="checkout-pricing-note">
-              ℹ️ <b>Формула расчета:</b> Итоговый чек формируется по фактическим ценам рынка + услуга закупщика ($3.00)
-              + доставка ($1.50).
-            </div>
-
-            <div class="form-actions" style="margin-top: 16px;">
-              <button type="button" class="btn btn-secondary" id="btnCancelCheckout">Назад</button>
-              <button type="submit" class="btn btn-primary" id="btnSubmitOrder">Отправить заказ на утренний закуп →</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= 6. MODAL: MY ORDERS (HISTORY) ================= -->
-    <div id="ordersModal" class="modal-overlay" style="display: none;">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Мои заказы</h3>
-          <button type="button" class="modal-close-btn" id="btnCloseOrders">✕</button>
-        </div>
-        <div class="modal-body" id="ordersModalBody">
-          <!-- Injected via JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= 7. MODAL: USER AUTH & PROFILE ================= -->
-    <div id="authModal" class="modal-overlay" style="display: none;">
-      <div class="modal-card modal-confirm-card" style="max-width: 440px;">
-        <div class="modal-header">
-          <h3 class="modal-title" id="authModalTitle">Профиль и Вход</h3>
-          <button type="button" class="modal-close-btn" id="btnCloseAuth">✕</button>
-        </div>
-        <div class="modal-body" id="authModalBody">
+        <div id="authModalBody">
           <!-- Injected via JS (Logged in view or Login buttons) -->
         </div>
-      </div>
-    </div>
+      </section>
+
+    </main>
 
     <!-- ================= 8. BOTTOM NAVIGATION ================= -->
     <nav class="bottom-nav">
       <button type="button" class="nav-item active" id="navCatalog">
-        <span class="nav-icon">🛍️</span>
-        <span class="nav-label">Каталог</span>
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5H15v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H4.5A1.5 1.5 0 0 1 3 20v-9.5z" />
+          </svg>
+        </div>
+        <span class="nav-label" data-i18n="nav.home">Главная</span>
       </button>
+
       <button type="button" class="nav-item" id="navCart">
-        <span class="nav-icon">🛒</span>
-        <span class="nav-label">Корзина</span>
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </div>
+        <span class="nav-label" data-i18n="nav.cart">Корзина</span>
         <span class="nav-badge" id="navCartBadge" style="display: none;">0</span>
       </button>
+
       <button type="button" class="nav-item" id="navOrders">
-        <span class="nav-icon">📋</span>
-        <span class="nav-label">Заказы</span>
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+            <rect x="9" y="3" width="6" height="4" rx="2"></rect>
+            <path d="M9 14l2 2 4-4"></path>
+          </svg>
+        </div>
+        <span class="nav-label" data-i18n="nav.orders">Заказы</span>
       </button>
+
       <button type="button" class="nav-item" id="navProfile">
-        <span class="nav-icon">👤</span>
-        <span class="nav-label">Профиль</span>
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <span class="nav-label" data-i18n="nav.profile">Профиль</span>
       </button>
     </nav>
 

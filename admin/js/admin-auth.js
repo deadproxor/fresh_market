@@ -239,14 +239,27 @@ class AdminAuth {
   }
 
   switchSection(sectionId) {
-    this.navTabs.forEach((tab) => {
-      tab.classList.toggle('active', tab.dataset.adminTab === sectionId);
-    });
+    if (window.app && typeof window.app.switchMainView === 'function') {
+      const targetView = (sectionId === 'orders' || sectionId === 'viewOrders')
+        ? 'viewOrders'
+        : (sectionId === 'settings' || sectionId === 'viewSettings' ? 'viewSettings' : 'viewCatalog');
+      window.app.switchMainView(targetView);
+      return;
+    }
 
-    this.sectionViews.forEach((view) => {
-      const isTarget = view.id === `section-${sectionId}`;
-      view.classList.toggle('active', isTarget);
-    });
+    if (this.navTabs) {
+      this.navTabs.forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.adminTab === sectionId);
+      });
+    }
+
+    if (this.sectionViews) {
+      this.sectionViews.forEach((view) => {
+        const isTarget = view.id === `section-${sectionId}` || view.id === `view${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}`;
+        view.classList.toggle('active', isTarget);
+        view.style.display = isTarget ? 'flex' : 'none';
+      });
+    }
 
     // Special handlers when switching tabs
     if (sectionId === 'orders') {

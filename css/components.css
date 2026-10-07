@@ -93,6 +93,45 @@ body {
 }
 
 /* ==========================================================================
+   APP CONTAINER & VIEWPORTS
+   ========================================================================== */
+.app-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+.main-content,
+.shop-main-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0 16px calc(96px + var(--safe-bottom)) 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-view-page,
+.admin-section-view {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+.shop-view-page.active,
+.admin-section-view.active {
+  display: flex;
+}
+
+/* ==========================================================================
    1. APP HEADER & BRAND
    ========================================================================== */
 .header-bar,
@@ -169,6 +208,36 @@ body {
 
 .icon-btn:hover {
   border-color: var(--accent-emerald);
+}
+
+/* Header Logout Button Component (.btn-logout) */
+.btn-logout {
+  height: 38px;
+  padding: 0 13px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.btn-logout:active {
+  transform: scale(0.97);
 }
 
 
@@ -251,7 +320,7 @@ body {
 /* Segmented Control / Tabs */
 .segmented-tabs {
   display: flex;
-  background: var(--bg-card-subtle);
+  background: #ffffff;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   padding: 4px;
@@ -331,6 +400,62 @@ body {
   border-color: transparent;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.category-count {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: 3px;
+  font-weight: 600;
+}
+
+/* Master Sticky Catalog Navigation */
+.shop-sticky-search-wrap {
+  position: sticky;
+  top: calc(66px + var(--safe-top));
+  z-index: 38;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  background: var(--header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 0 -16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.shop-sticky-search-wrap .search-box {
+  width: 100%;
+}
+
+.shop-segmented-tabs-wrap {
+  margin: 12px 0 14px 0;
+}
+
+.shop-tab-pane {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.shop-sticky-pills-wrap {
+  position: sticky;
+  top: calc(66px + var(--safe-top) + 60px);
+  z-index: 37;
+  background: var(--header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 0 -16px 12px -16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.shop-sticky-pills-wrap .category-filter-pills {
+  padding: 0 16px 2px 16px;
+  margin-bottom: 0;
 }
 
 /* Category Cards Grid & Tiles */
@@ -1124,6 +1249,13 @@ body {
   transition: transform 0.18s var(--ease-fast);
 }
 
+.nav-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .nav-label {
   font-size: 10.5px;
   font-weight: 600;
@@ -1626,4 +1758,125 @@ body {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* ==========================================================================
+   26. Language Selector Dropdown Component (Apple Cupertino Silk Light)
+   ========================================================================== */
+.lang-dropdown-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.lang-dropdown-trigger {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.lang-dropdown-trigger:hover,
+.lang-dropdown-trigger[aria-expanded="true"] {
+  border-color: var(--accent-emerald);
+  background: var(--bg-card);
+}
+
+.lang-flag {
+  font-size: 19px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 155px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle, #e5e5ea);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+  padding: 6px;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  animation: langDropdownIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lang-dropdown-menu.show {
+  display: flex;
+}
+
+@keyframes langDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lang-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm, 8px);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary, #1d1d1f);
+  transition: background 0.12s ease, color 0.12s ease;
+  text-align: left;
+  width: 100%;
+  user-select: none;
+}
+
+.lang-dropdown-item:hover {
+  background: var(--bg-main, #f5f5f7);
+}
+
+.lang-dropdown-item.active {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--accent-emerald, #10b981);
+  font-weight: 700;
+}
+
+.lang-item-flag {
+  font-size: 14px;
+}
+
+.lang-item-name {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.lang-item-code {
+  font-size: 10.5px;
+  color: var(--text-muted, #86868b);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.lang-item-check {
+  color: var(--accent-emerald, #10b981);
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: 2px;
 }

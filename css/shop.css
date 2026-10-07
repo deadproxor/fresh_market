@@ -2,18 +2,32 @@
    FreshMarket — Client Shop Application Dedicated Styles (shop.css)
    ========================================================================== */
 
-/* 1. Controls */
+/* 1. Full-page Tab Views & Headers */
+.view-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 16px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.view-page-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+/* 2. Controls & Shop-specific Catalog Additions */
 .shop-controls-section {
-  padding: 0 16px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 10px;
-}
-
-/* 2. Main Content & Product List */
-.shop-main-content {
-  padding: 0 16px 120px 16px;
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .shop-products-header {
@@ -468,29 +482,6 @@
   margin-bottom: 18px;
 }
 
-.card-name-kh,
 .card-desc {
   display: none;
-}
-
-/* Header Logout Button */
-.btn-logout {
-  background: var(--bg-card-subtle);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 5px 11px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-logout:hover {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.3);
 }

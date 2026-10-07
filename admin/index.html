@@ -75,7 +75,7 @@
   <!-- ========================================================================= -->
   <!-- 2. PROTECTED ADMIN WORKSPACE (Shown after successful authentication)      -->
   <!-- ========================================================================= -->
-  <div id="adminMainApp" class="app-container" style="display: none;">
+  <div id="adminMainApp" class="app-container admin-workspace" style="display: none;">
 
     <!-- Top Minimal Bar with User status -->
     <header class="app-header">
@@ -90,87 +90,54 @@
         </div>
       </div>
       <div class="header-right">
-        <button type="button" class="btn-logout" id="btnLogout" title="Выйти из учетной записи">
-          Выйти 🚪
+        <button type="button" class="icon-btn" id="btnTechSettings" title="Настройки API и облака">
+          ⚙️
         </button>
+        <!--button type="button" class="btn-logout" id="btnLogout" title="Выйти из учетной записи">
+          Выйти 🚪
+        </button-->
       </div>
     </header>
-
-    <!-- Top Workspace Section Switcher Bar -->
-    <nav class="admin-nav-bar" id="adminNavBar">
-      <button type="button" class="admin-nav-tab active" data-admin-tab="catalog">
-        📦 Каталог & AI
-      </button>
-      <button type="button" class="admin-nav-tab" data-admin-tab="orders">
-        📋 Заказы
-      </button>
-      <button type="button" class="admin-nav-tab" data-admin-tab="settings">
-        ⚙️ Настройки
-      </button>
-    </nav>
 
     <!-- Main Content Views Container -->
     <main class="main-content">
 
-      <!-- ================= SECTION 1: CATALOG & AI (CORE) ================= -->
-      <section id="section-catalog" class="admin-section-view active">
+      <!-- ================= VIEW 1: CATALOG (MAIN SCREEN) ================= -->
+      <section id="viewCatalog" class="admin-section-view active">
 
-        <!-- ================= SCREEN 1: DASHBOARD / ADD TRIGGER ================= -->
-        <div id="viewAdd" class="view active">
-
-          <!-- Expanded Statistics Widget -->
-          <div class="stats-card-container">
-            <div class="stats-summary-row">
-              <div class="stat-item">
-                <span class="stat-number" id="statCategoriesRatio">0 / 9</span>
-                <span class="stat-label">Категорий</span>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <span class="stat-number" id="statDictCount">0</span>
-                <span class="stat-label">В словаре</span>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <span class="stat-number" id="statProductsCount">0</span>
-                <span class="stat-label">В списке</span>
-              </div>
-            </div>
-
-            <!-- Category Breakdown Section -->
-            <div class="stats-breakdown-section">
-              <div class="categories-stats-grid" id="categoryStatsGrid">
-                <!-- Injected via JS -->
-              </div>
-            </div>
+        <!-- 1. Sticky Search Wrap (Mirrors Shop) -->
+        <div class="shop-sticky-search-wrap">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Поиск по EN, KH или RU..."
+              autocomplete="off" />
+            <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none;">✕</button>
           </div>
-
-          <!-- Recent Additions Preview Section -->
-          <div class="recent-section">
-            <div class="recent-header">
-              <h3 class="recent-title">Недавно в каталоге</h3>
-              <button type="button" class="btn-link" id="btnViewAllRecent">Все продукты →</button>
-            </div>
-            <div class="recent-list" id="recentList">
-              <!-- Injected via JS -->
-            </div>
-          </div>
-
         </div>
 
-        <!-- ================= SCREEN 2: PRODUCT LIST ================= -->
-        <div id="viewList" class="view">
+        <!-- 2. Catalog Mode Switcher Tabs: Categories vs List (Scrolls naturally) -->
+        <div class="shop-segmented-tabs-wrap">
+          <div class="segmented-tabs" id="adminHomeTabs">
+            <button type="button" class="tab-item active" id="adminTabBtnCategories" data-tab="categories">
+              <span>Категории</span>
+            </button>
+            <button type="button" class="tab-item" id="adminTabBtnProducts" data-tab="products">
+              <span>Все продукты</span>
+            </button>
+          </div>
+        </div>
 
-          <!-- Search & Filter Bar -->
-          <div class="search-filter-bar">
-            <div class="search-box">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="searchInput" class="search-input" placeholder="Поиск по EN, KH или RU..."
-                autocomplete="off" />
-              <button type="button" class="search-clear-btn" id="searchClearBtn" style="display:none;">✕</button>
-            </div>
+        <!-- TAB 1: Categories Grid Tiles -->
+        <div class="shop-tab-pane" id="adminTabViewCategories">
+          <div class="categories-grid" id="adminCategoryGrid">
+            <!-- Injected via JS -->
+          </div>
+        </div>
 
-            <!-- Category filter horizontal pills -->
+        <!-- TAB 2: Products List View with Filter Pills -->
+        <div class="shop-tab-pane" id="adminTabViewProducts" style="display: none;">
+          <!-- Sticky Categories Horizontal Scroll Pills Wrap -->
+          <div class="shop-sticky-pills-wrap">
             <div class="category-filter-pills" id="categoryFilterPills">
               <!-- Injected via JS -->
             </div>
@@ -190,91 +157,12 @@
               Добавить продукт
             </button>
           </div>
-
         </div>
-
-        <!-- ================= SCREEN 3: PRODUCE DICTIONARY ================= -->
-        <div id="viewDictionary" class="view">
-          <div class="dict-card-container">
-            <div class="dict-header-row">
-              <div class="dict-title-wrap">
-                <span class="dict-icon">📖</span>
-                <div>
-                  <h3 class="dict-title">Словарь рынка Samaki</h3>
-                  <span class="dict-subtitle">Камбоджийские названия и транскрипции</span>
-                </div>
-              </div>
-              <div class="dict-count-badge" id="dictTotalBadge">0 слов</div>
-            </div>
-
-            <!-- Dictionary Search Input -->
-            <div class="dict-search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="dictSearchInput" class="dict-search-input"
-                placeholder="Поиск слова (EN, RU, KH)..." autocomplete="off" />
-              <button type="button" class="search-clear-btn" id="dictSearchClearBtn" style="display:none;">✕</button>
-            </div>
-
-            <!-- Dictionary List Grid -->
-            <div class="dict-list-grid" id="dictListGrid">
-              <!-- Injected via JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Navigation Bar for Catalog (Floating Island Dock) -->
-        <nav class="bottom-nav">
-          <button class="nav-item active" id="navBtnAdd" data-view="viewAdd" title="Главная" aria-label="Главная">
-            <div class="nav-icon">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path
-                  d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5H15v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H4.5A1.5 1.5 0 0 1 3 20v-9.5z" />
-              </svg>
-            </div>
-            <span class="nav-label">Главная</span>
-          </button>
-
-          <button class="nav-fab-btn" id="navBtnFabAdd" type="button" title="Добавить продукт"
-            aria-label="Добавить продукт">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6"
-              stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-
-          <button class="nav-item" id="navBtnList" data-view="viewList" title="Каталог" aria-label="Каталог">
-            <div class="nav-icon">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-              </svg>
-            </div>
-            <span class="nav-label">Каталог</span>
-          </button>
-
-          <button class="nav-item" id="navBtnDict" data-view="viewDictionary" title="Словарь" aria-label="Словарь">
-            <div class="nav-icon">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-              </svg>
-            </div>
-            <span class="nav-label">Словарь</span>
-          </button>
-        </nav>
 
       </section>
 
-      <!-- ================= SECTION 2: ORDERS (STUB / ACTIVE LIST) ================= -->
-      <section id="section-orders" class="admin-section-view">
+      <!-- ================= VIEW 2: ORDERS ================= -->
+      <section id="viewOrders" class="admin-section-view" style="display: none;">
         <div class="orders-header-bar">
           <h3 class="orders-title">Заявки на утренний закуп</h3>
           <span class="admin-badge">Samaki Market</span>
@@ -285,8 +173,8 @@
         </div>
       </section>
 
-      <!-- ================= SECTION 3: SETTINGS (STUB) ================= -->
-      <section id="section-settings" class="admin-section-view">
+      <!-- ================= VIEW 3: SETTINGS / SERVICE PARAMETERS ================= -->
+      <section id="viewSettings" class="admin-section-view" style="display: none;">
         <div class="orders-header-bar">
           <h3 class="orders-title">Параметры сервиса</h3>
         </div>
@@ -294,7 +182,7 @@
         <div class="card" style="padding: 20px; margin-bottom: 16px;">
           <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Услуги и комиссии</h4>
           <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-            Комиссия закупки: <b>10%</b> от суммы чека с рынка.<br/>
+            Комиссия закупки: <b>10%</b> от суммы чека с рынка.<br />
             Зоны доставки: Зона 1 ($1.00) / Зона 2 ($2.00) / Зона 3 ($3.00).
           </div>
           <button type="button" class="btn btn-secondary btn-sm"
@@ -302,9 +190,112 @@
             ⚙️ Открыть расширенные настройки API (Gemini, Supabase, Cloudinary)
           </button>
         </div>
+
+        <!-- Card: Produce Dictionary Draft Section -->
+        <div class="card settings-dict-card" style="padding: 20px; margin-bottom: 16px;">
+          <div
+            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 22px;">📖</span>
+              <div>
+                <h4 style="font-size: 15px; font-weight: 700; margin: 0;">Словарь продуктов (Draft)</h4>
+                <span style="font-size: 12px; color: var(--text-muted);">Справочник рынка Samaki (152 базовых + 9 из
+                  базы)</span>
+              </div>
+            </div>
+            <span class="badge badge-success" id="settingsDictCountBadge">161 слово</span>
+          </div>
+
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Словарь является приоритетным источником наименований и кхмерских написаний. Базовые словарные записи
+            защищены от удаления.
+          </p>
+
+          <!-- Search & Filter Pills -->
+          <div class="dict-draft-controls"
+            style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
+            <div class="search-box" style="width: 100%;">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="settingsDictSearchInput" class="search-input"
+                style="padding: 10px 14px 10px 38px; font-size: 13px;" placeholder="Поиск в словаре (RU, EN, KH)..."
+                autocomplete="off" />
+              <button type="button" id="settingsDictSearchClear" class="search-clear-btn"
+                style="display: none;">✕</button>
+            </div>
+            <div class="dict-filter-pills" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;">
+              <button type="button" class="filter-pill active" data-dict-filter="all" id="dictFilterAll">Все
+                (161)</button>
+              <button type="button" class="filter-pill" data-dict-filter="core" id="dictFilterCore">Базовые
+                (152)</button>
+              <button type="button" class="filter-pill" data-dict-filter="database" id="dictFilterDb">Из базы
+                (9)</button>
+            </div>
+          </div>
+
+          <!-- Dictionary Items Preview List -->
+          <div class="settings-dict-list" id="settingsDictList"
+            style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px; background: var(--bg-card-subtle);">
+            <!-- Injected via JS -->
+          </div>
+
+          <div
+            style="margin-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+            <span>ℹ️</span>
+            <span>Автосинхронизация и удаление дубликатов из базы запланированы на следующий этап.</span>
+          </div>
+        </div>
       </section>
 
     </main>
+
+    <!-- Floating Action Button (FAB) (Page-level, fixed above bottom dock) -->
+    <button class="floating-action-fab" id="navBtnFabAdd" type="button" title="Добавить продукт"
+      aria-label="Добавить продукт">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+
+    <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" id="navBtnCatalog" data-view="viewCatalog" title="Главная" aria-label="Главная">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M3 10.5L12 3l9 7.5V20a1.5 1.5 0 0 1-1.5 1.5H15v-6a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v6H4.5A1.5 1.5 0 0 1 3 20v-9.5z" />
+          </svg>
+        </div>
+        <span class="nav-label">Главная</span>
+      </button>
+
+      <button class="nav-item" id="navBtnOrders" data-view="viewOrders" title="Заказы" aria-label="Заказы">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+            <rect x="9" y="3" width="6" height="4" rx="2"></rect>
+            <path d="M9 14l2 2 4-4"></path>
+          </svg>
+        </div>
+        <span class="nav-label">Заказы</span>
+      </button>
+
+      <button class="nav-item" id="navBtnSettings" data-view="viewSettings" title="Параметры" aria-label="Параметры">
+        <div class="nav-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
+          </svg>
+        </div>
+        <span class="nav-label">Параметры</span>
+      </button>
+    </nav>
 
     <!-- ================= MODALS & OVERLAYS ================= -->
 

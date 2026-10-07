@@ -3,7 +3,7 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.3.6';
+const SHOP_VERSION = '1.3.8';
 window.SHOP_VERSION = SHOP_VERSION;
 
 const DEFAULT_SUPABASE_URL = 'https://qifazsptdgcskrchfocc.supabase.co';
@@ -64,6 +64,7 @@ class ShopApp {
     this.initSupabase();
     this.initDomElements();
     this.initEventListeners();
+    this.switchView('catalog');
     this.initOnboarding();
     this.loadCatalog();
     this.updateCartUi();
@@ -134,22 +135,24 @@ class ShopApp {
     // Cart Badge in Navigation
     this.navCartBadge = document.getElementById('navCartBadge');
 
-    // Modals
-    this.cartModal = document.getElementById('cartModal');
-    this.btnCloseCart = document.getElementById('btnCloseCart');
-    this.btnCancelCheckout = document.getElementById('btnCancelCheckout');
+    // Full-page Tab Views
+    this.viewCatalog = document.getElementById('viewCatalog');
+    this.viewCart = document.getElementById('viewCart');
+    this.viewOrders = document.getElementById('viewOrders');
+    this.viewProfile = document.getElementById('viewProfile');
+
+    // Cart View Elements
     this.cartItemsList = document.getElementById('cartItemsList');
     this.checkoutForm = document.getElementById('checkoutForm');
     this.cartAuthGate = document.getElementById('cartAuthGate');
     this.btnCartAuthGate = document.getElementById('btnCartAuthGate');
     this.btnChangeUserProfile = document.getElementById('btnChangeUserProfile');
+    this.btnCancelCheckout = document.getElementById('btnCancelCheckout');
 
-    this.ordersModal = document.getElementById('ordersModal');
-    this.btnCloseOrders = document.getElementById('btnCloseOrders');
+    // Orders View Elements
     this.ordersModalBody = document.getElementById('ordersModalBody');
 
-    this.authModal = document.getElementById('authModal');
-    this.btnCloseAuth = document.getElementById('btnCloseAuth');
+    // Profile View Elements
     this.authModalBody = document.getElementById('authModalBody');
 
     // Bottom Navigation
@@ -180,9 +183,30 @@ class ShopApp {
         if (this.sb) await this.sb.auth.signOut();
         this.currentUser = null;
         this.updateUserAvatar();
-        this.showToast('Вы вышли из профиля');
+        this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
       });
     }
+
+    // i18n Language change reactive re-render
+    window.addEventListener('freshmarket:langchange', () => {
+      this.renderCategories();
+      this.renderProducts();
+      this.updateCartUi();
+      if (this.currentView === 'cart') {
+        this.renderCartModalList();
+        this.prefillCheckoutData();
+      } else if (this.currentView === 'orders') {
+        this.loadOrders();
+      } else if (this.currentView === 'profile') {
+        this.renderProfileView();
+      }
+      if (this.shopProductsCount && window.i18n) {
+        this.shopProductsCount.textContent = `${this.products.length} ${window.i18n.t('cart.items_count')}`;
+      }
+      if (window.i18n) {
+        this.showToast(window.i18n.t('toasts.lang_changed'), 'info', 2000);
+      }
+    });
 
     // Search
     if (this.shopSearchInput) {
@@ -219,39 +243,17 @@ class ShopApp {
     }
     if (this.btnCartAuthGate) {
       this.btnCartAuthGate.addEventListener('click', () => {
-        this.closeCartModal();
-        this.openAuthModal();
+        this.switchView('profile');
       });
     }
     if (this.btnChangeUserProfile) {
       this.btnChangeUserProfile.addEventListener('click', () => {
-        this.closeCartModal();
-        this.openAuthModal();
+        this.switchView('profile');
       });
     }
-    if (this.cartModal) {
-      this.cartModal.addEventListener('click', (e) => {
-        if (e.target === this.cartModal) this.closeCartModal();
-      });
-    }
-
-    // Orders Modal
-    if (this.btnCloseOrders) {
-      this.btnCloseOrders.addEventListener('click', () => this.closeOrdersModal());
-    }
-    if (this.ordersModal) {
-      this.ordersModal.addEventListener('click', (e) => {
-        if (e.target === this.ordersModal) this.closeOrdersModal();
-      });
-    }
-
-    // Auth Modal
-    if (this.btnCloseAuth) {
-      this.btnCloseAuth.addEventListener('click', () => this.closeAuthModal());
-    }
-    if (this.authModal) {
-      this.authModal.addEventListener('click', (e) => {
-        if (e.target === this.authModal) this.closeAuthModal();
+    if (this.btnCancelCheckout) {
+      this.btnCancelCheckout.addEventListener('click', () => {
+        this.switchView('catalog');
       });
     }
 
@@ -271,51 +273,104 @@ class ShopApp {
       this.tabBtnProducts.addEventListener('click', () => this.setHomeTab('products'));
     }
 
-    // Bottom Navigation
+    // Bottom Navigation (Full View Switching)
     if (this.navCatalog) {
       this.navCatalog.addEventListener('click', () => {
-        this.setActiveNav('navCatalog');
+        this.switchView('catalog');
         this.setHomeTab('categories');
         this.selectedCategory = 'all';
         this.renderCategories();
         this.renderProducts();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
     if (this.navCart) {
       this.navCart.addEventListener('click', () => {
-        this.openCartModal();
+        this.switchView('cart');
       });
     }
     if (this.navOrders) {
       this.navOrders.addEventListener('click', () => {
-        this.openOrdersModal();
+        this.switchView('orders');
       });
     }
     if (this.navProfile) {
       this.navProfile.addEventListener('click', () => {
-        this.openAuthModal();
+        this.switchView('profile');
       });
     }
 
     // Online/Offline status
     window.addEventListener('online', () => {
-      this.showToast('🟢 Сеть восстановлена: обновляем каталог...');
+      this.showToast(window.i18n ? window.i18n.t('toasts.network_restored') : '🟢 Сеть восстановлена: обновляем каталог...');
       this.loadCatalog();
     });
 
     window.addEventListener('offline', () => {
-      this.showToast('📡 Потеряно соединение с интернетом');
+      this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : '📡 Потеряно соединение с интернетом');
       this.showOfflineState();
     });
   }
 
-  setActiveNav(id) {
-    [this.navCatalog, this.navCart, this.navOrders, this.navProfile].forEach((el) => {
-      if (el) el.classList.remove('active');
+  switchView(viewName) {
+    this.currentView = viewName;
+
+    const views = {
+      catalog: this.viewCatalog,
+      cart: this.viewCart,
+      orders: this.viewOrders,
+      profile: this.viewProfile
+    };
+
+    const navButtons = {
+      catalog: this.navCatalog,
+      cart: this.navCart,
+      orders: this.navOrders,
+      profile: this.navProfile
+    };
+
+    // Toggle view elements
+    Object.entries(views).forEach(([name, el]) => {
+      if (el) {
+        el.style.display = name === viewName ? 'flex' : 'none';
+      }
     });
-    const target = document.getElementById(id);
-    if (target) target.classList.add('active');
+
+    // Update bottom nav active state
+    Object.entries(navButtons).forEach(([name, btn]) => {
+      if (btn) {
+        btn.classList.toggle('active', name === viewName);
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: 'instant' });
+
+    // Render contents on demand
+    if (viewName === 'cart') {
+      this.renderCartModalList();
+      this.prefillCheckoutData();
+    } else if (viewName === 'orders') {
+      this.loadOrders();
+    } else if (viewName === 'profile') {
+      this.renderProfileView();
+    }
+  }
+
+  setActiveNav(id) {
+    const idToView = {
+      navCatalog: 'catalog',
+      navCart: 'cart',
+      navOrders: 'orders',
+      navProfile: 'profile'
+    };
+    if (idToView[id]) {
+      this.switchView(idToView[id]);
+    } else {
+      [this.navCatalog, this.navCart, this.navOrders, this.navProfile].forEach((el) => {
+        if (el) el.classList.remove('active');
+      });
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+    }
   }
 
   setHomeTab(tabName) {
@@ -384,7 +439,9 @@ class ShopApp {
     dots.forEach((d, i) => d.classList.toggle('active', i === index));
 
     if (this.btnNextOnboarding) {
-      this.btnNextOnboarding.textContent = index === 2 ? 'Начать' : 'Далее →';
+      this.btnNextOnboarding.textContent = index === 2 
+        ? (window.i18n ? window.i18n.t('onboarding.btn_start') : 'Начать') 
+        : (window.i18n ? window.i18n.t('onboarding.btn_next') : 'Далее →');
     }
   }
 
@@ -431,25 +488,30 @@ class ShopApp {
     }
 
     // 3. Fallback when fetch fails or returns empty
-    this.showOfflineState('Каталог пуст или недоступен', 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.');
+    const offTitle = window.i18n ? window.i18n.t('offline.empty_title') : 'Каталог недоступен офлайн';
+    const offDesc = window.i18n ? window.i18n.t('offline.empty_desc') : 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.';
+    this.showOfflineState(offTitle, offDesc);
   }
 
-  showOfflineState(title = 'Нет подключения к сети', desc = 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.') {
+  showOfflineState(title = null, desc = null) {
+    const finalTitle = title || (window.i18n ? window.i18n.t('offline.empty_title') : 'Нет подключения к сети');
+    const finalDesc = desc || (window.i18n ? window.i18n.t('offline.empty_desc') : 'Не удалось загрузить свежие продукты с рынка. Проверьте интернет-соединение.');
+    const retryText = window.i18n ? window.i18n.t('offline.retry_btn') : '🔄 Попробовать снова';
     this.products = [];
     this.renderCategories();
 
     if (this.shopProductsCount) {
-      this.shopProductsCount.textContent = 'Нет подключения к сети';
+      this.shopProductsCount.textContent = window.i18n ? window.i18n.t('offline.banner') : 'Нет подключения к сети';
     }
 
     if (this.shopProductsGrid) {
       this.shopProductsGrid.innerHTML = `
         <div class="empty-state offline-empty-state">
           <div class="empty-icon">📡</div>
-          <div class="empty-title">${this.escapeHtml(title)}</div>
-          <div class="empty-desc">${this.escapeHtml(desc)}</div>
+          <div class="empty-title">${this.escapeHtml(finalTitle)}</div>
+          <div class="empty-desc">${this.escapeHtml(finalDesc)}</div>
           <button type="button" class="btn btn-primary btn-retry-catalog" id="btnRetryCatalog" style="margin-top: 14px; padding: 10px 24px;">
-            🔄 Попробовать снова
+            ${retryText}
           </button>
         </div>
       `;
@@ -465,10 +527,10 @@ class ShopApp {
       this.shopCategoryGrid.innerHTML = `
         <div class="empty-state offline-empty-state" style="grid-column: 1 / -1; padding: 40px 20px;">
           <div class="empty-icon">📡</div>
-          <div class="empty-title">${this.escapeHtml(title)}</div>
-          <div class="empty-desc">${this.escapeHtml(desc)}</div>
+          <div class="empty-title">${this.escapeHtml(finalTitle)}</div>
+          <div class="empty-desc">${this.escapeHtml(finalDesc)}</div>
           <button type="button" class="btn btn-primary" id="btnRetryCategories" style="margin-top: 14px; padding: 10px 24px;">
-            🔄 Попробовать снова
+            ${retryText}
           </button>
         </div>
       `;
@@ -483,11 +545,13 @@ class ShopApp {
 
   showLoadingState() {
     if (this.shopProductsGrid) {
+      const loadTitle = window.i18n ? window.i18n.t('shop.loading_title') : 'Загрузка свежих продуктов...';
+      const loadDesc = window.i18n ? window.i18n.t('shop.loading_desc') : 'Связываемся с базой утреннего рынка';
       this.shopProductsGrid.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🥬</div>
-          <div class="empty-title">Загрузка свежих продуктов...</div>
-          <div class="empty-desc">Связываемся с базой утреннего рынка</div>
+          <div class="empty-title">${loadTitle}</div>
+          <div class="empty-desc">${loadDesc}</div>
         </div>
       `;
     }
@@ -511,11 +575,12 @@ class ShopApp {
     this.shopCategoriesContainer.innerHTML = CATEGORIES.map((cat) => {
       const count = counts[cat.id] || 0;
       const isActive = this.selectedCategory === cat.id ? 'active' : '';
+      const catName = window.i18n ? window.i18n.t(`categories.${cat.id}`) : cat.name;
       return `
         <button type="button" class="filter-pill ${isActive}" data-category="${cat.id}">
           <span class="category-icon">${cat.icon}</span>
-          <span class="category-name">${cat.name}</span>
-          <span class="category-count" style="opacity: 0.75; margin-left: 4px; font-size: 11px;">${count}</span>
+          <span class="category-name">${catName}</span>
+          <span class="category-count">${count}</span>
         </button>
       `;
     }).join('');
@@ -534,11 +599,12 @@ class ShopApp {
       this.shopCategoryGrid.innerHTML = mainCategories.map((cat) => {
         const count = counts[cat.id] || 0;
         const isActive = this.selectedCategory === cat.id ? 'active' : '';
+        const catName = window.i18n ? window.i18n.t(`categories.${cat.id}`) : cat.name;
         return `
           <div class="category-card ${isActive}" data-category="${cat.id}">
             <div class="cat-card-left">
               <span class="cat-card-icon">${cat.icon}</span>
-              <span class="cat-card-name">${cat.name}</span>
+              <span class="cat-card-name">${catName}</span>
             </div>
             <span class="cat-card-count">${count}</span>
           </div>
@@ -562,25 +628,29 @@ class ShopApp {
     const form = (product.form || '').toLowerCase();
     const cat = (product.category || '').toLowerCase();
 
+    const unitBunch = window.i18n ? window.i18n.t('common.unit_bunch') : 'пучок';
+    const unitPcs = window.i18n ? window.i18n.t('common.unit_pcs') : 'шт';
+    const unitKg = window.i18n ? window.i18n.t('common.weight_kg') : 'кг';
+
     if (form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
       return {
-        unit: 'пучок',
-        options: ['1 пучок', '2 пучка', '3 пучка', '4 пучка', '5 пучков', '10 пучков'],
-        defaultQty: '1 пучок'
+        unit: unitBunch,
+        options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitBunch}`),
+        defaultQty: `1 ${unitBunch}`
       };
     }
     if (form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('бутылк') || form.includes('банка') || form.includes('упаковк')) {
       return {
-        unit: 'шт',
-        options: ['1 шт', '2 шт', '3 шт', '4 шт', '5 шт', '10 шт'],
-        defaultQty: '1 шт'
+        unit: unitPcs,
+        options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitPcs}`),
+        defaultQty: `1 ${unitPcs}`
       };
     }
     // Default Produce / Produce / Seafood / Meat weight
     return {
-      unit: 'кг',
-      options: ['0.5 кг', '1 кг', '1.5 кг', '2 кг', '3 кг', '5 кг'],
-      defaultQty: '1 кг'
+      unit: unitKg,
+      options: ['0.5', '1', '1.5', '2', '3', '5'].map((n) => `${n} ${unitKg}`),
+      defaultQty: `1 ${unitKg}`
     };
   }
 
@@ -616,19 +686,29 @@ class ShopApp {
 
     // Update Counter
     if (this.shopProductsCount) {
-      this.shopProductsCount.textContent = `Найдено продуктов: ${filtered.length}`;
+      const foundLabel = window.i18n ? window.i18n.t('categories.found_count') : 'Найдено продуктов';
+      this.shopProductsCount.textContent = `${foundLabel}: ${filtered.length}`;
     }
 
     if (filtered.length === 0) {
+      const notFoundTitle = window.i18n ? window.i18n.t('categories.not_found_title') : 'Продукты не найдены';
+      const notFoundDesc = window.i18n ? window.i18n.t('categories.not_found_desc') : 'Попробуйте изменить категорию или поисковый запрос';
       this.shopProductsGrid.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🔍</div>
-          <div class="empty-title">Продукты не найдены</div>
-          <div class="empty-desc">Попробуйте изменить категорию или поисковый запрос</div>
+          <div class="empty-title">${notFoundTitle}</div>
+          <div class="empty-desc">${notFoundDesc}</div>
         </div>
       `;
       return;
     }
+
+    const toggleTitle = window.i18n ? window.i18n.t('shop.card_toggle_title') : 'Свернуть / Развернуть';
+    const selectQtyTitle = window.i18n ? window.i18n.t('product.select_qty_title') : 'Выберите количество / вес:';
+    const backBtnText = window.i18n ? window.i18n.t('product.back_btn') : '✕ Назад';
+    const removeBtnTitle = window.i18n ? window.i18n.t('product.remove_btn') : 'Убрать из корзины';
+    const editOrderTitle = window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ';
+    const addToCartTitle = window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ';
 
     this.shopProductsGrid.innerHTML = filtered.map((item) => {
       const cartItem = this.cart[item.id];
@@ -636,6 +716,7 @@ class ShopApp {
       const qtyText = cartItem ? cartItem.qty : '';
       const catObj = CATEGORIES.find((c) => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
+      const catName = catObj ? (window.i18n ? window.i18n.t(`categories.${catObj.id}`) : catObj.name) : (item.category || (window.i18n ? window.i18n.t('common.product') : 'Продукт'));
       const optionsConfig = this.getProductOptions(item);
       const currentSelectedQty = inCart ? cartItem.qty : '';
 
@@ -648,7 +729,7 @@ class ShopApp {
                 <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
                 ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
               </div>
-              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+              <button type="button" class="btn-card-toggle" title="${toggleTitle}" aria-label="${toggleTitle}">
                 <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
@@ -662,7 +743,7 @@ class ShopApp {
           <div class="card-collapsible-body">
             <!-- Badges (Category & Form) -->
             <div class="card-badges">
-              <span class="badge badge-category">${catIcon} ${this.escapeHtml(item.category || 'Продукт')}</span>
+              <span class="badge badge-category">${catIcon} ${this.escapeHtml(catName)}</span>
               ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
             </div>
 
@@ -686,8 +767,8 @@ class ShopApp {
                 <!-- Slide 2: Options Selection View -->
                 <div class="card-slide card-slide-options">
                   <div class="card-options-header">
-                    <div class="card-options-title">Выберите количество / вес:</div>
-                    <button type="button" class="btn-options-cancel" data-id="${item.id}">✕ Назад</button>
+                    <div class="card-options-title">${selectQtyTitle}</div>
+                    <button type="button" class="btn-options-cancel" data-id="${item.id}">${backBtnText}</button>
                   </div>
 
                   <div class="card-options-grid" data-id="${item.id}">
@@ -701,12 +782,12 @@ class ShopApp {
               </div>
 
               <!-- Floating Remove Button (Red FAB, shown only during options edit for in-cart items) -->
-              <button type="button" class="btn-floating-remove" data-id="${item.id}" title="Убрать из корзины" style="display: none;">
+              <button type="button" class="btn-floating-remove" data-id="${item.id}" title="${removeBtnTitle}" style="display: none;">
                 <span class="fab-icon">${FAB_ICONS.trash}</span>
               </button>
 
               <!-- Floating Action Button (FAB) -->
-              <button type="button" class="btn-floating-cart ${inCart ? 'is-in-cart' : ''}" data-id="${item.id}" title="${inCart ? 'Изменить заказ' : 'Добавить в заказ'}">
+              <button type="button" class="btn-floating-cart ${inCart ? 'is-in-cart' : ''}" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
                 <span class="fab-icon">${inCart ? FAB_ICONS.edit : FAB_ICONS.cart}</span>
               </button>
             </div>
@@ -750,7 +831,7 @@ class ShopApp {
         const fab = card.querySelector('.btn-floating-cart');
         if (fab) {
           fab.classList.add('is-confirm');
-          fab.title = 'Подтвердить и добавить в заказ';
+          fab.title = window.i18n ? window.i18n.t('product.confirm_add') : 'Подтвердить и добавить в заказ';
           const iconEl = fab.querySelector('.fab-icon');
           if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
         }
@@ -773,7 +854,9 @@ class ShopApp {
         if (fab) {
           fab.classList.remove('is-confirm');
           fab.classList.toggle('is-in-cart', inCart);
-          fab.title = inCart ? 'Изменить заказ' : 'Добавить в заказ';
+          fab.title = inCart 
+            ? (window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ') 
+            : (window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ');
           const iconEl = fab.querySelector('.fab-icon');
           if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
         }
@@ -795,7 +878,7 @@ class ShopApp {
           const fab = card.querySelector('.btn-floating-cart');
           if (fab) {
             fab.classList.remove('is-confirm', 'is-in-cart');
-            fab.title = 'Добавить в заказ';
+            fab.title = window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ';
             const iconEl = fab.querySelector('.fab-icon');
             if (iconEl) iconEl.innerHTML = FAB_ICONS.cart;
           }
@@ -806,7 +889,7 @@ class ShopApp {
           card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
         }
 
-        this.showToast('🗑️ Товар убран из корзины');
+        this.showToast(window.i18n ? window.i18n.t('toasts.item_removed') : '🗑️ Товар убран из корзины');
       });
     });
 
@@ -828,7 +911,7 @@ class ShopApp {
           if (inCart) {
             // Already in cart -> pre-selected, confirm icon (✓), show red remove FAB
             fab.classList.add('is-confirm');
-            fab.title = 'Подтвердить изменения';
+            fab.title = window.i18n ? window.i18n.t('product.confirm_changes') : 'Подтвердить изменения';
             const iconEl = fab.querySelector('.fab-icon');
             if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
             if (btnRemove) btnRemove.style.display = 'flex';
@@ -836,7 +919,7 @@ class ShopApp {
             // New item -> no selection, cross icon (✕), hide red remove FAB
             card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
             fab.classList.remove('is-confirm');
-            fab.title = 'Назад / Отмена';
+            fab.title = window.i18n ? window.i18n.t('product.cancel_back') : 'Назад / Отмена';
             const iconEl = fab.querySelector('.fab-icon');
             if (iconEl) iconEl.innerHTML = FAB_ICONS.close;
             if (btnRemove) btnRemove.style.display = 'none';
@@ -854,7 +937,9 @@ class ShopApp {
             card.classList.remove('is-options-open');
             fab.classList.remove('is-confirm');
             fab.classList.toggle('is-in-cart', inCart);
-            fab.title = inCart ? 'Изменить заказ' : 'Добавить в заказ';
+            fab.title = inCart 
+              ? (window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ') 
+              : (window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ');
             const iconEl = fab.querySelector('.fab-icon');
             if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
           } else {
@@ -872,7 +957,7 @@ class ShopApp {
               card.classList.add('in-cart');
               fab.classList.remove('is-confirm');
               fab.classList.add('is-in-cart');
-              fab.title = 'Изменить заказ';
+              fab.title = window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ';
               const iconEl = fab.querySelector('.fab-icon');
               if (iconEl) iconEl.innerHTML = FAB_ICONS.edit;
 
@@ -883,7 +968,7 @@ class ShopApp {
                 badge.style.display = 'inline-flex';
               }
 
-              this.showToast(`✅ В корзине: ${product.name_en} (${qty})`);
+              this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${product.name_en} (${qty})`);
             }
           }
         }
@@ -913,7 +998,9 @@ class ShopApp {
     if (!product) return;
 
     // Default quantity format
-    const defaultQty = product.form && product.form.toLowerCase().includes('пучок') ? '1 пучок' : '1 кг';
+    const defaultQty = product.form && product.form.toLowerCase().includes('пучок') 
+      ? (window.i18n ? `1 ${window.i18n.t('common.unit_bunch')}` : '1 пучок') 
+      : (window.i18n ? `1 ${window.i18n.t('common.weight_kg')}` : '1 кг');
 
     this.cart[productId] = {
       product: product,
@@ -922,7 +1009,7 @@ class ShopApp {
 
     this.saveCart();
     this.renderProducts();
-    this.showToast(`Добавлено: ${product.name_en}`);
+    this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : 'Добавлено'}: ${product.name_en}`);
   }
 
   increaseQty(productId) {
@@ -932,10 +1019,10 @@ class ShopApp {
     const match = current.match(/^([\d.]+)\s*(.*)$/);
     if (match) {
       const val = parseFloat(match[1]) + 1;
-      const unit = match[2] || 'кг';
+      const unit = match[2] || (window.i18n ? window.i18n.t('common.weight_kg') : 'кг');
       this.cart[productId].qty = `${val} ${unit}`;
     } else {
-      this.cart[productId].qty = '2 кг';
+      this.cart[productId].qty = window.i18n ? `2 ${window.i18n.t('common.weight_kg')}` : '2 кг';
     }
     this.saveCart();
     this.renderProducts();
@@ -948,7 +1035,7 @@ class ShopApp {
     const match = current.match(/^([\d.]+)\s*(.*)$/);
     if (match) {
       const val = parseFloat(match[1]) - 1;
-      const unit = match[2] || 'кг';
+      const unit = match[2] || (window.i18n ? window.i18n.t('common.weight_kg') : 'кг');
       if (val <= 0) {
         delete this.cart[productId];
       } else {
@@ -987,20 +1074,14 @@ class ShopApp {
   }
 
   // ------------------------------------------------------------------------
-  // 8. Cart & Checkout Modal
+  // 8. Cart & Checkout View
   // ------------------------------------------------------------------------
   openCartModal() {
-    this.renderCartModalList();
-    this.prefillCheckoutData();
-    if (this.cartModal) {
-      this.cartModal.style.display = 'flex';
-    }
+    this.switchView('cart');
   }
 
   closeCartModal() {
-    if (this.cartModal) {
-      this.cartModal.style.display = 'none';
-    }
+    this.switchView('catalog');
   }
 
   isUserAuthenticated() {
@@ -1008,14 +1089,15 @@ class ShopApp {
   }
 
   getCurrentCustomerInfo() {
-    let name = 'Покупатель';
+    const defaultCustomer = window.i18n ? window.i18n.t('common.customer') : 'Покупатель';
+    let name = defaultCustomer;
     let email = '';
     let messenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
     let phone = localStorage.getItem('freshmarket_customer_phone') || '';
     let address = localStorage.getItem('freshmarket_customer_address') || '';
 
     if (this.currentUser) {
-      name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
+      name = this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer;
       email = this.currentUser.email || '';
       if (!phone && this.currentUser.phone) {
         phone = this.currentUser.phone;
@@ -1029,13 +1111,20 @@ class ShopApp {
     const items = Object.values(this.cart);
 
     if (items.length === 0) {
+      const emptyTitle = window.i18n ? window.i18n.t('cart.empty_title') : 'Корзина пуста';
+      const emptyDesc = window.i18n ? window.i18n.t('cart.empty_desc') : 'Выберите свежие продукты на витрине';
+      const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.cartItemsList.innerHTML = `
-        <div class="empty-state" style="padding: 20px 0;">
+        <div class="empty-state" style="padding: 40px 0;">
           <div class="empty-icon">🛒</div>
-          <div class="empty-title">Корзина пуста</div>
-          <div class="empty-desc">Выберите свежие продукты на витрине</div>
+          <div class="empty-title">${emptyTitle}</div>
+          <div class="empty-desc">${emptyDesc}</div>
+          <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog" style="margin-top: 14px;">${toCatalogBtn}</button>
         </div>
       `;
+      document.getElementById('btnCartEmptyToCatalog')?.addEventListener('click', () => {
+        this.switchView('catalog');
+      });
       if (this.checkoutForm) this.checkoutForm.style.display = 'none';
       if (this.cartAuthGate) this.cartAuthGate.style.display = 'none';
       return;
@@ -1051,6 +1140,9 @@ class ShopApp {
       this.prefillCheckoutData();
     }
 
+    const qtyPlaceholder = window.i18n ? window.i18n.t('cart.qty_placeholder') : '1 кг / 3 шт';
+    const removeTitle = window.i18n ? window.i18n.t('cart.remove_item') : 'Удалить';
+
     this.cartItemsList.innerHTML = items.map(({ product, qty }) => `
       <div class="cart-item-row" data-id="${product.id}">
         <div class="cart-item-info">
@@ -1058,9 +1150,9 @@ class ShopApp {
           <div class="cart-item-kh khmer-font">${this.escapeHtml(product.name_kh || '')}</div>
         </div>
         <div class="cart-item-qty-input-wrap">
-          <input type="text" class="cart-item-qty-input" value="${this.escapeHtml(qty)}" data-id="${product.id}" placeholder="1 кг / 3 шт" />
+          <input type="text" class="cart-item-qty-input" value="${this.escapeHtml(qty)}" data-id="${product.id}" placeholder="${qtyPlaceholder}" />
         </div>
-        <button type="button" class="cart-item-remove-btn" data-id="${product.id}" title="Удалить">✕</button>
+        <button type="button" class="cart-item-remove-btn" data-id="${product.id}" title="${removeTitle}">✕</button>
       </div>
     `).join('');
 
@@ -1069,7 +1161,7 @@ class ShopApp {
       input.addEventListener('change', (e) => {
         const id = e.target.dataset.id;
         if (this.cart[id]) {
-          this.cart[id].qty = e.target.value.trim() || '1 шт';
+          this.cart[id].qty = e.target.value.trim() || (window.i18n ? `1 ${window.i18n.t('common.unit_pcs')}` : '1 шт');
           this.saveCart();
         }
       });
@@ -1093,7 +1185,8 @@ class ShopApp {
     if (nameBadge) nameBadge.textContent = name;
     if (phoneBadge) {
       if (!phone) {
-        phoneBadge.innerHTML = '<span style="color: var(--accent-amber, #f59e0b);">⚠️ Укажите контакт (Telegram / WhatsApp)</span>';
+        const contactHint = window.i18n ? window.i18n.t('cart.specify_contact') : '⚠️ Укажите контакт (Telegram / WhatsApp)';
+        phoneBadge.innerHTML = `<span style="color: var(--accent-amber, #f59e0b);">${contactHint}</span>`;
       } else {
         const messengerIcon = messenger === 'whatsapp' ? '💬 WhatsApp:' : messenger === 'phone' ? '📞 Телефон:' : '✈️ Telegram:';
         phoneBadge.textContent = `${messengerIcon} ${phone}`;
@@ -1107,7 +1200,7 @@ class ShopApp {
   // ------------------------------------------------------------------------
   async handleCheckoutSubmit() {
     if (!this.isUserAuthenticated()) {
-      this.showToast('⚠️ Войдите через Google или Facebook для оформления заказа');
+      this.showToast(window.i18n ? window.i18n.t('toasts.auth_required') : '⚠️ Войдите через Google или Facebook для оформления заказа');
       this.openAuthModal();
       return;
     }
@@ -1115,7 +1208,7 @@ class ShopApp {
     const { name: customerName, messenger: customerMessenger, phone: customerPhone } = this.getCurrentCustomerInfo();
 
     if (!customerPhone) {
-      this.showToast('⚠️ Укажите контакт (Telegram / WhatsApp) для связи с закупщиком');
+      this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp) для связи с закупщиком');
       this.openAuthModal();
       return;
     }
@@ -1129,14 +1222,14 @@ class ShopApp {
     const replacementPolicy = replacementRadio?.value || 'call_to_agree';
 
     if (!deliveryAddress) {
-      this.showToast('⚠️ Пожалуйста, укажите адрес или ориентир доставки');
+      this.showToast(window.i18n ? window.i18n.t('toasts.address_required') : '⚠️ Пожалуйста, укажите адрес или ориентир доставки');
       if (addressInput) addressInput.focus();
       return;
     }
 
     const items = Object.values(this.cart);
     if (items.length === 0) {
-      this.showToast('⚠️ Корзина пуста');
+      this.showToast(window.i18n ? window.i18n.t('toasts.cart_is_empty') : '⚠️ Корзина пуста');
       return;
     }
 
@@ -1210,7 +1303,7 @@ class ShopApp {
       this.renderProducts();
       this.closeCartModal();
 
-      this.showToast(`🎉 Заказ ${orderNumber} успешно оформлен на утренний закуп!`);
+      this.showToast(window.i18n ? `${window.i18n.t('toasts.order_sent')} (${orderNumber})` : `🎉 Заказ ${orderNumber} успешно оформлен на утренний закуп!`);
       this.openOrdersModal();
     } catch (err) {
       console.error('[FreshMarket Shop] Checkout error:', err);
@@ -1223,7 +1316,7 @@ class ShopApp {
       this.saveCart();
       this.renderProducts();
       this.closeCartModal();
-      this.showToast(`Заказ сохранен: ${orderNumber}`);
+      this.showToast(window.i18n ? `${window.i18n.t('toasts.order_saved')}: ${orderNumber}` : `Заказ сохранен: ${orderNumber}`);
       this.openOrdersModal();
     }
   }
@@ -1239,20 +1332,26 @@ class ShopApp {
   }
 
   // ------------------------------------------------------------------------
-  // 10. Orders History Modal
+  // 10. Orders History View
   // ------------------------------------------------------------------------
-  async openOrdersModal() {
-    this.setActiveNav('navOrders');
+  openOrdersModal() {
+    this.switchView('orders');
+  }
+
+  closeOrdersModal() {
+    this.switchView('catalog');
+  }
+
+  async loadOrders() {
     if (!this.ordersModalBody) return;
 
+    const ordersLoading = window.i18n ? window.i18n.t('orders.loading') : 'Загрузка заказов...';
     this.ordersModalBody.innerHTML = `
-      <div class="empty-state" style="padding: 20px 0;">
+      <div class="empty-state" style="padding: 30px 0;">
         <div class="empty-icon">⏳</div>
-        <div class="empty-title">Загрузка заказов...</div>
+        <div class="empty-title">${ordersLoading}</div>
       </div>
     `;
-
-    if (this.ordersModal) this.ordersModal.style.display = 'flex';
 
     let orders = [];
 
@@ -1291,37 +1390,49 @@ class ShopApp {
     this.renderOrdersList(orders);
   }
 
-  closeOrdersModal() {
-    if (this.ordersModal) this.ordersModal.style.display = 'none';
-    this.setActiveNav('navCatalog');
-  }
-
   renderOrdersList(orders) {
     if (!this.ordersModalBody) return;
 
     if (!orders || orders.length === 0) {
+      const emptyOrdersTitle = window.i18n ? window.i18n.t('orders.empty_title') : 'У вас пока нет заказов';
+      const emptyOrdersDesc = window.i18n ? window.i18n.t('orders.empty_desc') : 'Соберите корзину на утренний закуп продуктов';
+      const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.ordersModalBody.innerHTML = `
-        <div class="empty-state" style="padding: 30px 0;">
+        <div class="empty-state" style="padding: 40px 0;">
           <div class="empty-icon">📦</div>
-          <div class="empty-title">У вас пока нет заказов</div>
-          <div class="empty-desc">Соберите корзину на утренний закуп продуктов</div>
+          <div class="empty-title">${emptyOrdersTitle}</div>
+          <div class="empty-desc">${emptyOrdersDesc}</div>
+          <button type="button" class="btn btn-primary" id="btnOrdersEmptyToCatalog" style="margin-top: 14px;">${toCatalogBtn}</button>
         </div>
       `;
+      document.getElementById('btnOrdersEmptyToCatalog')?.addEventListener('click', () => {
+        this.switchView('catalog');
+      });
       return;
     }
 
     const statusMap = {
-      new: { label: '🌅 Принят на утренний закуп', class: 'status-new' },
-      purchasing: { label: '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
-      delivering: { label: '🛵 Передан курьеру', class: 'status-delivering' },
-      completed: { label: '✅ Доставлен и оплачен', class: 'status-completed' },
-      cancelled: { label: '❌ Отменен', class: 'status-cancelled' }
+      new: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
+      purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
+      delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : '🛵 Передан курьеру', class: 'status-delivering' },
+      completed: { label: window.i18n ? window.i18n.t('orders.status_completed') : '✅ Доставлен и оплачен', class: 'status-completed' },
+      cancelled: { label: window.i18n ? window.i18n.t('orders.status_cancelled') : '❌ Отменен', class: 'status-cancelled' }
     };
+
+    const deliveryPrefix = window.i18n ? window.i18n.t('orders.delivery_prefix') : 'Доставка:';
+    const tomorrowLabel = window.i18n ? window.i18n.t('orders.delivery_tomorrow') : 'Завтра';
+    const receiptBtnText = window.i18n ? window.i18n.t('orders.receipt_btn') : '🧾 Чек';
+    const receiptTitleText = window.i18n ? window.i18n.t('orders.receipt_title') : 'Посмотреть QR-чек';
+    const marketLabel = window.i18n ? window.i18n.t('orders.market_label') : 'Рынок:';
+    const feeDeliveryLabel = window.i18n ? window.i18n.t('orders.fee_delivery_label') : 'Услуга + Доставка:';
+    const totalLabel = window.i18n ? window.i18n.t('orders.total_label') : 'Итого:';
+    const currentLocale = window.i18n?.currentLang || 'ru';
+    const localeCode = currentLocale === 'ua' ? 'uk-UA' : currentLocale === 'km' ? 'km-KH' : currentLocale === 'en' ? 'en-US' : 'ru-RU';
 
     this.ordersModalBody.innerHTML = orders.map((order) => {
       const st = statusMap[order.status] || { label: order.status, class: '' };
       const items = order.items || [];
-      const dateStr = new Date(order.created_at).toLocaleDateString('ru-RU', {
+      const dateStr = new Date(order.created_at).toLocaleDateString(localeCode, {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -1333,7 +1444,7 @@ class ShopApp {
           <div class="order-card-header">
             <div>
               <div class="order-card-number">${this.escapeHtml(order.order_number)}</div>
-              <div class="order-card-date">${dateStr} • Доставка: ${order.target_delivery_date || 'Завтра'}</div>
+              <div class="order-card-date">${dateStr} • ${deliveryPrefix} ${order.target_delivery_date || tomorrowLabel}</div>
             </div>
             <span class="order-status-pill ${st.class}">${st.label}</span>
           </div>
@@ -1344,7 +1455,7 @@ class ShopApp {
               <div class="order-item-mini">
                 <span class="order-item-mini-name">${this.escapeHtml(item.product_name_en)} (${this.escapeHtml(item.requested_qty)})</span>
                 ${item.receipt_url ? `
-                  <a href="${item.receipt_url}" target="_blank" class="receipt-link" title="Посмотреть QR-чек">🧾 Чек</a>
+                  <a href="${item.receipt_url}" target="_blank" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
                 ` : ''}
               </div>
             `).join('')}
@@ -1353,11 +1464,11 @@ class ShopApp {
           <!-- Totals Calculation -->
           <div class="order-card-footer">
             <div class="order-calc-breakdown">
-              <div>Рынок: <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
-              <div>Услуга + Доставка: <b>$${(Number(order.service_fee || 3) + Number(order.delivery_fee || 1.5)).toFixed(2)}</b></div>
+              <div>${marketLabel} <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
+              <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 3) + Number(order.delivery_fee || 1.5)).toFixed(2)}</b></div>
             </div>
             <div class="order-grand-total">
-              Итого: <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + 4.5)).toFixed(2)}</b>
+              ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + 4.5)).toFixed(2)}</b>
             </div>
           </div>
         </div>
@@ -1366,19 +1477,61 @@ class ShopApp {
   }
 
   // ------------------------------------------------------------------------
-  // 11. Auth & Profile Modal
+  // 11. Auth & Profile View
   // ------------------------------------------------------------------------
   openAuthModal() {
-    this.setActiveNav('navProfile');
+    this.switchView('profile');
+  }
+
+  closeAuthModal() {
+    this.switchView('catalog');
+  }
+
+  renderProfileView() {
     if (!this.authModalBody) return;
+
+    const defaultCustomer = window.i18n ? window.i18n.t('common.customer') : 'Покупатель';
+    const messengerLabelText = window.i18n ? window.i18n.t('profile.messenger_label') : 'Предпочтительный мессенджер для связи *:';
+    const tgPill = window.i18n ? window.i18n.t('profile.messenger_telegram') : '✈️ Telegram';
+    const waPill = window.i18n ? window.i18n.t('profile.messenger_whatsapp') : '💬 WhatsApp';
+    const phonePill = window.i18n ? window.i18n.t('profile.messenger_phone') : '📞 Звонок';
+    const addressLabelText = window.i18n ? window.i18n.t('profile.address_label') : 'Адрес или ориентир доставки по умолчанию:';
+    const addressPlaceholderText = window.i18n ? window.i18n.t('profile.address_placeholder') : 'Улица, дом, квартира, ориентир';
+    const saveContactsText = window.i18n ? window.i18n.t('profile.save_contacts_btn') : 'Сохранить контакты';
+    const installAppText = window.i18n ? window.i18n.t('profile.install_app_btn') : '📲 Установить приложение на телефон';
+    const howItWorksText = window.i18n ? window.i18n.t('profile.how_it_works_btn') : '📖 Как работает FreshMarket';
+    const logoutBtnText = window.i18n ? window.i18n.t('profile.logout_btn') : 'Выйти из аккаунта';
+    const loginIntroText = window.i18n ? window.i18n.t('profile.login_intro') : 'Войдите через Google или Facebook для связи с закупщиком и оформления заказов:';
+    const googleBtnText = window.i18n ? window.i18n.t('auth.btn_google') : 'Войти через Google';
+    const fbBtnText = window.i18n ? window.i18n.t('auth.btn_facebook') : 'Войти через Facebook';
+
+    const getPhoneLabelAndPlaceholder = (msgType) => {
+      if (msgType === 'telegram') {
+        return {
+          label: window.i18n ? window.i18n.t('profile.phone_label_telegram') : 'Юзернейм Telegram (@username) или номер *:',
+          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_telegram') : '@username или +855...'
+        };
+      } else if (msgType === 'whatsapp') {
+        return {
+          label: window.i18n ? window.i18n.t('profile.phone_label_whatsapp') : 'Номер телефона WhatsApp (с кодом) *:',
+          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_whatsapp') : '+855 ... (номер WhatsApp)'
+        };
+      } else {
+        return {
+          label: window.i18n ? window.i18n.t('profile.phone_label_call') : 'Номер телефона для звонков *:',
+          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_call') : '+855 ...'
+        };
+      }
+    };
 
     if (this.currentUser) {
       // 1. Supabase Authenticated User Profile View
-      const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || 'Покупатель';
+      const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer;
       const email = this.currentUser.email || '';
       let currentMessenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
       let phone = localStorage.getItem('freshmarket_customer_phone') || this.currentUser.phone || '';
       let address = localStorage.getItem('freshmarket_customer_address') || '';
+      const phoneMeta = getPhoneLabelAndPlaceholder(currentMessenger);
 
       this.authModalBody.innerHTML = `
         <div class="profile-view">
@@ -1387,28 +1540,28 @@ class ShopApp {
           <div class="profile-email">${this.escapeHtml(email)}</div>
           
           <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <label class="field-label" style="margin-bottom: 2px;">Предпочтительный мессенджер для связи *:</label>
+            <label class="field-label" style="margin-bottom: 2px;">${messengerLabelText}</label>
             <div class="messenger-selector" id="profileMessengerSelector">
-              <button type="button" class="messenger-pill ${currentMessenger === 'telegram' ? 'active' : ''}" data-messenger="telegram">✈️ Telegram</button>
-              <button type="button" class="messenger-pill ${currentMessenger === 'whatsapp' ? 'active' : ''}" data-messenger="whatsapp">💬 WhatsApp</button>
-              <button type="button" class="messenger-pill ${currentMessenger === 'phone' ? 'active' : ''}" data-messenger="phone">📞 Звонок</button>
+              <button type="button" class="messenger-pill ${currentMessenger === 'telegram' ? 'active' : ''}" data-messenger="telegram">${tgPill}</button>
+              <button type="button" class="messenger-pill ${currentMessenger === 'whatsapp' ? 'active' : ''}" data-messenger="whatsapp">${waPill}</button>
+              <button type="button" class="messenger-pill ${currentMessenger === 'phone' ? 'active' : ''}" data-messenger="phone">${phonePill}</button>
             </div>
 
             <label class="field-label" for="profilePhone" id="profilePhoneLabel" style="margin-top: 8px;">
-              ${currentMessenger === 'telegram' ? 'Юзернейм Telegram (@username) или номер *:' : currentMessenger === 'whatsapp' ? 'Номер телефона WhatsApp (с кодом) *:' : 'Номер телефона для звонков *:'}
+              ${phoneMeta.label}
             </label>
-            <input type="text" id="profilePhone" class="text-input" placeholder="${currentMessenger === 'telegram' ? '@username или +855...' : '+855 ...'}" value="${this.escapeHtml(phone)}" required />
+            <input type="text" id="profilePhone" class="text-input" placeholder="${phoneMeta.placeholder}" value="${this.escapeHtml(phone)}" required />
 
-            <label class="field-label" for="profileAddress" style="margin-top: 10px;">Адрес или ориентир доставки по умолчанию:</label>
-            <textarea id="profileAddress" class="text-input" rows="2" placeholder="Улица, дом, квартира, ориентир">${this.escapeHtml(address)}</textarea>
+            <label class="field-label" for="profileAddress" style="margin-top: 10px;">${addressLabelText}</label>
+            <textarea id="profileAddress" class="text-input" rows="2" placeholder="${addressPlaceholderText}">${this.escapeHtml(address)}</textarea>
             
-            <button type="button" class="btn btn-primary btn-sm" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">Сохранить контакты</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">${saveContactsText}</button>
           </div>
 
           <div class="form-actions" style="margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
-            <button type="button" class="btn btn-primary" id="btnInstallAppUser" style="width: 100%;">📲 Установить приложение на телефон</button>
-            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">📖 Как работает FreshMarket</button>
-            <button type="button" class="btn btn-secondary" id="btnLogout" style="width: 100%;">Выйти из аккаунта</button>
+            <button type="button" class="btn btn-primary" id="btnInstallAppUser" style="width: 100%;">${installAppText}</button>
+            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">${howItWorksText}</button>
+            <button type="button" class="btn btn-secondary" id="btnLogout" style="width: 100%;">${logoutBtnText}</button>
           </div>
         </div>
       `;
@@ -1423,16 +1576,9 @@ class ShopApp {
           const phoneLabel = document.getElementById('profilePhoneLabel');
           const phoneInput = document.getElementById('profilePhone');
           if (phoneLabel && phoneInput) {
-            if (currentMessenger === 'telegram') {
-              phoneLabel.textContent = 'Юзернейм Telegram (@username) или номер *:';
-              phoneInput.placeholder = '@username или +855...';
-            } else if (currentMessenger === 'whatsapp') {
-              phoneLabel.textContent = 'Номер телефона WhatsApp (с кодом) *:';
-              phoneInput.placeholder = '+855 ... (номер WhatsApp)';
-            } else {
-              phoneLabel.textContent = 'Номер телефона для звонков *:';
-              phoneInput.placeholder = '+855 ...';
-            }
+            const updatedMeta = getPhoneLabelAndPlaceholder(currentMessenger);
+            phoneLabel.textContent = updatedMeta.label;
+            phoneInput.placeholder = updatedMeta.placeholder;
           }
         });
       });
@@ -1445,19 +1591,17 @@ class ShopApp {
         const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
         const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
         if (!pPhone) {
-          this.showToast('⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
+          this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
           document.getElementById('profilePhone')?.focus();
           return;
         }
         localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
         localStorage.setItem('freshmarket_customer_phone', pPhone);
         if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
-        this.showToast('✅ Контакты сохранены');
-        this.closeAuthModal();
+        this.showToast(window.i18n ? window.i18n.t('toasts.contacts_saved') : '✅ Контакты сохранены');
       });
 
       document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
-        this.closeAuthModal();
         this.openOnboarding();
       });
 
@@ -1465,29 +1609,29 @@ class ShopApp {
         if (this.sb) await this.sb.auth.signOut();
         this.currentUser = null;
         this.updateUserAvatar();
-        this.closeAuthModal();
-        this.showToast('Вы вышли из профиля');
+        this.renderProfileView();
+        this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
       });
     } else {
       // 2. Login Prompt View (Google & Facebook OAuth ONLY)
       this.authModalBody.innerHTML = `
         <div class="auth-buttons-column">
-          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 6px;">📲 Установить приложение на телефон</button>
+          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 6px;">${installAppText}</button>
           
           <div class="auth-intro-text">
-            Войдите через Google или Facebook для связи с закупщиком и оформления заказов:
+            ${loginIntroText}
           </div>
 
           <button type="button" class="btn-auth-provider btn-auth-google" id="btnLoginGoogle">
-            <span class="auth-provider-icon">🌐</span> Войти через Google
+            <span class="auth-provider-icon">🌐</span> ${googleBtnText}
           </button>
 
           <button type="button" class="btn-auth-provider btn-auth-facebook" id="btnLoginFacebook">
-            <span class="auth-provider-icon">📘</span> Войти через Facebook
+            <span class="auth-provider-icon">📘</span> ${fbBtnText}
           </button>
 
           <div style="margin-top: 14px; width: 100%;">
-            <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%;">📖 Как работает FreshMarket</button>
+            <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%;">${howItWorksText}</button>
           </div>
         </div>
       `;
@@ -1497,7 +1641,6 @@ class ShopApp {
       });
 
       document.getElementById('btnShowOnboardingGuest')?.addEventListener('click', () => {
-        this.closeAuthModal();
         this.openOnboarding();
       });
 
@@ -1511,7 +1654,7 @@ class ShopApp {
             }
           });
         } else {
-          this.showToast('Supabase не подключен');
+          this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
         }
       });
 
@@ -1525,20 +1668,9 @@ class ShopApp {
             }
           });
         } else {
-          this.showToast('Supabase не подключен');
+          this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
         }
       });
-    }
-
-    if (this.authModal) this.authModal.style.display = 'flex';
-  }
-
-  closeAuthModal() {
-    if (this.authModal) this.authModal.style.display = 'none';
-    this.setActiveNav('navCatalog');
-    this.updateUserAvatar();
-    if (this.cartModal && this.cartModal.style.display === 'flex') {
-      this.renderCartModalList();
     }
   }
 
@@ -1577,19 +1709,19 @@ class ShopApp {
 
     window.addEventListener('appinstalled', () => {
       this.deferredInstallPrompt = null;
-      this.showToast('🎉 Приложение FreshMarket успешно установлено!');
+      this.showToast(window.i18n ? window.i18n.t('toasts.app_installed') : '🎉 Приложение FreshMarket успешно установлено!');
     });
   }
 
   triggerInstallPrompt() {
     if (!this.deferredInstallPrompt) {
-      this.showToast('ℹ️ Чтобы установить: нажмите «Поделиться / Меню» в браузере и выберите «На экран Домой»');
+      this.showToast(window.i18n ? window.i18n.t('toasts.install_hint') : 'ℹ️ Чтобы установить: нажмите «Поделиться / Меню» в браузере и выберите «На экран Домой»');
       return;
     }
     this.deferredInstallPrompt.prompt();
     this.deferredInstallPrompt.userChoice.then((choiceResult) => {
       if (choiceResult && choiceResult.outcome === 'accepted') {
-        this.showToast('✅ Установка приложения начата');
+        this.showToast(window.i18n ? window.i18n.t('toasts.install_started') : '✅ Установка приложения начата');
       }
       this.deferredInstallPrompt = null;
     });
@@ -1637,10 +1769,11 @@ class ShopApp {
     toastEl.className = `toast-item toast-${toastType}`;
     toastEl.setAttribute('role', 'status');
 
+    const closeToastTitle = window.i18n ? window.i18n.t('common.close') : 'Закрыть';
     toastEl.innerHTML = `
       <span class="toast-icon">${icon}</span>
       <span class="toast-text">${this.escapeHtml(cleanMsg)}</span>
-      <button type="button" class="toast-close-btn" title="Закрыть" aria-label="Закрыть">✕</button>
+      <button type="button" class="toast-close-btn" title="${closeToastTitle}" aria-label="${closeToastTitle}">✕</button>
     `;
 
     const closeBtn = toastEl.querySelector('.toast-close-btn');
