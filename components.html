@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Master Core Design System & Components -->
-  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/components.css?v=1.4.1" />
   <script src="js/shared/i18n.js"></script>
 
   <style>
@@ -780,6 +780,10 @@
                       <div class="card-slide card-slide-main">
                         <div class="card-photo-container">
                           <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
+                          <div class="card-price-badge">
+                            <span class="price-usd">$1.50</span>
+                            <span class="price-khr">~6,000 ៛</span>
+                          </div>
                         </div>
                         <div class="card-desc">
                           Сочное сладкое камбоджийское манго без волокон, сорт Кео Чен.
@@ -841,12 +845,24 @@
               <span class="component-box-class">.badge-category, .badge-form, .shop-slot-badge</span>
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0;">
-              <span class="badge badge-category">🥦 Овощи</span>
-              <span class="badge badge-category">🥭 Фрукты</span>
-              <span class="badge badge-category">🐟 Морепродукты и рыба</span>
-              <span class="badge badge-form">Свежий (пучок)</span>
-              <span class="badge badge-form">Нарезка</span>
+              <span class="badge badge-category" data-cat-id="vegetables"><span class="badge-cat-icon">🥦</span> <span class="badge-cat-name" data-i18n="categories.vegetables">Овощи</span></span>
+              <span class="badge badge-category" data-cat-id="roots_tubers"><span class="badge-cat-icon">🥔</span> <span class="badge-cat-name" data-i18n="categories.roots_tubers">Корнеплоды</span></span>
+              <span class="badge badge-category" data-cat-id="spices_roots"><span class="badge-cat-icon">🫚</span> <span class="badge-cat-name" data-i18n="categories.spices_roots">Корни и пряности</span></span>
+              <span class="badge badge-category" data-cat-id="fruits"><span class="badge-cat-icon">🥭</span> <span class="badge-cat-name" data-i18n="categories.fruits">Фрукты</span></span>
+              <span class="badge badge-form" data-form-id="root" data-i18n="forms.root">Корень</span>
+              <span class="badge badge-form" data-form-id="bunch" data-i18n="forms.bunch">Пучок</span>
+              <span class="badge badge-form" data-form-id="sliced" data-i18n="forms.sliced">Нарезка</span>
               <span class="shop-slot-badge">⏰ Закупка в 05:00</span>
+              <div style="width: 100%; height: 1px; background: var(--border-subtle); margin: 4px 0;"></div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="card-price-badge" style="position: static;">
+                  <span class="price-usd">$1.50</span>
+                  <span class="price-khr">~6,000 ៛</span>
+                </div>
+                <div class="card-price-badge price-na" style="position: static;">
+                  <span class="price-na">n/a</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -914,6 +930,31 @@
                 <option value="seafood">🐟 Морепродукты и рыба</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="field-label">Цена и фасовка / вес (.price-unit-row)</label>
+              <div class="price-unit-row">
+                <div class="currency-select-wrap">
+                  <select class="text-input select-input currency-select">
+                    <option value="KHR" selected>៛ KHR</option>
+                    <option value="USD">$ USD</option>
+                  </select>
+                </div>
+                <div class="price-input-wrap">
+                  <input type="number" class="text-input" placeholder="6000" value="6000" />
+                </div>
+                <div class="unit-input-wrap">
+                  <input type="text" class="text-input" placeholder="1 кг, 1 шт" value="1 кг" />
+                </div>
+              </div>
+              <span class="field-hint">≈ $1.50 (по курсу 1 USD = 4,000 KHR)</span>
+            </div>
+            <div class="form-group" style="margin-top: 14px;">
+              <label class="field-label">Кнопки действий формы (.form-actions: 1/3 Отмена к 2/3 Сохранить)</label>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="showToastDemo('Нажата кнопка Отмена (1/3 строки)')">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="showToastDemo('Нажата кнопка Сохранить (2/3 строки)')">Сохранить</button>
+              </div>
+            </div>
           </div>
 
           <!-- Replacement Options -->
@@ -972,15 +1013,15 @@
             </div>
           </div>
 
-          <!-- Empty State -->
+          <!-- Empty State (Products) -->
           <div class="component-box">
             <div class="component-box-header">
-              <span class="component-box-title">Пустое состояние списка</span>
-              <span class="component-box-class">.empty-state</span>
+              <span class="component-box-title">Пустое состояние каталога</span>
+              <span class="component-box-class">.empty-state (Каталог)</span>
             </div>
-            <div class="empty-state" style="padding: 10px 0;">
+            <div class="empty-state">
               <div class="empty-icon">
-                <svg viewBox="0 0 120 120" width="60" height="60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 120 120" width="84" height="84" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <defs>
                     <radialGradient id="basketInnerWb" cx="50%" cy="40%" r="60%">
                       <stop offset="0%" stop-color="#4a3525" />
@@ -997,14 +1038,72 @@
                       <stop offset="40%" stop-color="#bc6c25" />
                       <stop offset="100%" stop-color="#6f3a09" />
                     </linearGradient>
+                    <linearGradient id="handleGradWb" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#e9c46a" />
+                      <stop offset="60%" stop-color="#b06b2a" />
+                      <stop offset="100%" stop-color="#58310c" />
+                    </linearGradient>
+                    <filter id="basketGlowWb" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.35" />
+                    </filter>
                   </defs>
+
+                  <!-- Back Handle -->
+                  <path d="M36 50 C36 18 84 18 84 50" stroke="url(#handleGradWb)" stroke-width="6.5" stroke-linecap="round"
+                    fill="none" opacity="0.85" />
+                  <path d="M36 50 C36 18 84 18 84 50" stroke="#432818" stroke-width="1.5" stroke-linecap="round" fill="none"
+                    stroke-dasharray="3 4" opacity="0.7" />
+
+                  <!-- Empty Basket Interior -->
                   <ellipse cx="60" cy="52" rx="42" ry="16" fill="url(#basketInnerWb)" />
-                  <path d="M18 52 C22 84 32 98 60 98 C88 98 98 84 102 52 Z" fill="url(#basketBodyWb)" />
-                  <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="url(#basketRimWb)" stroke-width="4.5" />
+
+                  <!-- Basket Outer Body -->
+                  <path d="M18 52 C22 84 32 98 60 98 C88 98 98 84 102 52 Z" fill="url(#basketBodyWb)"
+                    filter="url(#basketGlowWb)" />
+
+                  <!-- Wicker Horizontal Weave Ribs -->
+                  <path d="M22 64 C35 74 85 74 98 64" stroke="#e9c46a" stroke-width="3" stroke-linecap="round"
+                    opacity="0.4" />
+                  <path d="M25 76 C38 86 82 86 95 76" stroke="#e9c46a" stroke-width="2.8" stroke-linecap="round"
+                    opacity="0.35" />
+                  <path d="M32 88 C44 94 76 94 88 88" stroke="#e9c46a" stroke-width="2.5" stroke-linecap="round"
+                    opacity="0.3" />
+
+                  <!-- Wicker Vertical Cross Weaves -->
+                  <g stroke="#582f0e" stroke-width="2.2" stroke-linecap="round" opacity="0.55">
+                    <path d="M34 56 L38 94" />
+                    <path d="M46 58 L48 97" />
+                    <path d="M60 59 L60 98" />
+                    <path d="M74 58 L72 97" />
+                    <path d="M86 56 L82 94" />
+                  </g>
+
+                  <!-- Basket Thick Woven Rim -->
+                  <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="url(#basketRimWb)" stroke-width="5.5" />
+                  <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="#ffe8d6" stroke-width="1.2" opacity="0.4"
+                    stroke-dasharray="6 4" />
+
+                  <!-- Handle Attachment Rings -->
+                  <circle cx="28" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
+                  <circle cx="92" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
                 </svg>
               </div>
               <h3 class="empty-title">В списке пока пусто</h3>
-              <p class="empty-desc">Добавьте первые продукты с утреннего рынка</p>
+              <p class="empty-desc">Добавьте первые рыночные находки и продукты</p>
+              <button type="button" class="btn btn-primary btn-sm">Добавить продукт</button>
+            </div>
+          </div>
+
+          <!-- Empty State (Orders) -->
+          <div class="component-box">
+            <div class="component-box-header">
+              <span class="component-box-title">Пустое состояние заявок/заказов</span>
+              <span class="component-box-class">.empty-state (Заказы)</span>
+            </div>
+            <div class="empty-state">
+              <div class="empty-icon">📋</div>
+              <h3 class="empty-title">Нет активных заявок</h3>
+              <p class="empty-desc">Когда покупатели оформят заявку на утренний закуп в магазине, она мгновенно появится здесь.</p>
             </div>
           </div>
         </div>
@@ -1338,10 +1437,10 @@
                   </div>
                 </div>
 
-                <!-- Action Button in Bottom Sheet -->
-                <div style="display: flex; gap: 10px;">
-                  <button type="button" class="btn btn-secondary btn-sm" style="flex: 1;">Очистить</button>
-                  <button type="button" class="btn btn-primary btn-sm" style="flex: 2;">К оформлению →</button>
+                <!-- Action Button in Bottom Sheet (1/3 к 2/3) -->
+                <div class="form-actions">
+                  <button type="button" class="btn btn-secondary btn-sm">Очистить</button>
+                  <button type="button" class="btn btn-primary btn-sm">Оформить</button>
                 </div>
               </div>
             </div>
@@ -1434,7 +1533,7 @@
           <div style="font-size: 13px; color: var(--text-secondary);">Оформление заказа до 23:00, доставка на следующий день до 13:00.</div>
         </div>
       </div>
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <div class="form-actions" style="margin-top: 20px;">
         <button type="button" class="btn btn-secondary" onclick="closeDemoBottomSheet()">Закрыть</button>
         <button type="button" class="btn btn-primary" onclick="showToastDemo('Действие в шторке выполнено!'); closeDemoBottomSheet();">Подтвердить</button>
       </div>

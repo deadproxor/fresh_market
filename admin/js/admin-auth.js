@@ -292,10 +292,10 @@ class AdminAuth {
 
       if (!data || data.length === 0) {
         listEl.innerHTML = `
-          <div class="orders-stub-card">
-            <div class="orders-stub-icon">📋</div>
-            <div class="orders-stub-title">Нет активных заявок</div>
-            <div class="orders-stub-desc">Когда покупатели оформят заявку на утренний закуп в магазине, она мгновенно появится здесь.</div>
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">Нет активных заявок</div>
+            <div class="empty-desc">Когда покупатели оформят заявку на утренний закуп в магазине, она мгновенно появится здесь.</div>
           </div>
         `;
         return;

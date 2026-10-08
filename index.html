@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-landing-concept="journal">
 
 <head>
   <meta charset="UTF-8" />
@@ -15,13 +15,13 @@
   </script>
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FreshMarket — Доставка свежих продуктов с рынка Samaki (Кампот)</title>
+  <title>FreshMarket — Доставка свежих продуктов с утреннего рынка</title>
   <meta name="description"
-    content="Утренняя доставка свежих фермерских продуктов с рынка Samaki Market в Кампоте. Персональный закупщик, честные цены по чеку, доставка до двери." />
+    content="Утренняя доставка свежих продуктов с рынка прямо к вашей двери. Персональный закупщик, честный чек торговцев, доставка к завтраку." />
 
   <!-- PWA & Mobile settings -->
   <link rel="manifest" href="manifest-shop.json" />
-  <meta name="theme-color" content="#f5f5f7" />
+  <meta name="theme-color" content="#fbf9f5" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -32,455 +32,587 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Khmer:wght@500;600;700;800&display=swap"
     rel="stylesheet" />
 
-  <!-- Master Design System Components -->
+  <!-- Dedicated Landing Stylesheet -->
   <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/landing.css" />
   <script src="js/shared/i18n.js"></script>
-
-  <style>
-    /* Landing Dedicated Page Styles */
-    .landing-body {
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-family: var(--font-base);
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
-
-    .landing-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      max-width: 1080px;
-      margin: 0 auto;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .landing-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .landing-brand-icon {
-      font-size: 28px;
-    }
-
-    .landing-brand-title {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: var(--accent-emerald-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .landing-container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 20px 20px 60px 20px;
-      width: 100%;
-      box-sizing: border-box;
-      flex: 1;
-    }
-
-    /* Hero Section */
-    .hero-section {
-      text-align: center;
-      padding: 36px 0 48px 0;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent-emerald-light);
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.28);
-      padding: 6px 14px;
-      border-radius: var(--radius-full);
-      margin-bottom: 20px;
-    }
-
-    .hero-title {
-      font-size: clamp(30px, 6vw, 50px);
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -1px;
-      margin: 0 0 18px 0;
-      color: var(--text-primary);
-    }
-
-    .hero-title span {
-      background: var(--accent-emerald-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero-desc {
-      font-size: clamp(15px, 2.5vw, 18px);
-      color: var(--text-secondary);
-      max-width: 640px;
-      margin: 0 auto 32px auto;
-      line-height: 1.6;
-    }
-
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .btn-hero {
-      padding: 14px 28px;
-      font-size: 16px;
-      font-weight: 700;
-      border-radius: var(--radius-full);
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* Features Grid */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 18px;
-      margin: 40px 0;
-    }
-
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      padding: 28px 24px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md);
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-
-    .feature-icon {
-      font-size: 36px;
-      margin-bottom: 14px;
-    }
-
-    .feature-title {
-      font-size: 18px;
-      font-weight: 700;
-      margin: 0 0 8px 0;
-      color: var(--text-primary);
-    }
-
-    .feature-desc {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      margin: 0;
-    }
-
-    /* Delivery Zones Section */
-    .zones-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      padding: 30px 24px;
-      margin: 40px 0;
-      text-align: center;
-    }
-
-    .zones-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .zones-subtitle {
-      font-size: 14px;
-      color: var(--text-secondary);
-      margin-bottom: 24px;
-    }
-
-    .zones-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
-      text-align: left;
-    }
-
-    .zone-item {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .zone-badge {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--accent-emerald);
-      margin-bottom: 6px;
-    }
-
-    .zone-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-
-    .zone-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    /* Steps Section */
-    .steps-section {
-      margin: 48px 0;
-      text-align: center;
-    }
-
-    .steps-title {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 28px;
-    }
-
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      text-align: left;
-    }
-
-    .step-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      position: relative;
-    }
-
-    .step-num {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--accent-emerald-gradient);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
-
-    .step-text {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-      line-height: 1.45;
-    }
-
-    /* Footer */
-    .landing-footer {
-      border-top: 1px solid var(--border-subtle);
-      padding: 24px 20px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: auto;
-    }
-
-    .landing-footer a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .landing-footer a:hover {
-      color: var(--accent-emerald);
-    }
-  </style>
 </head>
 
 <body class="landing-body">
 
-  <!-- Top Navigation Header -->
+  <!-- ================= TOP NAVIGATION HEADER ================= -->
   <header class="landing-header">
     <a href="index.html" class="landing-brand">
-      <span class="landing-brand-icon">🌱</span>
-      <span class="landing-brand-title">FreshMarket</span>
+      <span>🌱</span>
+      <span>FreshMarket</span>
     </a>
-    <div style="display: flex; align-items: center; gap: 10px;">
+
+    <div class="landing-header-controls">
+      <!-- Language Selector -->
       <div data-lang-picker></div>
-      <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта" data-i18n="common.logout">
+
+      <!-- Logout Button (if logged in) -->
+      <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта"
+        data-i18n="common.logout">
         Выйти 🚪
       </button>
-      <a href="shop.html" class="btn btn-primary btn-sm" style="padding: 8px 18px; border-radius: var(--radius-full);" data-i18n="header.btn_to_shop">
+
+      <!-- Shop CTA -->
+      <a href="shop.html" class="btn btn-primary btn-sm landing-btn-shop" data-i18n="landing.common.btn_to_shop">
         В магазин 🛒
       </a>
     </div>
   </header>
 
+  <!-- ================= MAIN CONTAINER ================= -->
   <main class="landing-container">
 
-    <!-- 1. Hero Section -->
-    <section class="hero-section">
-      <div class="hero-badge">
-        <span data-i18n="landing.hero_badge">📍 Рынок Samaki Market • Кампот, Камбоджа</span>
+    <!-- ===================================================================
+         CONCEPT 1: "PHOTO JOURNAL" (УТРЕННИЙ ФОТОЖУРНАЛ / ASYMMETRIC STORY)
+         =================================================================== -->
+    <section class="concept-view concept-journal" id="conceptJournal">
+
+      <!-- Hero: Asymmetric 2-Column Grid -->
+      <div class="journal-hero">
+        <div>
+          <h1 class="journal-headline" data-i18n="landing.journal.hero_title">
+            Мы встаем на рассвете, чтобы к завтраку у вас были свежие продукты с рынка.
+          </h1>
+          <p class="journal-lead" data-i18n="landing.journal.hero_subtitle">
+            Никаких складов и долгого хранения в холодильниках. Байер отбирает спелые фрукты, утренний улов и зелень у проверенных торговцев прямо перед доставкой к вашему столу.
+          </p>
+          <a href="shop.html" class="journal-cta-link" data-i18n="landing.journal.hero_cta">
+            Перейти в каталог продуктов →
+          </a>
+        </div>
+
+        <div class="journal-photo-frame">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986536/FreshMarket/hjtibffxgkb4jqg5yplq.jpg"
+            alt="Молодой зеленый тамаринд с утреннего рынка" class="journal-hero-img" loading="eager" />
+          <div class="journal-photo-caption">
+            <span data-i18n="landing.journal.hero_photo_caption">Фотоотчёт утреннего сбора • 06:15</span>
+            <span>FreshMarket Live</span>
+          </div>
+        </div>
       </div>
-      <h1 class="hero-title">
-        <span data-i18n="landing.hero_title">Свежайшие продукты с утреннего рынка —</span>
-        <span data-i18n="landing.hero_title_accent">прямо к вашей двери</span>
-      </h1>
-      <p class="hero-desc" data-i18n="landing.hero_desc">
-        Мы лично отбираем для вас отборные фрукты, овощи, зелень и морепродукты на базаре Samaki к утреннему столу.
-        Честный расчёт по реальному чеку + 10% за заботливую закупку.
-      </p>
-      <div class="hero-actions">
-        <a href="shop.html" class="btn btn-primary btn-hero" data-i18n="landing.hero_btn_catalog">
-          🛍️ Открыть каталог и заказать
+
+      <!-- Story: Zig-zag Alternating Rows -->
+      <div class="journal-story-section">
+        <h2 class="journal-section-title" data-i18n="landing.journal.story_title">
+          Утро байера: хроника от рассвета до порога
+        </h2>
+
+        <!-- Step 1 -->
+        <div class="journal-story-row">
+          <div class="journal-story-media">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986604/FreshMarket/jfoqxhzrb9wspum7eewk.jpg"
+              alt="Утренний рыбный причал" loading="lazy" />
+          </div>
+          <div>
+            <span class="journal-time-stamp" data-i18n="landing.journal.step1_time">05:30</span>
+            <h3 class="journal-step-title" data-i18n="landing.journal.step1_title">Первые лодки и фермеры</h3>
+            <p class="journal-step-desc" data-i18n="landing.journal.step1_desc">
+              Закупщик выходит на рынок к открытию, когда торговцы выгружают ночной улов и ящики со свежей зеленью.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="journal-story-row reversed">
+          <div class="journal-story-media">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790946564/FreshMarket/clhu6sjvxvy3louc6flk.jpg"
+              alt="Отбор спелых баклажанов" loading="lazy" />
+          </div>
+          <div>
+            <span class="journal-time-stamp" data-i18n="landing.journal.step2_time">07:00</span>
+            <h3 class="journal-step-title" data-i18n="landing.journal.step2_title">Отбор и точный вес</h3>
+            <p class="journal-step-desc" data-i18n="landing.journal.step2_desc">
+              Проверяем каждый плод вручную, отбираем без вмятин и дефектов, фиксируем точный вес каждой позиции.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="journal-story-row">
+          <div class="journal-story-media">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1791029770/FreshMarket/t59nwektgjsqa2cfibbj.jpg"
+              alt="Свежий лемонграсс" loading="lazy" />
+          </div>
+          <div>
+            <span class="journal-time-stamp" data-i18n="landing.journal.step3_time">08:30</span>
+            <h3 class="journal-step-title" data-i18n="landing.journal.step3_title">Честный чек и доставка</h3>
+            <p class="journal-step-desc" data-i18n="landing.journal.step3_desc">
+              Курьер привозит продукты в чистых термосумках вместе с оригиналом бумажного чека торговца.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ledger: Transparent Accounting Table -->
+      <div class="journal-ledger-section">
+        <h2 class="journal-section-title" data-i18n="landing.journal.ledger_title">Прозрачный расчет по чеку</h2>
+        <p style="color: var(--c-text-muted); font-size: 15px; margin: 0 0 16px 0;" data-i18n="landing.journal.ledger_desc">
+          Никаких скрытых наценок: вы платите реальную рыночную стоимость торговца + фиксированную комиссию за отбор.
+        </p>
+
+        <table class="journal-ledger-table">
+          <thead>
+            <tr>
+              <th data-i18n="landing.journal.ledger_th_item">Статья расчета</th>
+              <th style="text-align: right;" data-i18n="landing.journal.ledger_th_rate">Тариф / Стоимость</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-i18n="landing.journal.ledger_row1_name">Рыночный чек (продукты по чеку)</td>
+              <td class="val-col" data-i18n="landing.journal.ledger_row1_val">по чеку</td>
+            </tr>
+            <tr>
+              <td data-i18n="landing.journal.ledger_row2_name">Услуга закупщика (профессиональный отбор)</td>
+              <td class="val-col" data-i18n="landing.journal.ledger_row2_val">+10%</td>
+            </tr>
+            <tr>
+              <td data-i18n="landing.journal.ledger_row3_name">Доставка по городу (Зона 1)</td>
+              <td class="val-col" data-i18n="landing.journal.ledger_row3_val">$1.00</td>
+            </tr>
+            <tr class="total-row">
+              <td data-i18n="landing.journal.ledger_total_name">Итого к оплате при получении</td>
+              <td class="val-col" data-i18n="landing.journal.ledger_total_val">Чек + 10% + Доставка</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Delivery Zones -->
+      <div class="journal-zones-section">
+        <h2 class="journal-section-title" data-i18n="landing.journal.zones_title">Зоны и тарифы доставки</h2>
+
+        <div class="journal-zones-list">
+          <div class="journal-zone-item">
+            <div>
+              <div class="journal-zone-name" data-i18n="landing.journal.zone1_name">Зона 1: Центр</div>
+              <div class="journal-zone-desc" data-i18n="landing.journal.zone1_desc">Центральные городские кварталы и набережная (~08:30–09:00)</div>
+            </div>
+            <div class="journal-zone-price" data-i18n="landing.journal.zone1_price">$1.00</div>
+          </div>
+
+          <div class="journal-zone-item">
+            <div>
+              <div class="journal-zone-name" data-i18n="landing.journal.zone2_name">Зона 2: Пригород</div>
+              <div class="journal-zone-desc" data-i18n="landing.journal.zone2_desc">Ближние жилые кварталы и пригороды (~09:00–09:30)</div>
+            </div>
+            <div class="journal-zone-price" data-i18n="landing.journal.zone2_price">$2.00</div>
+          </div>
+
+          <div class="journal-zone-item">
+            <div>
+              <div class="journal-zone-name" data-i18n="landing.journal.zone3_name">Зона 3: Дальние районы и виллы</div>
+              <div class="journal-zone-desc" data-i18n="landing.journal.zone3_desc">Отдаленные резиденции, загородные виллы (~09:30–10:15)</div>
+            </div>
+            <div class="journal-zone-price" data-i18n="landing.journal.zone3_price">$3.00</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         CONCEPT 2: "MARKET STALLS" (ТОРГОВЫЕ РЯДЫ / PRODUCE PANELS)
+         =================================================================== -->
+    <section class="concept-view concept-stalls" id="conceptStalls">
+
+      <div class="stalls-hero">
+        <h1 class="stalls-hero-title" data-i18n="landing.stalls.hero_title">Городской рынок у вашей двери</h1>
+        <p class="stalls-hero-subtitle" data-i18n="landing.stalls.hero_subtitle">
+          Четыре главных утренних ряда: свежая рыба с лодок, хрустящие овощи, спелые фрукты и пряности.
+        </p>
+      </div>
+
+      <!-- 4 Panoramic Stalls Panels -->
+      <div class="stalls-panels-grid">
+        <!-- 1. Fish Row -->
+        <div class="stall-panel">
+          <div class="stall-panel-img-wrap">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986604/FreshMarket/jfoqxhzrb9wspum7eewk.jpg"
+              alt="Рыбный ряд" class="stall-panel-img" loading="lazy" />
+          </div>
+          <div class="stall-panel-body">
+            <span class="stall-panel-tag" data-i18n="landing.stalls.stall1_tag">Рыбный ряд</span>
+            <h3 class="stall-panel-title" data-i18n="landing.stalls.stall1_title">Утренний улов и рыба</h3>
+            <p class="stall-panel-desc" data-i18n="landing.stalls.stall1_desc">
+              Свежая морская рыба, креветки и кальмары прямо с рыбацких лодок на рассвете.
+            </p>
+          </div>
+        </div>
+
+        <!-- 2. Veggie Row -->
+        <div class="stall-panel">
+          <div class="stall-panel-img-wrap">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790946564/FreshMarket/clhu6sjvxvy3louc6flk.jpg"
+              alt="Фермерские овощи" class="stall-panel-img" loading="lazy" />
+          </div>
+          <div class="stall-panel-body">
+            <span class="stall-panel-tag" data-i18n="landing.stalls.stall2_tag">Фермерские ряды</span>
+            <h3 class="stall-panel-title" data-i18n="landing.stalls.stall2_title">Овощи и хрустящая зелень</h3>
+            <p class="stall-panel-desc" data-i18n="landing.stalls.stall2_desc">
+              Тайские баклажаны, огурцы, крылатая фасоль и сочная листовая зелень.
+            </p>
+          </div>
+        </div>
+
+        <!-- 3. Fruits Row -->
+        <div class="stall-panel">
+          <div class="stall-panel-img-wrap">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986860/FreshMarket/knnn3tn5ysvp3xgje4hv.jpg"
+              alt="Фруктовые лавки" class="stall-panel-img" loading="lazy" />
+          </div>
+          <div class="stall-panel-body">
+            <span class="stall-panel-tag" data-i18n="landing.stalls.stall3_tag">Фруктовые лавки</span>
+            <h3 class="stall-panel-title" data-i18n="landing.stalls.stall3_title">Спелые фрукты из садов</h3>
+            <p class="stall-panel-desc" data-i18n="landing.stalls.stall3_desc">
+              Манго, зеленый тамаринд, цветы банана, рамбутан и драгонфрут.
+            </p>
+          </div>
+        </div>
+
+        <!-- 4. Spice Row -->
+        <div class="stall-panel">
+          <div class="stall-panel-img-wrap">
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790760589/FreshMarket/rmb5tqn9wx0g6ua7umkw.jpg"
+              alt="Пряные лавки" class="stall-panel-img" loading="lazy" />
+          </div>
+          <div class="stall-panel-body">
+            <span class="stall-panel-tag" data-i18n="landing.stalls.stall4_tag">Пряные лавки</span>
+            <h3 class="stall-panel-title" data-i18n="landing.stalls.stall4_title">Корни, травы и специи</h3>
+            <p class="stall-panel-desc" data-i18n="landing.stalls.stall4_desc">
+              Свежий имбирь, ароматный лемонграсс, белый дайкон, мята и базилик.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rules (3-Column Flow) -->
+      <div class="stalls-rules-section">
+        <h2 class="stalls-section-title" data-i18n="landing.stalls.rules_title">Как устроен утренний заказ</h2>
+
+        <div class="stalls-rules-grid">
+          <div class="stall-rule-col">
+            <div class="stall-rule-num" data-i18n="landing.stalls.rule1_num">01</div>
+            <h3 class="stall-rule-title" data-i18n="landing.stalls.rule1_title">Заказ с вечера</h3>
+            <p class="stall-rule-desc" data-i18n="landing.stalls.rule1_desc">
+              Выбирайте позиции в каталоге накануне вечером или до 06:00 утра.
+            </p>
+          </div>
+
+          <div class="stall-rule-col">
+            <div class="stall-rule-num" data-i18n="landing.stalls.rule2_num">02</div>
+            <h3 class="stall-rule-title" data-i18n="landing.stalls.rule2_title">Байер на базаре</h3>
+            <p class="stall-rule-desc" data-i18n="landing.stalls.rule2_desc">
+              Закупщик покупает продукты по реальным ценам утреннего рынка.
+            </p>
+          </div>
+
+          <div class="stall-rule-col">
+            <div class="stall-rule-num" data-i18n="landing.stalls.rule3_num">03</div>
+            <h3 class="stall-rule-title" data-i18n="landing.stalls.rule3_title">Доставка к завтраку</h3>
+            <p class="stall-rule-desc" data-i18n="landing.stalls.rule3_desc">
+              Курьер привозит свежие сумки к 8:30–9:30 вместе с чеком торговца.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stalls Zones Table -->
+      <div>
+        <h2 class="stalls-section-title" data-i18n="landing.stalls.zones_title">Тарифы доставки</h2>
+        <table class="stalls-zones-table">
+          <thead>
+            <tr>
+              <th data-i18n="landing.stalls.zones_th_zone">Зона</th>
+              <th data-i18n="landing.stalls.zones_th_rate">Фиксированный тариф</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-i18n="landing.stalls.zone1_name">Зона 1: Центр</td>
+              <td><b data-i18n="landing.stalls.zone1_price">$1.00</b></td>
+            </tr>
+            <tr>
+              <td data-i18n="landing.stalls.zone2_name">Зона 2: Пригород</td>
+              <td><b data-i18n="landing.stalls.zone2_price">$2.00</b></td>
+            </tr>
+            <tr>
+              <td data-i18n="landing.stalls.zone3_name">Зона 3: Дальние районы и виллы</td>
+              <td><b data-i18n="landing.stalls.zone3_price">$3.00</b></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         CONCEPT 3: "CUPERTINO SILK" (ЧИСТЫЙ МИНИМАЛИЗМ / APPLE LIGHT)
+         =================================================================== -->
+    <section class="concept-view concept-silk" id="conceptSilk">
+
+      <div class="silk-hero">
+        <h1 class="silk-title" data-i18n="landing.silk.hero_title">
+          Свежие продукты с рынка.<br />Прямо к вашей двери.
+        </h1>
+        <p class="silk-desc" data-i18n="landing.silk.hero_subtitle">
+          Вы заказываете в каталоге с вечера. На рассвете байер отбирает лучшее у торговцев, а курьер привозит заказ к вашему завтраку.
+        </p>
+        <div class="silk-actions">
+          <a href="shop.html" class="btn-silk-primary" data-i18n="landing.silk.hero_cta_shop">
+            Открыть каталог 🛒
+          </a>
+          <a href="#silkZones" class="btn-silk-secondary" data-i18n="landing.silk.hero_cta_zones">
+            Тарифы доставки ↓
+          </a>
+        </div>
+      </div>
+
+      <!-- 3 Wide-Format Alternating Showcase Rows -->
+      <div class="silk-showcase-section">
+        <!-- Row 1 -->
+        <div class="silk-showcase-row">
+          <div>
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790760589/FreshMarket/rmb5tqn9wx0g6ua7umkw.jpg"
+              alt="Свежий имбирь с утренней выгрузки" class="silk-showcase-img" loading="lazy" />
+          </div>
+          <div>
+            <div class="silk-showcase-tag" data-i18n="landing.silk.block1_tag">Свежесть</div>
+            <h2 class="silk-showcase-title" data-i18n="landing.silk.block1_title">Только утренний сбор</h2>
+            <p class="silk-showcase-desc" data-i18n="landing.silk.block1_desc">
+              Никаких складов и долгого хранения в холодильниках. Все продукты закупаются на рынке в день доставки на самом раннем открытии.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="silk-showcase-row reversed">
+          <div>
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986573/FreshMarket/mrekz7rvirxoam4llfre.jpg"
+              alt="Свежая рыба" class="silk-showcase-img" loading="lazy" />
+          </div>
+          <div>
+            <div class="silk-showcase-tag" data-i18n="landing.silk.block2_tag">Прозрачность</div>
+            <h2 class="silk-showcase-title" data-i18n="landing.silk.block2_title">Честная цена по чеку</h2>
+            <p class="silk-showcase-desc" data-i18n="landing.silk.block2_desc">
+              Вы платите реальную стоимость по бумажному чеку торговца + прозрачные 10% за персональный отбор продуктов без скрытых магазинных наценок.
+            </p>
+          </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="silk-showcase-row">
+          <div>
+            <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1791195893/FreshMarket/sw1arn0nzwmdooldky6j.jpg"
+              alt="Свежие огурцы" class="silk-showcase-img" loading="lazy" />
+          </div>
+          <div>
+            <div class="silk-showcase-tag" data-i18n="landing.silk.block3_tag">Комфорт</div>
+            <h2 class="silk-showcase-title" data-i18n="landing.silk.block3_title">Бережная доставка</h2>
+            <p class="silk-showcase-desc" data-i18n="landing.silk.block3_desc">
+              Курьер привозит заказ в чистых сумках прямо к вашему столу или на веранду. Оплата наличными или по QR-коду после проверки.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Silk Delivery Zones -->
+      <div class="silk-zones-section" id="silkZones">
+        <h2 style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 6px 0;"
+          data-i18n="landing.silk.zones_title">
+          Зоны и тарифы доставки
+        </h2>
+
+        <div class="silk-zones-grid">
+          <div class="silk-zone-col">
+            <div class="silk-zone-badge" data-i18n="landing.silk.zone1_price">$1.00</div>
+            <div class="silk-zone-name" data-i18n="landing.silk.zone1_name">Зона 1: Центр</div>
+            <div class="silk-zone-desc" data-i18n="landing.silk.zone1_desc">Центральные районы и набережная</div>
+          </div>
+
+          <div class="silk-zone-col">
+            <div class="silk-zone-badge" data-i18n="landing.silk.zone2_price">$2.00</div>
+            <div class="silk-zone-name" data-i18n="landing.silk.zone2_name">Зона 2: Пригород</div>
+            <div class="silk-zone-desc" data-i18n="landing.silk.zone2_desc">Ближние жилые кварталы</div>
+          </div>
+
+          <div class="silk-zone-col">
+            <div class="silk-zone-badge" data-i18n="landing.silk.zone3_price">$3.00</div>
+            <div class="silk-zone-name" data-i18n="landing.silk.zone3_name">Зона 3: Дальние районы и виллы</div>
+            <div class="silk-zone-desc" data-i18n="landing.silk.zone3_desc">Загородные резиденции и виллы</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         STATIC PRODUCT SHOWCASE GALLERY (SHARED ACROSS ALL 3 CONCEPTS)
+         =================================================================== -->
+    <section class="static-product-gallery">
+      <div class="gallery-head">
+        <div>
+          <h2 class="gallery-title" data-i18n="landing.common.gallery_title">
+            Свежие позиции с утреннего рынка
+          </h2>
+          <p class="gallery-subtitle" data-i18n="landing.common.gallery_subtitle">
+            Реальные продукты от фермеров и рыбаков сегодня утром
+          </p>
+        </div>
+        <a href="shop.html" class="gallery-btn-all" data-i18n="landing.common.gallery_view_all">
+          Смотреть весь каталог →
         </a>
-        <a href="#howItWorks" class="btn btn-secondary btn-hero" data-i18n="landing.hero_btn_how">
-          Как устроен сервис ↓
+      </div>
+
+      <div class="static-gallery-grid">
+        <!-- Item 1: Ginger -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790760589/FreshMarket/rmb5tqn9wx0g6ua7umkw.jpg"
+            alt="Свежий имбирь" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Корни и пряности</div>
+            <div class="static-card-name">Свежий имбирь</div>
+            <div class="static-card-action">В каталог →</div>
+          </div>
         </a>
-      </div>
-    </section>
 
-    <!-- 2. Features Grid -->
-    <section class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">🌅</div>
-        <h3 class="feature-title" data-i18n="landing.feature1_title">Утренний закуп (06:00–09:00)</h3>
-        <p class="feature-desc" data-i18n="landing.feature1_desc">
-          Байер выходит на рынок Samaki на рассвете, когда привозят самый свежий товар от местных фермеров и рыбаков.
-        </p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🧾</div>
-        <h3 class="feature-title" data-i18n="landing.feature2_title">Честная цена по чеку</h3>
-        <p class="feature-desc" data-i18n="landing.feature2_desc">
-          Никаких скрытых наценок: вы платите реальную рыночную стоимость по чеку торговца + 10% за услугу отбора.
-        </p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">🛵</div>
-        <h3 class="feature-title" data-i18n="landing.feature4_title">Доставка до двери</h3>
-        <p class="feature-desc" data-i18n="landing.feature4_desc">
-          Курьер бережно доставит продукты к обеду (до 13:00) по всему Кампоту с фиксированным тарифом по зонам.
-        </p>
-      </div>
-    </section>
-
-    <!-- 3. How It Works -->
-    <section id="howItWorks" class="steps-section">
-      <h2 class="steps-title">Как это работает</h2>
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <div class="step-text">Вы выбираете продукты, желаемый вес и правила замен на витрине</div>
-        </div>
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <div class="step-text">Указываете зону доставки и отправляете заявку до 06:00 утра</div>
-        </div>
-        <div class="step-card">
-          <div class="step-num">3</div>
-          <div class="step-text">Закупщик отбирает продукты на базаре и прикрепляет фото чека</div>
-        </div>
-        <div class="step-card">
-          <div class="step-num">4</div>
-          <div class="step-text">Курьер привозит заказ, вы оплачиваете наличными или через ABA KHQR</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. Delivery Zones -->
-    <section class="zones-card">
-      <h2 class="zones-title">Зоны доставки по Кампоту</h2>
-      <p class="zones-subtitle">Прозрачные фиксированные тарифы без скрытых доплат</p>
-      <div class="zones-grid">
-        <div class="zone-item">
-          <div>
-            <div class="zone-badge">$1.00</div>
-            <div class="zone-name">Зона 1: Центр</div>
-            <div class="zone-desc">Центр города, Старый рынок, Набережная реки Кампот</div>
+        <!-- Item 2: Eggplant -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790946564/FreshMarket/clhu6sjvxvy3louc6flk.jpg"
+            alt="Тайский баклажан" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Овощи</div>
+            <div class="static-card-name">Тайский баклажан</div>
+            <div class="static-card-action">В каталог →</div>
           </div>
-        </div>
+        </a>
 
-        <div class="zone-item">
-          <div>
-            <div class="zone-badge">$2.00</div>
-            <div class="zone-name">Зона 2: Остров и пригород</div>
-            <div class="zone-desc">Рыбный остров (Fish Island), Ближний пригород, Теплые ключи</div>
+        <!-- Item 3: Tamarind -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986536/FreshMarket/hjtibffxgkb4jqg5yplq.jpg"
+            alt="Молодой зеленый тамаринд" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Фрукты</div>
+            <div class="static-card-name">Зеленый тамаринд</div>
+            <div class="static-card-action">В каталог →</div>
           </div>
-        </div>
+        </a>
 
-        <div class="zone-item">
-          <div>
-            <div class="zone-badge">$3.00</div>
-            <div class="zone-name">Зона 3: Дальние виллы</div>
-            <div class="zone-desc">River Road (вверх по реке), отдаленные виллы и курорты</div>
+        <!-- Item 4: Rabbitfish -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986604/FreshMarket/jfoqxhzrb9wspum7eewk.jpg"
+            alt="Рыба-сиган" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Морепродукты</div>
+            <div class="static-card-name">Рыба-сиган</div>
+            <div class="static-card-action">В каталог →</div>
           </div>
-        </div>
-      </div>
+        </a>
 
-      <div style="margin-top: 24px;">
-        <a href="shop.html" class="btn btn-primary" style="padding: 12px 28px; border-radius: var(--radius-full);">
-          Перейти к выбору продуктов →
+        <!-- Item 5: Banana Flower -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986860/FreshMarket/knnn3tn5ysvp3xgje4hv.jpg"
+            alt="Цветок банана" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Овощи</div>
+            <div class="static-card-name">Цветок банана</div>
+            <div class="static-card-action">В каталог →</div>
+          </div>
+        </a>
+
+        <!-- Item 6: Lemongrass -->
+        <a href="shop.html" class="static-gallery-card">
+          <img src="https://res.cloudinary.com/xzoeawbu/image/upload/v1791029770/FreshMarket/t59nwektgjsqa2cfibbj.jpg"
+            alt="Лемонграсс" class="static-card-img" loading="lazy" />
+          <div class="static-card-body">
+            <div class="static-card-category">Зелень и травы</div>
+            <div class="static-card-name">Лемонграсс</div>
+            <div class="static-card-action">В каталог →</div>
+          </div>
         </a>
       </div>
     </section>
 
   </main>
 
-  <!-- Footer -->
+  <!-- ================= FLOATING CONCEPT SWITCHER DOCK ================= -->
+  <aside class="landing-concept-switcher" id="landingConceptSwitcher" role="group" aria-label="Концепция лендинга">
+    <button type="button" class="concept-btn active" data-concept="journal" title="Концепт 1: Утренний фотожурнал">
+      <span class="switcher-text" data-i18n="landing.common.switcher_journal">📖 Фотожурнал</span>
+    </button>
+    <button type="button" class="concept-btn" data-concept="stalls" title="Концепт 2: Торговые ряды">
+      <span class="switcher-text" data-i18n="landing.common.switcher_stalls">🏪 Торговые ряды</span>
+    </button>
+    <button type="button" class="concept-btn" data-concept="silk" title="Концепт 3: Cupertino Silk">
+      <span class="switcher-text" data-i18n="landing.common.switcher_silk">🍏 Cupertino Silk</span>
+    </button>
+  </aside>
+
+  <!-- ================= FOOTER ================= -->
   <footer class="landing-footer">
-    <div style="max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px;">
-      <div>🌱 <b>FreshMarket</b> — Сервис утренней доставки продуктов с рынка Samaki Market (Кампот, Камбоджа)</div>
-      <div style="display: flex; justify-content: center; gap: 16px; margin-top: 4px;">
-        <a href="shop.html">Магазин</a>
-        <span>•</span>
-        <a href="components.html">UI Kit</a>
-        <span>•</span>
-        <a href="admin/index.html" style="opacity: 0.6;">Вход для закупщика 🔒</a>
+    <div style="max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;">
+      <div data-i18n="landing.common.footer_rights">
+        FreshMarket • Свежие продукты с рынка у вашей двери
       </div>
-      <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">v1.4.0 • PWA Ready</div>
+      <div class="landing-footer-links">
+        <a href="shop.html" data-i18n="landing.common.footer_shop">Магазин</a>
+        <span>•</span>
+        <a href="components.html" data-i18n="landing.common.footer_workbench">UI Workbench</a>
+        <span>•</span>
+        <a href="admin/index.html" style="opacity: 0.7;" data-i18n="landing.common.footer_admin_link">Вход для закупщика 🔒</a>
+      </div>
+      <div style="font-size: 11.5px; color: var(--c-text-muted); margin-top: 4px;" data-i18n="landing.common.footer_version">
+        v1.5.0 • PWA Ready
+      </div>
     </div>
   </footer>
 
-  <!-- Customer Session Script -->
+  <!-- ================= SCRIPTS ================= -->
   <script>
     (function () {
-      // Check customer authentication for logout button
+      // 1. Concept Switcher Controller (Static instant toggle, saved in localStorage)
+      const STORAGE_KEY_CONCEPT = 'freshmarket_landing_concept';
+      const validConcepts = ['journal', 'stalls', 'silk'];
+
+      function applyConcept(conceptName) {
+        if (!validConcepts.includes(conceptName)) conceptName = 'journal';
+        document.documentElement.setAttribute('data-landing-concept', conceptName);
+        localStorage.setItem(STORAGE_KEY_CONCEPT, conceptName);
+
+        const switcher = document.getElementById('landingConceptSwitcher');
+        if (switcher) {
+          switcher.querySelectorAll('.concept-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.concept === conceptName);
+          });
+        }
+      }
+
+      // Initial concept selection from URL (?concept=) or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlConcept = urlParams.get('concept');
+      const savedConcept = (urlConcept && validConcepts.includes(urlConcept))
+        ? urlConcept
+        : (localStorage.getItem(STORAGE_KEY_CONCEPT) || 'journal');
+      applyConcept(savedConcept);
+
+      const switcher = document.getElementById('landingConceptSwitcher');
+      if (switcher) {
+        switcher.querySelectorAll('.concept-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            applyConcept(btn.dataset.concept);
+          });
+        });
+      }
+
+      // 2. Customer Auth state check for logout button
       try {
         const rawAuth = localStorage.getItem('freshmarket_customer_auth');
         const btnLogout = document.getElementById('btnLandingLogout');

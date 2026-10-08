@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 window.APP_VERSION = APP_VERSION;
 
 // Safe URL sanitizer for image URLs to prevent XSS
@@ -729,6 +729,7 @@ class App {
     this.selectedForm = FORMS[0].label;
     this.currentImageBase64 = '';
     this.editModalImageBase64 = '';
+    this.khrRate = this.getKhrRate();
     this.initElements();
     this.initEventListeners();
     this.initAutocomplete();
@@ -740,6 +741,48 @@ class App {
     this.initServiceWorker();
     this.renderAppVersion();
     this.initSplashScreen();
+  }
+
+  getKhrRate() {
+    const saved = localStorage.getItem('freshmarket_khr_rate');
+    const num = saved ? parseInt(saved, 10) : 4000;
+    return (!isNaN(num) && num > 0) ? num : 4000;
+  }
+
+  updatePriceHint(currency, priceVal, hintEl) {
+    if (!hintEl) return;
+    const clean = priceVal !== '' && !isNaN(Number(priceVal)) ? Number(priceVal) : null;
+    if (currency === 'USD') {
+      if (clean !== null && clean >= 0) {
+        const khr = Math.round(clean * this.khrRate).toLocaleString('en-US');
+        hintEl.textContent = `≈ ${khr} ៛ (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
+      } else {
+        hintEl.textContent = `≈ 0 ៛ (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
+      }
+    } else {
+      // Default KHR base
+      if (clean !== null && clean >= 0) {
+        const usd = (clean / this.khrRate).toFixed(2);
+        hintEl.textContent = `≈ $${usd} (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
+      } else {
+        hintEl.textContent = `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
+      }
+    }
+  }
+
+  saveKhrRate(val) {
+    const rate = (!isNaN(val) && val >= 1000 && val <= 10000) ? val : 4000;
+    this.khrRate = rate;
+    localStorage.setItem('freshmarket_khr_rate', String(rate));
+    if (this.settingKhrRate) this.settingKhrRate.value = rate;
+    if (this.settingModalKhrRate) this.settingModalKhrRate.value = rate;
+    if (this.khrRateBadge) this.khrRateBadge.textContent = `1$ = ${rate.toLocaleString('en-US')} ៛`;
+    if (this.fieldPrice && this.priceHint) {
+      this.updatePriceHint(this.fieldCurrency?.value || 'KHR', this.fieldPrice.value.trim(), this.priceHint);
+    }
+    window.dispatchEvent(new CustomEvent('freshmarket:ratechange', { detail: { rate } }));
+    this.renderProductsList();
+    this.showToast(`✅ Курс обновлен: $1 = ${rate.toLocaleString('en-US')} ៛`);
   }
 
   renderAppVersion() {
@@ -798,6 +841,7 @@ class App {
     // Add Modal Elements
     this.addModal = document.getElementById('addModal');
     this.addModalCloseBtn = document.getElementById('addModalCloseBtn');
+    this.btnCancelAdd = document.getElementById('btnCancelAdd');
     this.productForm = document.getElementById('productForm');
     this.categoryChips = document.getElementById('categoryChips');
     this.fieldCategory = document.getElementById('fieldCategory');
@@ -824,6 +868,10 @@ class App {
     this.aiScanOverlay = document.getElementById('aiScanOverlay');
     this.btnRemovePhoto = document.getElementById('btnRemovePhoto');
     this.fieldImgUrl = document.getElementById('fieldImgUrl');
+    this.fieldCurrency = document.getElementById('fieldCurrency');
+    this.fieldPrice = document.getElementById('fieldPrice');
+    this.fieldUnit = document.getElementById('fieldUnit');
+    this.priceHint = document.getElementById('priceHint');
     this.fieldDescription = document.getElementById('fieldDescription');
 
     // Settings Modal Elements
@@ -892,6 +940,15 @@ class App {
     this.dictFilterDb = document.getElementById('dictFilterDb');
     this.activeDictFilter = 'all';
     this.dictSearchQuery = '';
+
+    // Currency Exchange Rate Elements
+    this.settingKhrRate = document.getElementById('settingKhrRate');
+    this.btnSaveKhrRate = document.getElementById('btnSaveKhrRate');
+    this.khrRateBadge = document.getElementById('khrRateBadge');
+    this.settingModalKhrRate = document.getElementById('settingModalKhrRate');
+    this.btnRatePreset4000 = document.getElementById('btnRatePreset4000');
+    this.btnRatePreset4100 = document.getElementById('btnRatePreset4100');
+    this.btnRatePreset4200 = document.getElementById('btnRatePreset4200');
   }
 
   initEventListeners() {
@@ -909,6 +966,33 @@ class App {
     }
     if (this.navBtnSettings) {
       this.navBtnSettings.addEventListener('click', () => this.switchMainView('viewSettings'));
+    }
+
+    // Currency Exchange Rate Controls
+    if (this.settingKhrRate) {
+      this.settingKhrRate.value = this.khrRate;
+    }
+    if (this.khrRateBadge) {
+      this.khrRateBadge.textContent = `1$ = ${this.khrRate.toLocaleString('en-US')} ៛`;
+    }
+    if (this.btnSaveKhrRate && this.settingKhrRate) {
+      this.btnSaveKhrRate.addEventListener('click', () => {
+        const val = parseInt(this.settingKhrRate.value, 10);
+        if (!isNaN(val) && val >= 1000 && val <= 10000) {
+          this.saveKhrRate(val);
+        } else {
+          this.showToast('⚠️ Введите корректный курс (от 1000 до 10000 ៛)', 'warning');
+        }
+      });
+    }
+    if (this.btnRatePreset4000) {
+      this.btnRatePreset4000.addEventListener('click', () => this.saveKhrRate(4000));
+    }
+    if (this.btnRatePreset4100) {
+      this.btnRatePreset4100.addEventListener('click', () => this.saveKhrRate(4100));
+    }
+    if (this.btnRatePreset4200) {
+      this.btnRatePreset4200.addEventListener('click', () => this.saveKhrRate(4200));
     }
 
     // Catalog Segmented Tabs (Categories vs All Products)
@@ -985,7 +1069,16 @@ class App {
     this.btnConfirmDelete.addEventListener('click', () => this.executeDelete());
 
     // Close Add Modal
-    this.addModalCloseBtn.addEventListener('click', () => this.closeAddModal());
+    this.addModalCloseBtn.addEventListener('click', () => {
+      this.resetForm();
+      this.closeAddModal();
+    });
+    if (this.btnCancelAdd) {
+      this.btnCancelAdd.addEventListener('click', () => {
+        this.resetForm();
+        this.closeAddModal();
+      });
+    }
     this.addModal.addEventListener('click', (e) => {
       if (e.target === this.addModal) this.closeAddModal();
     });
@@ -1078,6 +1171,39 @@ class App {
       this.clearImagePreview();
     });
 
+    // Live Price Conversion Hint & Currency Switch in Add Modal
+    if (this.fieldCurrency && this.fieldPrice && this.priceHint) {
+      this.fieldCurrency.addEventListener('change', () => {
+        const cur = this.fieldCurrency.value;
+        const val = this.fieldPrice.value.trim();
+        if (val !== '' && !isNaN(Number(val))) {
+          const num = Number(val);
+          if (cur === 'USD') {
+            this.fieldPrice.value = (num / this.khrRate).toFixed(2);
+            this.fieldPrice.step = '0.01';
+            this.fieldPrice.placeholder = 'напр. 1.50';
+          } else {
+            this.fieldPrice.value = Math.round(num * this.khrRate);
+            this.fieldPrice.step = '100';
+            this.fieldPrice.placeholder = 'напр. 6000';
+          }
+        } else {
+          if (cur === 'USD') {
+            this.fieldPrice.step = '0.01';
+            this.fieldPrice.placeholder = 'напр. 1.50';
+          } else {
+            this.fieldPrice.step = '100';
+            this.fieldPrice.placeholder = 'напр. 6000';
+          }
+        }
+        this.updatePriceHint(cur, this.fieldPrice.value.trim(), this.priceHint);
+      });
+
+      this.fieldPrice.addEventListener('input', () => {
+        this.updatePriceHint(this.fieldCurrency.value, this.fieldPrice.value.trim(), this.priceHint);
+      });
+    }
+
     // Form Submit
     this.productForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1112,12 +1238,12 @@ class App {
 
     // Edit Modal Close
     this.modalCloseBtn.addEventListener('click', () => {
-      this.editModal.style.display = 'none';
+      this.closeEditModal();
     });
 
     this.editModal.addEventListener('click', (e) => {
       if (e.target === this.editModal) {
-        this.editModal.style.display = 'none';
+        this.closeEditModal();
       }
     });
   }
@@ -1250,6 +1376,12 @@ class App {
 
   closeAddModal() {
     this.addModal.style.display = 'none';
+  }
+
+  closeEditModal() {
+    this.editModal.style.display = 'none';
+    if (this.modalBody) this.modalBody.innerHTML = '';
+    this.editModalImageBase64 = '';
   }
 
   // ------------------------------------------------------------------------
@@ -1439,6 +1571,9 @@ class App {
     if (this.settingCloudinaryApiKey) this.settingCloudinaryApiKey.value = cloudApiKey;
     if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = cloudApiSecret;
 
+    // Currency Rate
+    if (this.settingModalKhrRate) this.settingModalKhrRate.value = this.khrRate;
+
     this.settingsModal.style.display = 'flex';
 
     if (isTriggeredByPhoto) {
@@ -1499,6 +1634,14 @@ class App {
     localStorage.setItem('freshmarket_cloudinary_folder', folder || 'freshmarket');
     localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
     localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
+
+    // 4. KHR Exchange Rate
+    if (this.settingModalKhrRate && this.settingModalKhrRate.value) {
+      const modalRate = parseInt(this.settingModalKhrRate.value, 10);
+      if (!isNaN(modalRate) && modalRate >= 1000 && modalRate <= 10000) {
+        this.saveKhrRate(modalRate);
+      }
+    }
 
     // Re-initialize storage adapter
     storage = getActiveStorage();
@@ -2533,12 +2676,23 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       }
     }
 
+    const currency = this.fieldCurrency ? this.fieldCurrency.value : 'KHR';
+    const priceVal = this.fieldPrice ? this.fieldPrice.value.trim() : '';
+    let finalKhrPrice = null;
+    if (priceVal !== '' && !isNaN(Number(priceVal))) {
+      const num = parseFloat(priceVal);
+      finalKhrPrice = currency === 'USD' ? Math.round(num * this.khrRate) : Math.round(num);
+    }
+    const unit = this.fieldUnit ? this.fieldUnit.value.trim() : '';
+
     const newProduct = {
       name_en: nameEn,
       name_ru: nameRu,
       name_kh: nameKh,
       category: category,
       form: form,
+      price: finalKhrPrice,
+      unit: unit,
       description: description,
       img_url: imgUrl
     };
@@ -2567,6 +2721,14 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     this.clearImagePreview();
     this.fieldCustomForm.value = '';
     this.customFormWrap.style.display = 'none';
+    if (this.fieldCurrency) this.fieldCurrency.value = 'KHR';
+    if (this.fieldPrice) {
+      this.fieldPrice.value = '';
+      this.fieldPrice.step = '100';
+      this.fieldPrice.placeholder = 'напр. 6000';
+    }
+    if (this.fieldUnit) this.fieldUnit.value = '';
+    if (this.priceHint) this.priceHint.textContent = `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
     if (this.activeFilterCategory && this.activeFilterCategory !== 'all') {
       this.selectCategoryByName(this.activeFilterCategory);
     }
@@ -2812,6 +2974,25 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
   // ------------------------------------------------------------------------
   // List Screen Rendering
   // ------------------------------------------------------------------------
+  renderPriceBadge(price, unit = '') {
+    if (price !== null && price !== undefined && price !== '' && !isNaN(Number(price))) {
+      const khr = Number(price);
+      const usd = (khr / this.khrRate).toFixed(2);
+      const unitSuffix = unit ? ` / ${this.escapeHtml(unit)}` : '';
+      return `
+        <div class="card-price-badge">
+          <span class="price-khr">${Math.round(khr).toLocaleString('en-US')} ៛${unitSuffix}</span>
+          <span class="price-usd">~$${usd}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="card-price-badge price-na">
+        <span class="price-na">n/a</span>
+      </div>
+    `;
+  }
+
   renderProductsList() {
     let list = this.products;
 
@@ -2878,15 +3059,21 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           <div class="card-collapsible-body">
             <!-- Badges (Category & Form - hidden in collapsed state) -->
             <div class="card-badges">
-              <span class="badge badge-category">${catIcon} ${this.escapeHtml(item.category)}</span>
-              ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
+              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}"><span class="badge-cat-icon">${catIcon}</span> <span class="badge-cat-name">${this.escapeHtml(item.category)}</span></span>
+              ${item.form ? `<span class="badge badge-form" data-form="${this.escapeHtml(item.form)}">${this.escapeHtml(item.form)}</span>` : ''}
             </div>
 
             ${item.img_url ? `
               <div class="card-photo-container">
                 <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                ${this.renderPriceBadge(item.price, item.unit)}
               </div>
-            ` : ''}
+            ` : `
+              <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
+                ${catIcon}
+                ${this.renderPriceBadge(item.price, item.unit)}
+              </div>
+            `}
 
             ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
           </div>
@@ -3172,16 +3359,52 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           </select>
         </div>
 
-        <!-- 5. DESCRIPTION / NOTES -->
+        <!-- 5. ESTIMATED MARKET PRICE & UNIT -->
+        <div class="form-group price-block">
+          <label class="field-label">5. Примерная цена и фасовка / вес</label>
+          <div class="price-unit-row">
+            <div class="currency-select-wrap">
+              <select id="editCurrency" class="text-input select-input currency-select">
+                <option value="KHR" selected>៛ KHR</option>
+                <option value="USD">$ USD</option>
+              </select>
+            </div>
+            <div class="price-input-wrap">
+              <input type="number" step="100" min="0" id="editPrice" class="text-input"
+                value="${item.price !== null && item.price !== undefined && item.price !== '' ? item.price : ''}"
+                placeholder="напр. 6000" />
+            </div>
+            <div class="unit-input-wrap">
+              <input type="text" id="editUnit" class="text-input"
+                value="${this.escapeHtml(item.unit || '')}"
+                placeholder="напр. 1 кг, 1 шт" list="editUnitSuggestions" />
+              <datalist id="editUnitSuggestions">
+                <option value="1 кг">
+                <option value="500 г">
+                <option value="250 г">
+                <option value="100 г">
+                <option value="1 шт">
+                <option value="1 пучок">
+                <option value="1 упак">
+              </datalist>
+            </div>
+          </div>
+          <div class="form-field-hint" id="editPriceHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            ${item.price !== null && item.price !== undefined && item.price !== '' && !isNaN(Number(item.price)) ? `≈ $${(Number(item.price) / this.khrRate).toFixed(2)} (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)` : `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`}
+          </div>
+        </div>
+
+        <!-- 6. DESCRIPTION / NOTES -->
         <div class="form-group">
-          <label class="field-label">5. Описание / Заметки</label>
+          <label class="field-label">6. Описание / Заметки</label>
           <textarea id="editDescription" class="text-input textarea-input" rows="3"
             placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять...">${this.escapeHtml(item.description || '')}</textarea>
         </div>
 
-        <!-- FORM ACTIONS -->
+        <!-- FORM ACTIONS (Cancel 1/3 vs Save 2/3) -->
         <div class="form-actions" style="margin-top:14px;">
-          <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+          <button type="button" class="btn btn-secondary" id="btnCancelEdit">Отмена</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveEdit">Сохранить</button>
         </div>
       </form>
     `;
@@ -3203,7 +3426,51 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     const btnEditLookup = document.getElementById('btnEditLookup');
     const editCategory = document.getElementById('editCategory');
     const editFormSelect = document.getElementById('editFormSelect');
+    const editCurrency = document.getElementById('editCurrency');
+    const editPrice = document.getElementById('editPrice');
+    const editUnit = document.getElementById('editUnit');
+    const editPriceHint = document.getElementById('editPriceHint');
     const editDescription = document.getElementById('editDescription');
+    const btnCancelEdit = document.getElementById('btnCancelEdit');
+
+    if (btnCancelEdit) {
+      btnCancelEdit.addEventListener('click', () => {
+        this.closeEditModal();
+      });
+    }
+
+    // Live Price Conversion & Currency Switch in Edit Modal
+    if (editCurrency && editPrice && editPriceHint) {
+      editCurrency.addEventListener('change', () => {
+        const cur = editCurrency.value;
+        const val = editPrice.value.trim();
+        if (val !== '' && !isNaN(Number(val))) {
+          const num = Number(val);
+          if (cur === 'USD') {
+            editPrice.value = (num / this.khrRate).toFixed(2);
+            editPrice.step = '0.01';
+            editPrice.placeholder = 'напр. 1.50';
+          } else {
+            editPrice.value = Math.round(num * this.khrRate);
+            editPrice.step = '100';
+            editPrice.placeholder = 'напр. 6000';
+          }
+        } else {
+          if (cur === 'USD') {
+            editPrice.step = '0.01';
+            editPrice.placeholder = 'напр. 1.50';
+          } else {
+            editPrice.step = '100';
+            editPrice.placeholder = 'напр. 6000';
+          }
+        }
+        this.updatePriceHint(cur, editPrice.value.trim(), editPriceHint);
+      });
+
+      editPrice.addEventListener('input', () => {
+        this.updatePriceHint(editCurrency.value, editPrice.value.trim(), editPriceHint);
+      });
+    }
 
     const editCtx = {
       editNameEn,
@@ -3302,12 +3569,26 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         if (dictMatch.desc && !finalDesc) finalDesc = dictMatch.desc;
       }
 
+      const editCurrencyInput = document.getElementById('editCurrency');
+      const editCurrencyVal = editCurrencyInput ? editCurrencyInput.value : 'KHR';
+      const editPriceInput = document.getElementById('editPrice');
+      const editPriceVal = editPriceInput ? editPriceInput.value.trim() : '';
+      let finalPrice = null;
+      if (editPriceVal !== '' && !isNaN(Number(editPriceVal))) {
+        const num = parseFloat(editPriceVal);
+        finalPrice = editCurrencyVal === 'USD' ? Math.round(num * this.khrRate) : Math.round(num);
+      }
+      const editUnitInput = document.getElementById('editUnit');
+      const finalUnit = editUnitInput ? editUnitInput.value.trim() : '';
+
       const updatedData = {
         category: finalCat,
         name_en: nameEn,
         name_ru: nameRu,
         name_kh: finalNameKh,
         form: finalForm,
+        price: finalPrice,
+        unit: finalUnit,
         description: finalDesc,
         img_url: this.editModalImageBase64
       };
@@ -3321,7 +3602,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         }
         this.renderProductsList();
         this.renderRecentList();
-        this.editModal.style.display = 'none';
+        this.closeEditModal();
         this.showToast('✅ Продукт обновлен');
       } catch (err) {
         this.showToast('Ошибка при обновлении');

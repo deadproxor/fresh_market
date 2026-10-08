@@ -1,0 +1,912 @@
+/* ==========================================================================
+   FreshMarket — Dedicated Landing Stylesheet
+   Version: 1.5.0
+   Concepts:
+     1. Photo Journal [data-landing-concept="journal"]
+     2. Market Stalls [data-landing-concept="stalls"]
+     3. Cupertino Silk [data-landing-concept="silk"]
+   Zero Animation • Pure Static Visual Excellence • Real Food Photography
+   ========================================================================== */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --font-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-khmer: 'Noto Sans Khmer', var(--font-base);
+
+  /* Shared Defaults */
+  --c-bg: #f5f5f7;
+  --c-surface: #ffffff;
+  --c-text-main: #1d1d1f;
+  --c-text-muted: #6e6e73;
+  --c-border: #d2d2d7;
+  --c-accent: #059669;
+  --c-accent-hover: #047857;
+}
+
+/* --------------------------------------------------------------------------
+   CONCEPT 1: PHOTO JOURNAL TOKENS (Warm Editorial / Culinary Story)
+   -------------------------------------------------------------------------- */
+[data-landing-concept="journal"] {
+  --c-bg: #fbf9f5;
+  --c-surface: #ffffff;
+  --c-surface-subtle: #f4efe6;
+  --c-text-main: #211f1c;
+  --c-text-muted: #6b6459;
+  --c-border: #e3ded5;
+  --c-accent: #9c4221;
+  --c-accent-hover: #7f3417;
+  --c-accent-soft: rgba(156, 66, 33, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   CONCEPT 2: MARKET STALLS TOKENS (Marketplace-First / Produce Dense)
+   -------------------------------------------------------------------------- */
+[data-landing-concept="stalls"] {
+  --c-bg: #edf2ef;
+  --c-surface: #ffffff;
+  --c-surface-subtle: #e2eae5;
+  --c-text-main: #0c2017;
+  --c-text-muted: #435e52;
+  --c-border: #c8d8ce;
+  --c-accent: #059669;
+  --c-accent-hover: #047857;
+  --c-accent-soft: rgba(5, 150, 105, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   CONCEPT 3: CUPERTINO SILK TOKENS (Pure Apple Light Minimalist)
+   -------------------------------------------------------------------------- */
+[data-landing-concept="silk"] {
+  --c-bg: #f5f5f7;
+  --c-surface: #ffffff;
+  --c-surface-subtle: #fafafc;
+  --c-text-main: #1d1d1f;
+  --c-text-muted: #86868b;
+  --c-border: #d2d2d7;
+  --c-accent: #10b981;
+  --c-accent-hover: #059669;
+  --c-accent-soft: rgba(16, 185, 129, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   BASE PAGE LAYOUT (STATIC & CLEAN)
+   -------------------------------------------------------------------------- */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--c-bg);
+  color: var(--c-text-main);
+  font-family: var(--font-base);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+body:lang(km) {
+  font-family: var(--font-khmer);
+}
+
+.landing-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.landing-container {
+  width: 100%;
+  max-width: 1020px;
+  margin: 0 auto;
+  padding: 24px 20px 110px 20px;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+/* Concept Visibility (Instant Static Toggling) */
+.concept-view {
+  display: none;
+}
+
+[data-landing-concept="journal"] .concept-journal {
+  display: block;
+}
+
+[data-landing-concept="stalls"] .concept-stalls {
+  display: block;
+}
+
+[data-landing-concept="silk"] .concept-silk {
+  display: block;
+}
+
+/* --------------------------------------------------------------------------
+   SHARED TOP HEADER
+   -------------------------------------------------------------------------- */
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  padding: calc(12px + var(--safe-top)) 20px 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--c-text-main);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.4px;
+}
+
+.landing-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-btn-shop {
+  background: var(--c-accent);
+  color: #ffffff !important;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-size: 13.5px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   CONCEPT 1: PHOTO JOURNAL («Утренний фотожурнал»)
+   ========================================================================== */
+.concept-journal {
+  padding-top: 10px;
+}
+
+.journal-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 40px;
+  align-items: center;
+  padding: 40px 0 50px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.journal-headline {
+  font-size: clamp(28px, 4.2vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  margin: 0 0 18px 0;
+  color: var(--c-text-main);
+}
+
+.journal-lead {
+  font-size: 16.5px;
+  line-height: 1.6;
+  color: var(--c-text-muted);
+  margin: 0 0 24px 0;
+}
+
+.journal-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-accent);
+  text-decoration: none;
+  border-bottom: 2px solid var(--c-accent);
+  padding-bottom: 2px;
+}
+
+.journal-photo-frame {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(33, 31, 28, 0.06);
+}
+
+.journal-hero-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.journal-photo-caption {
+  font-size: 12.5px;
+  color: var(--c-text-muted);
+  margin: 10px 0 0 0;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Journal Story: Zig-zag alternating rows */
+.journal-story-section {
+  padding: 50px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.journal-section-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 36px 0;
+  color: var(--c-text-main);
+}
+
+.journal-story-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+  margin-bottom: 44px;
+}
+
+.journal-story-row.reversed {
+  direction: rtl;
+}
+
+.journal-story-row.reversed > * {
+  direction: ltr;
+}
+
+.journal-story-media img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--c-border);
+}
+
+.journal-time-stamp {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.journal-step-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  color: var(--c-text-main);
+}
+
+.journal-step-desc {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--c-text-muted);
+  margin: 0;
+}
+
+/* Journal Ledger (Clean Accounting Table) */
+.journal-ledger-section {
+  padding: 44px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.journal-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+}
+
+.journal-ledger-table th,
+.journal-ledger-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 14.5px;
+}
+
+.journal-ledger-table th {
+  background: var(--c-surface-subtle);
+  font-weight: 700;
+  color: var(--c-text-main);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.journal-ledger-table tr.total-row td {
+  font-weight: 800;
+  font-size: 15.5px;
+  background: var(--c-surface-subtle);
+  color: var(--c-accent);
+  border-bottom: none;
+}
+
+.journal-ledger-table td.val-col {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Journal Zones */
+.journal-zones-section {
+  padding: 44px 0 20px 0;
+}
+
+.journal-zones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.journal-zone-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 18px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+}
+
+.journal-zone-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-text-main);
+}
+
+.journal-zone-desc {
+  font-size: 13px;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+
+.journal-zone-price {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--c-accent);
+}
+
+/* ==========================================================================
+   CONCEPT 2: MARKET STALLS («Торговые ряды»)
+   ========================================================================== */
+.concept-stalls {
+  padding-top: 10px;
+}
+
+.stalls-hero {
+  padding: 30px 0 26px 0;
+}
+
+.stalls-hero-title {
+  font-size: clamp(26px, 4.5vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.7px;
+  margin: 0 0 10px 0;
+  color: var(--c-text-main);
+}
+
+.stalls-hero-subtitle {
+  font-size: 16px;
+  color: var(--c-text-muted);
+  margin: 0 0 26px 0;
+  max-width: 700px;
+  line-height: 1.5;
+}
+
+/* 4 Panoramic Stalls Panels */
+.stalls-panels-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 44px;
+}
+
+.stall-panel {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stall-panel-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #dfe7e2;
+}
+
+.stall-panel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stall-panel-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.stall-panel-tag {
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--c-accent);
+  margin-bottom: 6px;
+}
+
+.stall-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--c-text-main);
+}
+
+.stall-panel-desc {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Stalls Rules (3-Column Flow) */
+.stalls-rules-section {
+  padding: 32px 0;
+  border-top: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+  margin-bottom: 40px;
+}
+
+.stalls-section-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  margin: 0 0 24px 0;
+  color: var(--c-text-main);
+}
+
+.stalls-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.stall-rule-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.stall-rule-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--c-accent);
+  margin-bottom: 8px;
+}
+
+.stall-rule-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--c-text-main);
+  margin: 0 0 6px 0;
+}
+
+.stall-rule-desc {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Stalls Table */
+.stalls-zones-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  margin-bottom: 20px;
+}
+
+.stalls-zones-table th,
+.stalls-zones-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 14px;
+  text-align: left;
+}
+
+.stalls-zones-table th {
+  background: var(--c-surface-subtle);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   CONCEPT 3: CUPERTINO SILK («Чистый минимализм»)
+   ========================================================================== */
+.concept-silk {
+  padding-top: 20px;
+}
+
+.silk-hero {
+  text-align: center;
+  padding: 50px 10px 60px 10px;
+}
+
+.silk-title {
+  font-size: clamp(32px, 5.5vw, 54px);
+  font-weight: 800;
+  letter-spacing: -1.4px;
+  line-height: 1.12;
+  margin: 0 0 20px 0;
+  color: var(--c-text-main);
+}
+
+.silk-desc {
+  font-size: clamp(16px, 2.4vw, 19px);
+  color: var(--c-text-muted);
+  max-width: 640px;
+  margin: 0 auto 32px auto;
+  line-height: 1.55;
+}
+
+.silk-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-silk-primary {
+  background: var(--c-accent);
+  color: #ffffff !important;
+  font-size: 15.5px;
+  font-weight: 600;
+  padding: 13px 28px;
+  border-radius: 999px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-silk-secondary {
+  background: var(--c-surface);
+  color: var(--c-text-main) !important;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 1px solid var(--c-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 3 Wide-Format Alternating Showcase Rows */
+.silk-showcase-section {
+  display: flex;
+  flex-direction: column;
+  gap: 50px;
+  padding: 40px 0;
+}
+
+.silk-showcase-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 44px;
+  align-items: center;
+}
+
+.silk-showcase-row.reversed {
+  direction: rtl;
+}
+
+.silk-showcase-row.reversed > * {
+  direction: ltr;
+}
+
+.silk-showcase-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
+}
+
+.silk-showcase-tag {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--c-accent);
+  margin-bottom: 8px;
+}
+
+.silk-showcase-title {
+  font-size: clamp(22px, 3.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  margin: 0 0 12px 0;
+  color: var(--c-text-main);
+}
+
+.silk-showcase-desc {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--c-text-muted);
+  margin: 0;
+}
+
+/* Silk Zones Minimalist Numbers */
+.silk-zones-section {
+  padding: 50px 0 30px 0;
+  border-top: 1px solid var(--c-border);
+  text-align: center;
+}
+
+.silk-zones-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 30px;
+  text-align: left;
+}
+
+.silk-zone-col {
+  padding: 20px;
+  background: var(--c-surface);
+  border-radius: 16px;
+}
+
+.silk-zone-badge {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--c-accent);
+  margin-bottom: 6px;
+}
+
+.silk-zone-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--c-text-main);
+}
+
+.silk-zone-desc {
+  font-size: 13.5px;
+  color: var(--c-text-muted);
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   STATIC PRODUCT SHOWCASE GALLERY (SHARED ACROSS ALL)
+   ========================================================================== */
+.static-product-gallery {
+  margin: 50px 0 30px 0;
+  padding: 36px 0 0 0;
+  border-top: 1px solid var(--c-border);
+}
+
+.gallery-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.gallery-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 4px 0;
+  color: var(--c-text-main);
+}
+
+.gallery-subtitle {
+  font-size: 14px;
+  color: var(--c-text-muted);
+  margin: 0;
+}
+
+.gallery-btn-all {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-accent);
+  text-decoration: none;
+}
+
+.static-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.static-gallery-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+.static-card-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: #eaefe9;
+}
+
+.static-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.static-card-category {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  margin-bottom: 4px;
+}
+
+.static-card-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--c-text-main);
+  margin: 0 0 4px 0;
+  line-height: 1.25;
+}
+
+.static-card-action {
+  margin-top: auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--c-accent);
+  padding-top: 8px;
+}
+
+/* ==========================================================================
+   FLOATING CONCEPT SWITCHER DOCK (3 WAYS)
+   ========================================================================== */
+.landing-concept-switcher {
+  position: fixed;
+  bottom: calc(18px + var(--safe-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-width: calc(100vw - 20px);
+  box-sizing: border-box;
+}
+
+.concept-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.concept-btn.active {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+.landing-footer {
+  border-top: 1px solid var(--c-border);
+  padding: 30px 20px calc(80px + var(--safe-bottom)) 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--c-text-muted);
+  background: var(--c-surface);
+}
+
+.landing-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.landing-footer-links a {
+  color: var(--c-text-main);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (MOBILE ADAPTATION)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .landing-container {
+    padding: 16px 16px 100px 16px;
+  }
+
+  .journal-hero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 24px 0 36px 0;
+  }
+
+  .journal-story-row,
+  .journal-story-row.reversed {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    direction: ltr;
+  }
+
+  .stalls-panels-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .stalls-rules-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .silk-showcase-row,
+  .silk-showcase-row.reversed {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    direction: ltr;
+  }
+
+  .silk-zones-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .static-gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .concept-btn {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+}

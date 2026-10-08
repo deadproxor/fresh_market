@@ -24,9 +24,9 @@
     rel="stylesheet" />
 
   <!-- Master Design System, Catalog & Admin Styles -->
-  <link rel="stylesheet" href="../css/components.css" />
-  <link rel="stylesheet" href="../css/products.css?v=v1.4.0" />
-  <link rel="stylesheet" href="../css/admin.css?v=v1.4.0" />
+  <link rel="stylesheet" href="../css/components.css?v=1.4.2" />
+  <link rel="stylesheet" href="../css/products.css?v=1.4.2" />
+  <link rel="stylesheet" href="../css/admin.css?v=1.4.2" />
 </head>
 
 <body>
@@ -66,7 +66,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary" id="btnLogin" style="margin-top: 8px;">
-          Войти в панель
+          Войти
         </button>
       </form>
     </div>
@@ -150,7 +150,74 @@
 
           <!-- Empty State -->
           <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">🧺</div>
+            <div class="empty-icon">
+              <svg viewBox="0 0 120 120" width="84" height="84" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="basketInner" cx="50%" cy="40%" r="60%">
+                    <stop offset="0%" stop-color="#4a3525" />
+                    <stop offset="70%" stop-color="#2c1d11" />
+                    <stop offset="100%" stop-color="#1a1109" />
+                  </radialGradient>
+                  <linearGradient id="basketRim" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#d4a373" />
+                    <stop offset="50%" stop-color="#bc6c25" />
+                    <stop offset="100%" stop-color="#8c4b14" />
+                  </linearGradient>
+                  <linearGradient id="basketBody" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#dda15e" />
+                    <stop offset="40%" stop-color="#bc6c25" />
+                    <stop offset="100%" stop-color="#6f3a09" />
+                  </linearGradient>
+                  <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#e9c46a" />
+                    <stop offset="60%" stop-color="#b06b2a" />
+                    <stop offset="100%" stop-color="#58310c" />
+                  </linearGradient>
+                  <filter id="basketGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.35" />
+                  </filter>
+                </defs>
+
+                <!-- Back Handle -->
+                <path d="M36 50 C36 18 84 18 84 50" stroke="url(#handleGrad)" stroke-width="6.5" stroke-linecap="round"
+                  fill="none" opacity="0.85" />
+                <path d="M36 50 C36 18 84 18 84 50" stroke="#432818" stroke-width="1.5" stroke-linecap="round" fill="none"
+                  stroke-dasharray="3 4" opacity="0.7" />
+
+                <!-- Empty Basket Interior (Deep Dark Cavity) -->
+                <ellipse cx="60" cy="52" rx="42" ry="16" fill="url(#basketInner)" />
+
+                <!-- Basket Outer Body -->
+                <path d="M18 52 C22 84 32 98 60 98 C88 98 98 84 102 52 Z" fill="url(#basketBody)"
+                  filter="url(#basketGlow)" />
+
+                <!-- Wicker Horizontal Weave Ribs -->
+                <path d="M22 64 C35 74 85 74 98 64" stroke="#e9c46a" stroke-width="3" stroke-linecap="round"
+                  opacity="0.4" />
+                <path d="M25 76 C38 86 82 86 95 76" stroke="#e9c46a" stroke-width="2.8" stroke-linecap="round"
+                  opacity="0.35" />
+                <path d="M32 88 C44 94 76 94 88 88" stroke="#e9c46a" stroke-width="2.5" stroke-linecap="round"
+                  opacity="0.3" />
+
+                <!-- Wicker Vertical Cross Weaves -->
+                <g stroke="#582f0e" stroke-width="2.2" stroke-linecap="round" opacity="0.55">
+                  <path d="M34 56 L38 94" />
+                  <path d="M46 58 L48 97" />
+                  <path d="M60 59 L60 98" />
+                  <path d="M74 58 L72 97" />
+                  <path d="M86 56 L82 94" />
+                </g>
+
+                <!-- Basket Thick Woven Rim -->
+                <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="url(#basketRim)" stroke-width="5.5" />
+                <ellipse cx="60" cy="52" rx="43" ry="14" fill="none" stroke="#ffe8d6" stroke-width="1.2" opacity="0.4"
+                  stroke-dasharray="6 4" />
+
+                <!-- Handle Attachment Rings -->
+                <circle cx="28" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
+                <circle cx="92" cy="52" r="3.5" fill="#e9c46a" stroke="#58310c" stroke-width="1" />
+              </svg>
+            </div>
             <h3 class="empty-title">В списке пока пусто</h3>
             <p class="empty-desc">Добавьте первые рыночные находки и продукты</p>
             <button type="button" class="btn btn-primary btn-sm" id="btnEmptyGoAdd">
@@ -189,6 +256,40 @@
             onclick="window.app ? window.app.openSettingsModal() : (document.getElementById('settingsModal').style.display='flex')">
             ⚙️ Открыть расширенные настройки API (Gemini, Supabase, Cloudinary)
           </button>
+        </div>
+
+        <!-- Card: Currency Exchange Rate (USD -> KHR) -->
+        <div class="card settings-rate-card" style="padding: 20px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 22px;">💱</span>
+              <div>
+                <h4 style="font-size: 15px; font-weight: 700; margin: 0;">Курс валюты (USD → KHR)</h4>
+                <span style="font-size: 12px; color: var(--text-muted);">Камбоджийский риель за 1 доллар США</span>
+              </div>
+            </div>
+            <span class="badge badge-success" id="khrRateBadge">1$ = 4,000 ៛</span>
+          </div>
+
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Используется для пересчета ориентировочных рыночных цен в каталоге, админке и витрине магазина.
+          </p>
+
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
+            <div class="input-wrap" style="flex: 1; position: relative;">
+              <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">៛</span>
+              <input type="number" id="settingKhrRate" class="text-input" min="1000" max="10000" step="50" value="4000" placeholder="4000" />
+            </div>
+            <button type="button" class="btn btn-primary" id="btnSaveKhrRate" style="white-space: nowrap;">
+              Сохранить курс
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="filter-pill" id="btnRatePreset4000">4,000 ៛ (Официальный)</button>
+            <button type="button" class="filter-pill" id="btnRatePreset4100">4,100 ៛ (Рыночный)</button>
+            <button type="button" class="filter-pill" id="btnRatePreset4200">4,200 ៛</button>
+          </div>
         </div>
 
         <!-- Card: Produce Dictionary Draft Section -->
@@ -384,13 +485,48 @@
               <input type="hidden" id="fieldForm" name="form" value="Целый" />
             </div>
 
+            <div class="form-group price-block">
+              <label class="field-label">5. Примерная цена и фасовка / вес</label>
+              <div class="price-unit-row">
+                <div class="currency-select-wrap">
+                  <select id="fieldCurrency" name="currency" class="text-input select-input currency-select">
+                    <option value="KHR" selected>៛ KHR</option>
+                    <option value="USD">$ USD</option>
+                  </select>
+                </div>
+                <div class="price-input-wrap">
+                  <input type="number" step="100" min="0" id="fieldPrice" name="price" class="text-input"
+                    placeholder="напр. 6000" />
+                </div>
+                <div class="unit-input-wrap">
+                  <input type="text" id="fieldUnit" name="unit" class="text-input"
+                    placeholder="напр. 1 кг, 1 шт" list="addUnitSuggestions" />
+                  <datalist id="addUnitSuggestions">
+                    <option value="1 кг">
+                    <option value="500 г">
+                    <option value="250 г">
+                    <option value="100 г">
+                    <option value="1 шт">
+                    <option value="1 пучок">
+                    <option value="1 упак">
+                  </datalist>
+                </div>
+              </div>
+              <div class="form-field-hint" id="priceHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                ≈ $0.00 (по курсу 1 USD = 4,000 KHR)
+              </div>
+            </div>
+
             <div class="form-group">
-              <label class="field-label">5. Описание / Заметки</label>
+              <label class="field-label">6. Описание / Заметки</label>
               <textarea id="fieldDescription" name="description" class="text-input textarea-input" rows="3"
                 placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять..."></textarea>
             </div>
 
             <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="btnCancelAdd">
+                Отмена
+              </button>
               <button type="submit" class="btn btn-primary" id="btnSave">
                 Сохранить
               </button>
@@ -468,10 +604,18 @@
               </div>
             </div>
 
-            <div class="settings-actions">
-              <button type="submit" class="btn btn-primary" id="btnSaveSettings">
-                Сохранить настройки
-              </button>
+            <div class="settings-group">
+              <h4 class="settings-group-title">3. Курс валюты (USD → KHR)</h4>
+              <div class="form-group">
+                <label class="field-label" for="settingModalKhrRate">Камбоджийский риель (៛) за 1 доллар</label>
+                <input type="number" id="settingModalKhrRate" class="text-input" min="1000" max="10000" step="50" placeholder="4000" />
+                <div class="field-hint">Используется для пересчета ориентировочных цен в каталоге и витрине</div>
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 18px;">
+              <button type="button" class="btn btn-secondary" id="btnCancelSettings">Отмена</button>
+              <button type="submit" class="btn btn-primary" id="btnSaveSettings">Сохранить</button>
             </div>
           </form>
         </div>
@@ -487,8 +631,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Core Scripts -->
-  <script src="js/admin-catalog.js?v=1.4.0"></script>
-  <script src="js/admin-auth.js?v=1.4.0"></script>
+  <script src="js/admin-catalog.js?v=1.4.2"></script>
+  <script src="js/admin-auth.js?v=1.4.2"></script>
 </body>
 
 </html>

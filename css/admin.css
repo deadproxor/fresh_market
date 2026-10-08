@@ -170,33 +170,9 @@
   color: var(--text-primary);
 }
 
+/* 3. Orders Empty State (Inherits from .empty-state in components.css) */
 .orders-stub-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  text-align: center;
   margin-bottom: 16px;
-}
-
-.orders-stub-icon {
-  font-size: 42px;
-  margin-bottom: 12px;
-}
-
-.orders-stub-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
-.orders-stub-desc {
-  font-size: 13px;
-  color: var(--text-muted);
-  max-width: 440px;
-  margin: 0 auto 16px auto;
-  line-height: 1.5;
 }
 
 /* 4. Orders List Table / Cards */

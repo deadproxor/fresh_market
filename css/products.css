@@ -643,13 +643,7 @@
   z-index: 6;
 }
 
-/* Form Action Buttons */
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
-}
+/* Form Action Buttons inherited from components.css (.form-actions) */
 
 .modal-confirm-card {
   max-width: 420px;

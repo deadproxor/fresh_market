@@ -3,7 +3,7 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.3.8';
+const SHOP_VERSION = '1.4.0';
 window.SHOP_VERSION = SHOP_VERSION;
 
 const DEFAULT_SUPABASE_URL = 'https://qifazsptdgcskrchfocc.supabase.co';
@@ -59,6 +59,7 @@ class ShopApp {
     this.cart = this.loadCart();
     this.currentUser = null;
     this.currentSlide = 0;
+    this.khrRate = this.getKhrRate();
 
     this.initSplashScreen();
     this.initSupabase();
@@ -69,6 +70,12 @@ class ShopApp {
     this.loadCatalog();
     this.updateCartUi();
     this.initServiceWorker();
+  }
+
+  getKhrRate() {
+    const saved = localStorage.getItem('freshmarket_khr_rate');
+    const num = saved ? parseInt(saved, 10) : 4000;
+    return (!isNaN(num) && num > 0) ? num : 4000;
   }
 
   // ------------------------------------------------------------------------
@@ -206,6 +213,22 @@ class ShopApp {
       if (window.i18n) {
         this.showToast(window.i18n.t('toasts.lang_changed'), 'info', 2000);
       }
+    });
+
+    // Reactive KHR Currency Rate Change listener
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'freshmarket_khr_rate') {
+        this.khrRate = this.getKhrRate();
+        this.renderProducts();
+      }
+    });
+    window.addEventListener('freshmarket:ratechange', (e) => {
+      if (e.detail && e.detail.rate) {
+        this.khrRate = e.detail.rate;
+      } else {
+        this.khrRate = this.getKhrRate();
+      }
+      this.renderProducts();
     });
 
     // Search
@@ -510,7 +533,7 @@ class ShopApp {
           <div class="empty-icon">📡</div>
           <div class="empty-title">${this.escapeHtml(finalTitle)}</div>
           <div class="empty-desc">${this.escapeHtml(finalDesc)}</div>
-          <button type="button" class="btn btn-primary btn-retry-catalog" id="btnRetryCatalog" style="margin-top: 14px; padding: 10px 24px;">
+          <button type="button" class="btn btn-primary btn-retry-catalog" id="btnRetryCatalog">
             ${retryText}
           </button>
         </div>
@@ -525,11 +548,11 @@ class ShopApp {
 
     if (this.shopCategoryGrid) {
       this.shopCategoryGrid.innerHTML = `
-        <div class="empty-state offline-empty-state" style="grid-column: 1 / -1; padding: 40px 20px;">
+        <div class="empty-state offline-empty-state" style="grid-column: 1 / -1;">
           <div class="empty-icon">📡</div>
           <div class="empty-title">${this.escapeHtml(finalTitle)}</div>
           <div class="empty-desc">${this.escapeHtml(finalDesc)}</div>
-          <button type="button" class="btn btn-primary" id="btnRetryCategories" style="margin-top: 14px; padding: 10px 24px;">
+          <button type="button" class="btn btn-primary" id="btnRetryCategories">
             ${retryText}
           </button>
         </div>
@@ -626,32 +649,83 @@ class ShopApp {
 
   getProductOptions(product) {
     const form = (product.form || '').toLowerCase();
+    const unitField = (product.unit || '').toLowerCase();
     const cat = (product.category || '').toLowerCase();
 
     const unitBunch = window.i18n ? window.i18n.t('common.unit_bunch') : 'пучок';
     const unitPcs = window.i18n ? window.i18n.t('common.unit_pcs') : 'шт';
     const unitKg = window.i18n ? window.i18n.t('common.weight_kg') : 'кг';
 
-    if (form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
+    if (unitField.includes('пучок') || unitField.includes('связка') || form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
       return {
         unit: unitBunch,
         options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitBunch}`),
-        defaultQty: `1 ${unitBunch}`
+        defaultQty: product.unit || `1 ${unitBunch}`
       };
     }
-    if (form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('бутылк') || form.includes('банка') || form.includes('упаковк')) {
+    if (unitField.includes('шт') || unitField.includes('упак') || form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('бутылк') || form.includes('банка') || form.includes('упаковк')) {
       return {
         unit: unitPcs,
         options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitPcs}`),
-        defaultQty: `1 ${unitPcs}`
+        defaultQty: product.unit || `1 ${unitPcs}`
       };
     }
     // Default Produce / Produce / Seafood / Meat weight
     return {
       unit: unitKg,
       options: ['0.5', '1', '1.5', '2', '3', '5'].map((n) => `${n} ${unitKg}`),
-      defaultQty: `1 ${unitKg}`
+      defaultQty: product.unit || `1 ${unitKg}`
     };
+  }
+
+  getFormInfo(form) {
+    if (!form || typeof form !== 'string') return null;
+    const formTrim = form.trim();
+    if (!formTrim) return null;
+    const formNorm = formTrim.toLowerCase();
+    const formMap = {
+      'целый': 'whole', 'цілий': 'whole', 'whole': 'whole', 'ទាំងមូល': 'whole',
+      'корень': 'root', 'корінь': 'root', 'root': 'root', 'មើម': 'root',
+      'пучок': 'bunch', 'bunch': 'bunch', 'កញ្ចប់': 'bunch',
+      'стручок': 'pods', 'pods': 'pods', 'ផ្លែ': 'pods',
+      'нарезка': 'sliced', 'нарізка': 'sliced', 'sliced': 'sliced', 'ចំណិត': 'sliced',
+      'филе': 'fillet', 'філе': 'fillet', 'fillet': 'fillet', 'សាច់សុទ្ធ': 'fillet',
+      'фарш': 'minced', 'minced': 'minced', 'សាច់ចិញ្ច្រាំ': 'minced',
+      'очищенный': 'peeled', 'очищений': 'peeled', 'peeled': 'peeled', 'បកសម្បក': 'peeled',
+      'сушеный': 'dried', 'сушений': 'dried', 'dried': 'dried', 'ក្រៀម': 'dried',
+      'молотый': 'powder', 'мелений': 'powder', 'powder': 'powder', 'ម្សៅ': 'powder',
+      'паста': 'paste', 'paste': 'paste', 'គ្រឿងបុក': 'paste',
+      'маринованный': 'pickled', 'маринований': 'pickled', 'pickled': 'pickled', 'ជ្រក់': 'pickled',
+      'замороженный': 'frozen', 'заморожений': 'frozen', 'frozen': 'frozen', 'កក': 'frozen'
+    };
+    const key = formMap[formNorm] || null;
+    let label = formTrim;
+    if (key && window.i18n) {
+      const trans = window.i18n.t(`forms.${key}`);
+      if (trans && trans !== `forms.${key}`) {
+        label = trans;
+      }
+    }
+    return { key, label };
+  }
+
+  renderPriceBadge(price, unit = '') {
+    if (price !== null && price !== undefined && price !== '' && !isNaN(Number(price))) {
+      const khr = Number(price);
+      const usd = (khr / this.khrRate).toFixed(2);
+      const unitSuffix = unit ? ` / ${this.escapeHtml(unit)}` : '';
+      return `
+        <div class="card-price-badge">
+          <span class="price-khr">${Math.round(khr).toLocaleString('en-US')} ៛${unitSuffix}</span>
+          <span class="price-usd">~$${usd}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="card-price-badge price-na">
+        <span class="price-na">n/a</span>
+      </div>
+    `;
   }
 
   renderProducts() {
@@ -716,9 +790,11 @@ class ShopApp {
       const qtyText = cartItem ? cartItem.qty : '';
       const catObj = CATEGORIES.find((c) => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
+      const catId = catObj ? catObj.id : (item.category || 'other');
       const catName = catObj ? (window.i18n ? window.i18n.t(`categories.${catObj.id}`) : catObj.name) : (item.category || (window.i18n ? window.i18n.t('common.product') : 'Продукт'));
       const optionsConfig = this.getProductOptions(item);
       const currentSelectedQty = inCart ? cartItem.qty : '';
+      const formInfo = this.getFormInfo(item.form);
 
       return `
         <div class="product-card shop-product-card ${inCart ? 'in-cart' : ''}" data-id="${item.id}">
@@ -741,10 +817,15 @@ class ShopApp {
           </div>
 
           <div class="card-collapsible-body">
-            <!-- Badges (Category & Form) -->
+            <!-- Badges (Category & Form with data-i18n) -->
             <div class="card-badges">
-              <span class="badge badge-category">${catIcon} ${this.escapeHtml(catName)}</span>
-              ${item.form ? `<span class="badge badge-form">${this.escapeHtml(item.form)}</span>` : ''}
+              <span class="badge badge-category" data-cat-id="${this.escapeHtml(catId)}">
+                <span class="badge-cat-icon">${catIcon}</span>
+                <span class="badge-cat-name" ${catObj ? `data-i18n="categories.${this.escapeHtml(catObj.id)}"` : ''}>${this.escapeHtml(catName)}</span>
+              </span>
+              ${formInfo ? `
+                <span class="badge badge-form" ${formInfo.key ? `data-form-id="${this.escapeHtml(formInfo.key)}" data-i18n="forms.${this.escapeHtml(formInfo.key)}"` : ''}>${this.escapeHtml(formInfo.label)}</span>
+              ` : ''}
             </div>
 
             <!-- 2-Slide Viewport: Slide 1 (Photo) <-> Slide 2 (Options) -->
@@ -755,10 +836,12 @@ class ShopApp {
                   ${item.img_url ? `
                     <div class="card-photo-container">
                       <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                      ${this.renderPriceBadge(item.price, item.unit)}
                     </div>
                   ` : `
                     <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
                       ${catIcon}
+                      ${this.renderPriceBadge(item.price, item.unit)}
                     </div>
                   `}
                   ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
@@ -1115,11 +1198,11 @@ class ShopApp {
       const emptyDesc = window.i18n ? window.i18n.t('cart.empty_desc') : 'Выберите свежие продукты на витрине';
       const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.cartItemsList.innerHTML = `
-        <div class="empty-state" style="padding: 40px 0;">
+        <div class="empty-state">
           <div class="empty-icon">🛒</div>
           <div class="empty-title">${emptyTitle}</div>
           <div class="empty-desc">${emptyDesc}</div>
-          <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog" style="margin-top: 14px;">${toCatalogBtn}</button>
+          <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog">${toCatalogBtn}</button>
         </div>
       `;
       document.getElementById('btnCartEmptyToCatalog')?.addEventListener('click', () => {
@@ -1398,11 +1481,11 @@ class ShopApp {
       const emptyOrdersDesc = window.i18n ? window.i18n.t('orders.empty_desc') : 'Соберите корзину на утренний закуп продуктов';
       const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.ordersModalBody.innerHTML = `
-        <div class="empty-state" style="padding: 40px 0;">
-          <div class="empty-icon">📦</div>
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
           <div class="empty-title">${emptyOrdersTitle}</div>
           <div class="empty-desc">${emptyOrdersDesc}</div>
-          <button type="button" class="btn btn-primary" id="btnOrdersEmptyToCatalog" style="margin-top: 14px;">${toCatalogBtn}</button>
+          <button type="button" class="btn btn-primary" id="btnOrdersEmptyToCatalog">${toCatalogBtn}</button>
         </div>
       `;
       document.getElementById('btnOrdersEmptyToCatalog')?.addEventListener('click', () => {
