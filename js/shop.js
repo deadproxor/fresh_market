@@ -182,7 +182,6 @@ class ShopApp {
     // Onboarding
     this.onboardingOverlay = document.getElementById('onboardingOverlay');
     this.onboardingSlider = document.getElementById('onboardingSlider');
-    this.btnSkipOnboardingTop = document.getElementById('btnSkipOnboardingTop');
     this.btnSkipOnboarding = document.getElementById('btnSkipOnboarding');
     this.btnNextOnboarding = document.getElementById('btnNextOnboarding');
     this.chkDontShowOnboarding = document.getElementById('chkDontShowOnboarding');
@@ -246,12 +245,19 @@ class ShopApp {
     // Search
     if (this.shopSearchInput) {
       this.shopSearchInput.addEventListener('input', (e) => {
-        this.searchQuery = e.target.value.trim().toLowerCase();
+        const val = e.target.value.trim();
         if (this.shopSearchClear) {
-          this.shopSearchClear.style.display = this.searchQuery ? 'flex' : 'none';
+          this.shopSearchClear.style.display = val ? 'flex' : 'none';
         }
-        if (this.searchQuery) {
+        if (val.length >= 2) {
+          this.searchQuery = val.toLowerCase();
           this.setHomeTab('products');
+          if (this.selectedCategory !== 'all') {
+            this.selectedCategory = 'all';
+            this.renderCategories();
+          }
+        } else {
+          this.searchQuery = '';
         }
         this.renderProducts();
       });
@@ -431,10 +437,6 @@ class ShopApp {
     const hideOnboarding = localStorage.getItem('freshmarket_hide_onboarding') === 'true';
     if (!hideOnboarding && this.onboardingOverlay) {
       this.openOnboarding();
-    }
-
-    if (this.btnSkipOnboardingTop) {
-      this.btnSkipOnboardingTop.addEventListener('click', () => this.finishOnboarding());
     }
 
     if (this.btnSkipOnboarding) {
