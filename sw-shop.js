@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.7';
+const CACHE_NAME = 'freshmarket-shop-v1.5.9';
 const STATIC_ASSETS = [
   './shop.html',
   './manifest-shop.json',
@@ -19,7 +19,10 @@ const STATIC_ASSETS = [
   './data/forms.json',
   './data/products_dictionary.json',
   './assets/icon-192.svg',
-  './assets/icon-512.svg'
+  './assets/icon-512.svg',
+  './assets/onboarding/slide-1-market.png',
+  './assets/onboarding/slide-2-receipt.png',
+  './assets/onboarding/slide-3-delivery.png'
 ];
 
 self.addEventListener('install', (event) => {

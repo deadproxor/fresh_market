@@ -1348,69 +1348,84 @@
       <!-- ================= SECTION 9: ONBOARDING (3 SCREENS) ================= -->
       <section id="section-onboarding" class="workbench-section">
         <div class="section-title-wrap">
-          <h2 class="section-title">📱 Сценарий Онбординга (3 слайда)</h2>
-          <span class="section-tag">.onboarding-overlay & .onboarding-card</span>
+          <h2 class="section-title">📱 Полноэкранный Онбординг (3 скетч-экрана)</h2>
+          <span class="section-tag">.onboarding-overlay.onboarding-fullscreen</span>
         </div>
-        <p class="section-desc">Приветственные экраны первого запуска клиентского магазина с объяснением принципов утренней закупки, честных цен и прозрачной доставки.</p>
+        <p class="section-desc">Полноэкранный приветственный сценарий первого запуска (100dvh). Верхние 2/3 занимает аутентичный акварельный скетч с утреннего рынка, нижняя треть — текст, индикаторы и контроллеры.</p>
 
         <!-- 3 Static Slides Side-by-Side Showcase -->
         <div class="workbench-grid-3" style="margin-bottom: 24px;">
           <!-- Slide 1 -->
-          <div class="component-box">
-            <div class="component-box-header">
+          <div class="component-box" style="padding: 12px;">
+            <div class="component-box-header" style="margin-bottom: 8px;">
               <span class="component-box-title">Слайд 1: Свежесть рынка</span>
-              <span class="component-box-class">data-slide="0"</span>
+              <span class="component-box-class">slide-1-market.png</span>
             </div>
-            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
-              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
-                <span class="onboarding-emoji" style="font-size: 32px;">🥬</span>
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; flex-direction: column; height: 380px;">
+              <div style="height: 230px; position: relative; overflow: hidden; background: transparent;">
+                <img src="assets/onboarding/slide-1-market.png" style="width: 100%; height: 100%; object-fit: contain;" alt="Свежесть утреннего рынка" />
+                <div class="onboarding-media-fade" style="height: 45px;"></div>
               </div>
-              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Свежесть утреннего рынка</h3>
-              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Закупаем зелень, овощи и фрукты в 05:00 утра прямо у проверенных торговцев.</p>
-              <div class="onboarding-dots" style="margin-top: 18px;">
-                <span class="dot active"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+              <div style="padding: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1;">
+                <div>
+                  <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Свежесть утреннего рынка</h4>
+                  <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Отборные фермерские овощи, фрукты, рыба и травы с рассветного привоза.</p>
+                </div>
+                <div class="onboarding-dots" style="margin-top: 8px;">
+                  <span class="dot active"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Slide 2 -->
-          <div class="component-box">
-            <div class="component-box-header">
-              <span class="component-box-title">Слайд 2: Честные цены и чеки</span>
-              <span class="component-box-class">data-slide="1"</span>
+          <div class="component-box" style="padding: 12px;">
+            <div class="component-box-header" style="margin-bottom: 8px;">
+              <span class="component-box-title">Слайд 2: Честные цены и QR</span>
+              <span class="component-box-class">slide-2-receipt.png</span>
             </div>
-            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
-              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
-                <span class="onboarding-emoji" style="font-size: 32px;">🧾</span>
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; flex-direction: column; height: 380px;">
+              <div style="height: 230px; position: relative; overflow: hidden; background: transparent;">
+                <img src="assets/onboarding/slide-2-receipt.png" style="width: 100%; height: 100%; object-fit: contain;" alt="Честные цены и QR-чеки" />
+                <div class="onboarding-media-fade" style="height: 45px;"></div>
               </div>
-              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Честные цены и QR-чеки</h3>
-              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Рыночная стоимость без наценок + прозрачный чек с QR ABA KHQR при доставке.</p>
-              <div class="onboarding-dots" style="margin-top: 18px;">
-                <span class="dot"></span>
-                <span class="dot active"></span>
-                <span class="dot"></span>
+              <div style="padding: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1;">
+                <div>
+                  <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Честные цены и QR-чеки</h4>
+                  <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Закупка по реальным ценам рынка с фото чека. Вы платите: чеки + услуга + доставка.</p>
+                </div>
+                <div class="onboarding-dots" style="margin-top: 8px;">
+                  <span class="dot"></span>
+                  <span class="dot active"></span>
+                  <span class="dot"></span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Slide 3 -->
-          <div class="component-box">
-            <div class="component-box-header">
-              <span class="component-box-title">Слайд 3: Быстрая доставка</span>
-              <span class="component-box-class">data-slide="2"</span>
+          <div class="component-box" style="padding: 12px;">
+            <div class="component-box-header" style="margin-bottom: 8px;">
+              <span class="component-box-title">Слайд 3: Доставка до обеда</span>
+              <span class="component-box-class">slide-3-delivery.png</span>
             </div>
-            <div class="onboarding-card" style="padding: 24px 18px; box-shadow: none; border: 1px solid var(--border-subtle);">
-              <div class="onboarding-icon-wrap" style="width: 68px; height: 68px; margin-bottom: 14px;">
-                <span class="onboarding-emoji" style="font-size: 32px;">🛵</span>
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; flex-direction: column; height: 380px;">
+              <div style="height: 230px; position: relative; overflow: hidden; background: transparent;">
+                <img src="assets/onboarding/slide-3-delivery.png" style="width: 100%; height: 100%; object-fit: contain;" alt="Доставка свежего заказа" />
+                <div class="onboarding-media-fade" style="height: 45px;"></div>
               </div>
-              <h3 class="onboarding-title" style="font-size: 17px; margin-bottom: 8px;">Доставка до обеда</h3>
-              <p class="onboarding-desc" style="font-size: 13px; line-height: 1.45;">Курьер привезет заказ прямо к вашей двери до 13:00 в день утренней закупки.</p>
-              <div class="onboarding-dots" style="margin-top: 18px;">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot active"></span>
+              <div style="padding: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1;">
+                <div>
+                  <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Доставка до обеда</h4>
+                  <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Заказ до 23:00 — закупка на рассвете в 05:00 и доставка до обеда.</p>
+                </div>
+                <div class="onboarding-dots" style="margin-top: 8px;">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot active"></span>
+                </div>
               </div>
             </div>
           </div>
@@ -1423,48 +1438,60 @@
               <span class="component-box-title">Интерактивный плеер онбординга</span>
               <span class="component-box-class">Живое переключение слайдов</span>
             </div>
-            <div class="mobile-frame-preview" style="background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; padding: 24px 16px;">
-              <div class="onboarding-card" style="box-shadow: 0 15px 35px rgba(0,0,0,0.5);">
-                <div class="onboarding-slider" style="min-height: 220px;">
+            <div class="mobile-frame-preview" style="background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; padding: 16px;">
+              <div style="width: 320px; height: 520px; background: var(--bg-main); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 36px rgba(0,0,0,0.5); position: relative; border: 1px solid var(--border-subtle);">
+                <!-- Top close button preview -->
+                <button type="button" class="btn-onboarding-skip-top" style="top: 10px; right: 10px; width: 30px; height: 30px; font-size: 13px;" onclick="setDemoOnbSlide(0)">✕</button>
+
+                <div class="onboarding-slider" style="flex: 1; min-height: 0;">
                   <!-- Live Slide 0 -->
                   <div class="onboarding-slide active" id="demoOnbSlide0">
-                    <div class="onboarding-icon-wrap">
-                      <span class="onboarding-emoji">🥬</span>
+                    <div class="onboarding-media-wrap" style="flex: 0 0 60%; background: transparent;">
+                      <img src="assets/onboarding/slide-1-market.png" class="onboarding-illustration" style="object-fit: contain;" alt="Свежесть утреннего рынка" />
+                      <div class="onboarding-media-fade"></div>
                     </div>
-                    <h3 class="onboarding-title">Свежесть утреннего рынка</h3>
-                    <p class="onboarding-desc">Закупаем зелень, овощи и фрукты в 05:00 утра прямо у проверенных торговцев.</p>
+                    <div class="onboarding-content-wrap" style="padding: 10px 14px 0 14px;">
+                      <h3 class="onboarding-title" style="font-size: 16px; margin-bottom: 6px;">Свежесть утреннего рынка</h3>
+                      <p class="onboarding-desc" style="font-size: 12px; line-height: 1.4;">Отборные фермерские овощи, фрукты, рыба и травы с первого привоза.</p>
+                    </div>
                   </div>
 
                   <!-- Live Slide 1 -->
                   <div class="onboarding-slide" id="demoOnbSlide1">
-                    <div class="onboarding-icon-wrap">
-                      <span class="onboarding-emoji">🧾</span>
+                    <div class="onboarding-media-wrap" style="flex: 0 0 60%; background: transparent;">
+                      <img src="assets/onboarding/slide-2-receipt.png" class="onboarding-illustration" style="object-fit: contain;" alt="Честные цены и QR-чеки" />
+                      <div class="onboarding-media-fade"></div>
                     </div>
-                    <h3 class="onboarding-title">Честные цены и QR-чеки</h3>
-                    <p class="onboarding-desc">Рыночная стоимость без наценок + прозрачный чек с QR ABA KHQR при доставке.</p>
+                    <div class="onboarding-content-wrap" style="padding: 10px 14px 0 14px;">
+                      <h3 class="onboarding-title" style="font-size: 16px; margin-bottom: 6px;">Честные цены и QR-чеки</h3>
+                      <p class="onboarding-desc" style="font-size: 12px; line-height: 1.4;">Покупка по ценам рынка с фото чека. Вы платите: чеки + услуга + доставка.</p>
+                    </div>
                   </div>
 
                   <!-- Live Slide 2 -->
                   <div class="onboarding-slide" id="demoOnbSlide2">
-                    <div class="onboarding-icon-wrap">
-                      <span class="onboarding-emoji">🛵</span>
+                    <div class="onboarding-media-wrap" style="flex: 0 0 60%; background: transparent;">
+                      <img src="assets/onboarding/slide-3-delivery.png" class="onboarding-illustration" style="object-fit: contain;" alt="Доставка до обеда" />
+                      <div class="onboarding-media-fade"></div>
                     </div>
-                    <h3 class="onboarding-title">Доставка свежего заказа до обеда</h3>
-                    <p class="onboarding-desc">Курьер привезет заказ прямо к вашей двери до 13:00 в день утренней закупки.</p>
+                    <div class="onboarding-content-wrap" style="padding: 10px 14px 0 14px;">
+                      <h3 class="onboarding-title" style="font-size: 16px; margin-bottom: 6px;">Доставка до обеда</h3>
+                      <p class="onboarding-desc" style="font-size: 12px; line-height: 1.4;">Заказ до 23:00 — закупаем в 05:00 на рассвете и доставляем до обеда.</p>
+                    </div>
                   </div>
                 </div>
 
-                <div class="onboarding-footer">
+                <div class="onboarding-footer" style="padding: 10px 14px 14px 14px; gap: 10px;">
                   <div class="onboarding-dots" id="demoOnbDots">
-                    <span class="dot active" onclick="setDemoOnbSlide(0)" style="cursor: pointer;"></span>
-                    <span class="dot" onclick="setDemoOnbSlide(1)" style="cursor: pointer;"></span>
-                    <span class="dot" onclick="setDemoOnbSlide(2)" style="cursor: pointer;"></span>
+                    <span class="dot active" onclick="setDemoOnbSlide(0)"></span>
+                    <span class="dot" onclick="setDemoOnbSlide(1)"></span>
+                    <span class="dot" onclick="setDemoOnbSlide(2)"></span>
                   </div>
-                  <div class="onboarding-btn-row">
-                    <button type="button" class="btn btn-secondary" id="btnDemoOnbSkip" onclick="setDemoOnbSlide(0)">Сначала</button>
-                    <button type="button" class="btn btn-primary" id="btnDemoOnbNext" onclick="nextDemoOnbSlide()">Далее →</button>
+                  <div class="onboarding-btn-row" id="demoOnbBtnRow" style="gap: 8px;">
+                    <button type="button" class="btn btn-secondary" id="btnDemoOnbSkip" style="height: 38px; font-size: 13px;" onclick="setDemoOnbSlide(0)">Пропустить</button>
+                    <button type="button" class="btn btn-primary" id="btnDemoOnbNext" style="height: 38px; font-size: 13px;" onclick="nextDemoOnbSlide()">Далее →</button>
                   </div>
-                  <label class="onboarding-dont-show">
+                  <label class="onboarding-dont-show" style="font-size: 11.5px;">
                     <input type="checkbox" checked />
                     Больше не показывать
                   </label>
@@ -1476,13 +1503,14 @@
           <div class="component-box" style="justify-content: center;">
             <div class="component-box-header">
               <span class="component-box-title">Особенности и спецификация</span>
-              <span class="component-box-class">UX Guidelines</span>
+              <span class="component-box-class">UX Guidelines v1.4.11</span>
             </div>
             <div style="font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px;">
-              <div>🔹 <b>Автономное состояние:</b> флаг просмотра сохраняется в <code>localStorage ('freshmarket_onboarding_seen')</code>.</div>
-              <div>🔹 <b>Анимация:</b> мягкий <code>fadeIn 0.3s</code> между слайдами и плавная трансформация индикаторов <code>.dot</code>.</div>
-              <div>🔹 <b>Доступность:</b> возможность пропустить в любой момент или перейти сразу к целевому экрану.</div>
-              <div>🔹 <b>CTA на последнем шаге:</b> на 3-м слайде кнопка динамически меняется на «Понятно, к покупкам! 🚀».</div>
+              <div>🔹 <b>Полноэкранный Walkthrough:</b> перекрывает весь интерфейс (100dvh на мобильных устройствах, 480px центрированный фрейм на десктопе).</div>
+              <div>🔹 <b>Пропорция 2/3 + 1/3:</b> верхние 62% занимает художественный акварельный скетч с плавным градиентным фейдом, нижние 38% — контент и кнопки.</div>
+              <div>🔹 <b>Аутентичный стиль:</b> камбоджийский утренний рынок (рыба, зелень, механические весы, чек с QR KHQR, курьер на скутере). Без вымышленных надписей.</div>
+              <div>🔹 <b>Чистые контроллеры:</b> удален эмодзи 🚀 из кнопки CTA («Начать покупки»), добавлен верхний закрывающий крестик и поддержка жестов свайпа.</div>
+              <div>🔹 <b>Автономное состояние:</b> флаг скрытия сохраняется в <code>localStorage ('freshmarket_hide_onboarding')</code>.</div>
             </div>
           </div>
         </div>
@@ -1834,8 +1862,16 @@
       demoOnbDots.forEach((dot, i) => {
         dot.classList.toggle('active', i === demoOnbIndex);
       });
+      const btnSkip = document.getElementById('btnDemoOnbSkip');
+      const btnRow = document.getElementById('demoOnbBtnRow');
+      if (btnSkip) {
+        btnSkip.style.display = demoOnbIndex === 2 ? 'none' : 'block';
+      }
+      if (btnRow) {
+        btnRow.classList.toggle('single-btn', demoOnbIndex === 2);
+      }
       if (btnDemoOnbNext) {
-        btnDemoOnbNext.textContent = demoOnbIndex === 2 ? 'Понятно, к покупкам! 🚀' : 'Далее →';
+        btnDemoOnbNext.textContent = demoOnbIndex === 2 ? 'Начать покупки' : 'Далее →';
       }
     }
 

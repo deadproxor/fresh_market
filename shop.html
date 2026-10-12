@@ -29,9 +29,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.4.10" />
-  <link rel="stylesheet" href="css/shop.css?v=1.4.10" />
-  <script src="js/shared/forms.js?v=1.4.10"></script>
+  <link rel="stylesheet" href="css/components.css?v=1.4.12" />
+  <link rel="stylesheet" href="css/shop.css?v=1.4.12" />
+  <script src="js/shared/forms.js?v=1.4.12"></script>
   <script src="js/shared/i18n.js"></script>
 </head>
 
@@ -50,39 +50,49 @@
 
   <div id="app" class="app-container shop-app">
 
-    <!-- ================= 1. ONBOARDING OVERLAY (3 SLIDES) ================= -->
-    <div id="onboardingOverlay" class="onboarding-overlay" style="display: none;">
-      <div class="onboarding-card">
-        <div class="onboarding-slider" id="onboardingSlider">
+    <!-- ================= 1. FULLSCREEN ONBOARDING (3 SLIDES) ================= -->
+    <div id="onboardingOverlay" class="onboarding-overlay onboarding-fullscreen" style="display: none;">
+      <!-- Top Close / Skip Button -->
+      <button type="button" class="btn-onboarding-skip-top" id="btnSkipOnboardingTop" aria-label="Закрыть" title="Закрыть">✕</button>
 
-          <!-- Slide 1 -->
-          <div class="onboarding-slide active" data-slide="0">
-            <div class="onboarding-icon-wrap">
-              <span class="onboarding-emoji">🥬</span>
-            </div>
+      <div class="onboarding-slider" id="onboardingSlider">
+
+        <!-- Slide 1: Market -->
+        <div class="onboarding-slide active" data-slide="0">
+          <div class="onboarding-media-wrap">
+            <img src="assets/onboarding/slide-1-market.png" class="onboarding-illustration" alt="Свежесть утреннего рынка" />
+            <div class="onboarding-media-fade"></div>
+          </div>
+          <div class="onboarding-content-wrap">
             <h2 class="onboarding-title" data-i18n="onboarding.slide1_title">Свежесть утреннего рынка</h2>
             <p class="onboarding-desc" data-i18n="onboarding.slide1_desc">
               Отборные фермерские овощи, фрукты, травы и специи прямо с первого утреннего привоза без посредников.
             </p>
           </div>
+        </div>
 
-          <!-- Slide 2 -->
-          <div class="onboarding-slide" data-slide="1">
-            <div class="onboarding-icon-wrap">
-              <span class="onboarding-emoji">🧾</span>
-            </div>
+        <!-- Slide 2: Transparent Pricing -->
+        <div class="onboarding-slide" data-slide="1">
+          <div class="onboarding-media-wrap">
+            <img src="assets/onboarding/slide-2-receipt.png" class="onboarding-illustration" alt="Честные цены и QR-чеки" />
+            <div class="onboarding-media-fade"></div>
+          </div>
+          <div class="onboarding-content-wrap">
             <h2 class="onboarding-title" data-i18n="onboarding.slide2_title">Честные цены и QR-чеки</h2>
             <p class="onboarding-desc" data-i18n-html="onboarding.slide2_desc">
               Наш закупщик покупает товары по реальным ценам рынка и прикрепляет фото каждого чека. Вы платите: <b>чеки
                 + услуга + доставка</b>.
             </p>
           </div>
+        </div>
 
-          <!-- Slide 3 -->
-          <div class="onboarding-slide" data-slide="2">
-            <div class="onboarding-icon-wrap">
-              <span class="onboarding-emoji">🛵</span>
-            </div>
+        <!-- Slide 3: Prompt Delivery -->
+        <div class="onboarding-slide" data-slide="2">
+          <div class="onboarding-media-wrap">
+            <img src="assets/onboarding/slide-3-delivery.png" class="onboarding-illustration" alt="Доставка свежего заказа до обеда" />
+            <div class="onboarding-media-fade"></div>
+          </div>
+          <div class="onboarding-content-wrap">
             <h2 class="onboarding-title" data-i18n="onboarding.slide3_title">Доставка свежего заказа до обеда</h2>
             <p class="onboarding-desc" data-i18n-html="onboarding.slide3_desc">
               Заказывайте сегодня до <b>23:00</b> — закупаем в <b>05:00</b> на рассвете и доставляем к вашей двери до
@@ -90,25 +100,25 @@
             </p>
           </div>
         </div>
+      </div>
 
-        <!-- Onboarding Controls -->
-        <div class="onboarding-footer">
-          <div class="onboarding-dots" id="onboardingDots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-          <div class="onboarding-btn-row">
-            <button type="button" class="btn btn-secondary" id="btnSkipOnboarding"
-              data-i18n="common.skip">Пропустить</button>
-            <button type="button" class="btn btn-primary" id="btnNextOnboarding" data-i18n="onboarding.btn_next">Далее
-              →</button>
-          </div>
-          <label class="onboarding-dont-show">
-            <input type="checkbox" id="chkDontShowOnboarding" />
-            <span data-i18n="onboarding.dont_show">Больше не показывать</span>
-          </label>
+      <!-- Persistent Onboarding Controls (Bottom Bar) -->
+      <div class="onboarding-footer">
+        <div class="onboarding-dots" id="onboardingDots">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
         </div>
+        <div class="onboarding-btn-row">
+          <button type="button" class="btn btn-secondary" id="btnSkipOnboarding"
+            data-i18n="common.skip">Пропустить</button>
+          <button type="button" class="btn btn-primary" id="btnNextOnboarding" data-i18n="onboarding.btn_next">Далее
+            →</button>
+        </div>
+        <label class="onboarding-dont-show">
+          <input type="checkbox" id="chkDontShowOnboarding" />
+          <span data-i18n="onboarding.dont_show">Больше не показывать</span>
+        </label>
       </div>
     </div>
 
@@ -366,7 +376,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.4.10"></script>
+  <script src="js/shop.js?v=1.4.12"></script>
 </body>
 
 </html>

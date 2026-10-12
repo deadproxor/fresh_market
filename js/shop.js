@@ -182,6 +182,7 @@ class ShopApp {
     // Onboarding
     this.onboardingOverlay = document.getElementById('onboardingOverlay');
     this.onboardingSlider = document.getElementById('onboardingSlider');
+    this.btnSkipOnboardingTop = document.getElementById('btnSkipOnboardingTop');
     this.btnSkipOnboarding = document.getElementById('btnSkipOnboarding');
     this.btnNextOnboarding = document.getElementById('btnNextOnboarding');
     this.chkDontShowOnboarding = document.getElementById('chkDontShowOnboarding');
@@ -432,6 +433,10 @@ class ShopApp {
       this.openOnboarding();
     }
 
+    if (this.btnSkipOnboardingTop) {
+      this.btnSkipOnboardingTop.addEventListener('click', () => this.finishOnboarding());
+    }
+
     if (this.btnSkipOnboarding) {
       this.btnSkipOnboarding.addEventListener('click', () => this.finishOnboarding());
     }
@@ -445,6 +450,48 @@ class ShopApp {
         }
       });
     }
+
+    // Touch swipe gestures support
+    if (this.onboardingSlider) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      this.onboardingSlider.addEventListener('touchstart', (e) => {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      this.onboardingSlider.addEventListener('touchend', (e) => {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        const diffX = e.changedTouches[0].screenX - touchStartX;
+        const diffY = e.changedTouches[0].screenY - touchStartY;
+        if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+          if (diffX < 0) {
+            // swipe left -> next slide
+            if (this.currentSlide < 2) {
+              this.setSlide(this.currentSlide + 1);
+            }
+          } else {
+            // swipe right -> previous slide
+            if (this.currentSlide > 0) {
+              this.setSlide(this.currentSlide - 1);
+            }
+          }
+        }
+      }, { passive: true });
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (!this.onboardingOverlay || this.onboardingOverlay.style.display === 'none') return;
+      if (e.key === 'Escape') {
+        this.finishOnboarding();
+      } else if (e.key === 'ArrowRight') {
+        if (this.currentSlide < 2) this.setSlide(this.currentSlide + 1);
+      } else if (e.key === 'ArrowLeft') {
+        if (this.currentSlide > 0) this.setSlide(this.currentSlide - 1);
+      }
+    });
 
     // Allow clicking dots to navigate
     const dots = document.querySelectorAll('.onboarding-dots .dot');
@@ -472,9 +519,17 @@ class ShopApp {
     slides.forEach((s, i) => s.classList.toggle('active', i === index));
     dots.forEach((d, i) => d.classList.toggle('active', i === index));
 
+    const btnRow = this.btnNextOnboarding?.parentElement;
+    if (this.btnSkipOnboarding) {
+      this.btnSkipOnboarding.style.display = index === 2 ? 'none' : 'block';
+    }
+    if (btnRow) {
+      btnRow.classList.toggle('single-btn', index === 2);
+    }
+
     if (this.btnNextOnboarding) {
       this.btnNextOnboarding.textContent = index === 2 
-        ? (window.i18n ? window.i18n.t('onboarding.btn_start') : 'Начать') 
+        ? (window.i18n ? window.i18n.t('onboarding.btn_start') : 'Начать покупки') 
         : (window.i18n ? window.i18n.t('onboarding.btn_next') : 'Далее →');
     }
   }
