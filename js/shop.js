@@ -60,6 +60,7 @@ class ShopApp {
     this.currentUser = null;
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
+    this.shopLayout = localStorage.getItem('freshmarket_shop_layout') || 'grid-2';
 
     this.initSplashScreen();
     this.initSupabase();
@@ -76,6 +77,12 @@ class ShopApp {
     const saved = localStorage.getItem('freshmarket_khr_rate');
     const num = saved ? parseInt(saved, 10) : 4000;
     return (!isNaN(num) && num > 0) ? num : 4000;
+  }
+
+  applyShopLayout() {
+    if (!this.shopProductsGrid) return;
+    this.shopProductsGrid.classList.remove('layout-grid-1', 'layout-grid-2');
+    this.shopProductsGrid.classList.add(this.shopLayout === 'grid-1' ? 'layout-grid-1' : 'layout-grid-2');
   }
 
   // ------------------------------------------------------------------------
@@ -110,6 +117,9 @@ class ShopApp {
         this.sb.auth.onAuthStateChange((event, session) => {
           this.currentUser = session?.user || null;
           this.updateUserAvatar();
+          if (this.currentView === 'profile') {
+            this.renderProfileView();
+          }
         });
       } catch (err) {
         console.warn('[FreshMarket Shop] Supabase client init error:', err);
@@ -138,6 +148,7 @@ class ShopApp {
     this.shopCategoryGrid = document.getElementById('shopCategoryGrid');
     this.shopProductsGrid = document.getElementById('shopProductsGrid');
     this.shopProductsCount = document.getElementById('shopProductsCount');
+    this.applyShopLayout();
 
     // Cart Badge in Navigation
     this.navCartBadge = document.getElementById('navCartBadge');
@@ -650,35 +661,53 @@ class ShopApp {
   getProductOptions(product) {
     const form = (product.form || '').toLowerCase();
     const unitField = (product.unit || '').toLowerCase();
-    const cat = (product.category || '').toLowerCase();
+    const uInfo = this.getUnitInfo(product.unit);
+    const uKey = uInfo ? uInfo.key : '';
 
     const unitBunch = window.i18n ? window.i18n.t('common.unit_bunch') : 'пучок';
     const unitPcs = window.i18n ? window.i18n.t('common.unit_pcs') : 'шт';
     const unitKg = window.i18n ? window.i18n.t('common.weight_kg') : 'кг';
+    const unitL = window.i18n ? window.i18n.t('common.unit_l') : 'л';
 
-    if (unitField.includes('пучок') || unitField.includes('связка') || form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
+    // 1. Bottles & Sauces -> Volume options (0.2, 0.5, 0.7, 1)
+    if (form.includes('бутылк') || form.includes('bottle') || form.includes('соус') || form.includes('жидкий') || uKey === '0_2_l' || uKey === '0_5_l' || uKey === '0_7_l' || uKey === '1_l' || uKey === '1_bottle' || unitField.includes('бут')) {
+      return {
+        unit: unitL,
+        options: ['0.2', '0.5', '0.7', '1'].map((n) => `${n} ${unitL}`),
+        defaultQty: (uInfo ? uInfo.label : product.unit) || `0.5 ${unitL}`
+      };
+    }
+
+    // 2. Bunches
+    if (uKey === '1_bunch' || uKey === 'bunch' || unitField.includes('пучок') || unitField.includes('связка') || form.includes('пучок') || form.includes('связка') || form.includes('букет')) {
       return {
         unit: unitBunch,
         options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitBunch}`),
-        defaultQty: product.unit || `1 ${unitBunch}`
+        defaultQty: (uInfo ? uInfo.label : product.unit) || `1 ${unitBunch}`
       };
     }
-    if (unitField.includes('шт') || unitField.includes('упак') || form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('бутылк') || form.includes('банка') || form.includes('упаковк')) {
+
+    // 3. Pieces / Packs / Trays
+    if (uKey === '1_pc' || uKey === 'pc' || uKey === '10_pcs' || uKey === '1_pack' || uKey === 'pack' || uKey === '1_tray' || unitField.includes('шт') || unitField.includes('упак') || form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('банка') || form.includes('упаковк')) {
       return {
         unit: unitPcs,
         options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitPcs}`),
-        defaultQty: product.unit || `1 ${unitPcs}`
+        defaultQty: (uInfo ? uInfo.label : product.unit) || `1 ${unitPcs}`
       };
     }
-    // Default Produce / Produce / Seafood / Meat weight
+
+    // 4. Default Produce / Seafood / Meat weight (kg)
     return {
       unit: unitKg,
       options: ['0.5', '1', '1.5', '2', '3', '5'].map((n) => `${n} ${unitKg}`),
-      defaultQty: product.unit || `1 ${unitKg}`
+      defaultQty: (uInfo ? uInfo.label : product.unit) || `1 ${unitKg}`
     };
   }
 
   getFormInfo(form) {
+    if (typeof window.normalizeFormInfo === 'function') {
+      return window.normalizeFormInfo(form);
+    }
     if (!form || typeof form !== 'string') return null;
     const formTrim = form.trim();
     if (!formTrim) return null;
@@ -696,7 +725,9 @@ class ShopApp {
       'молотый': 'powder', 'мелений': 'powder', 'powder': 'powder', 'ម្សៅ': 'powder',
       'паста': 'paste', 'paste': 'paste', 'គ្រឿងបុក': 'paste',
       'маринованный': 'pickled', 'маринований': 'pickled', 'pickled': 'pickled', 'ជ្រក់': 'pickled',
-      'замороженный': 'frozen', 'заморожений': 'frozen', 'frozen': 'frozen', 'កក': 'frozen'
+      'замороженный': 'frozen', 'заморожений': 'frozen', 'frozen': 'frozen', 'កក': 'frozen',
+      'бутылка': 'bottle', 'пляшка': 'bottle', 'bottle': 'bottle', 'ដប': 'bottle',
+      'соус': 'bottle', 'жидкий': 'bottle', 'liquid': 'bottle'
     };
     const key = formMap[formNorm] || null;
     let label = formTrim;
@@ -709,11 +740,51 @@ class ShopApp {
     return { key, label };
   }
 
+  getUnitInfo(unit) {
+    if (!unit || typeof unit !== 'string') return null;
+    const trim = unit.trim();
+    if (!trim) return null;
+    const norm = trim.toLowerCase();
+    const unitMap = {
+      '1_kg': '1_kg', '1 кг': '1_kg', '1 kg': '1_kg', '1кг': '1_kg', '1kg': '1_kg', '១ គីឡូ': '1_kg',
+      '500_g': '500_g', '500 г': '500_g', '500 g': '500_g', '500г': '500_g', '500g': '500_g', '៥០០ ក្រាម': '500_g',
+      '250_g': '250_g', '250 г': '250_g', '250 g': '250_g', '250г': '250_g', '250g': '250_g', '២៥០ ក្រាម': '250_g',
+      '100_g': '100_g', '100 г': '100_g', '100 g': '100_g', '100г': '100_g', '100g': '100_g', '១០០ ក្រាម': '100_g',
+      '1_pc': '1_pc', '1 шт': '1_pc', '1 pc': '1_pc', '1шт': '1_pc', '1pc': '1_pc', '១ ផ្លែ': '1_pc', '១ ដើម': '1_pc', '១ ផ្លែ/ដើម': '1_pc',
+      '1_bunch': '1_bunch', '1 пучок': '1_bunch', '1 bunch': '1_bunch', '1пучок': '1_bunch', '១ ដុំ': '1_bunch', '១ បាច់': '1_bunch', '១ ដុំ/បាច់': '1_bunch',
+      '1_pack': '1_pack', '1 упак': '1_pack', '1 pack': '1_pack', '1 упаковка': '1_pack', '១ កញ្ចប់': '1_pack',
+      '1_tray': '1_tray', '1 лоток': '1_tray', '1 tray': '1_tray', '១ ថាស': '1_tray',
+      '1_bottle': '1_bottle', '1 бут': '1_bottle', '1 bottle': '1_bottle', '1 бутылка': '1_bottle', '១ ដប': '1_bottle',
+      '0_2_l': '0_2_l', '0.2 л': '0_2_l', '0.2л': '0_2_l', '0.2 l': '0_2_l', '0.2l': '0_2_l', '0.2 bottle': '0_2_l', '0.2 бут': '0_2_l', '០.២ ល': '0_2_l',
+      '0_5_l': '0_5_l', '0.5 л': '0_5_l', '0.5л': '0_5_l', '0.5 l': '0_5_l', '0.5l': '0_5_l', '0.5 bottle': '0_5_l', '0.5 бут': '0_5_l', '០.៥ ល': '0_5_l',
+      '0_7_l': '0_7_l', '0.7 л': '0_7_l', '0.7л': '0_7_l', '0.7 l': '0_7_l', '0.7l': '0_7_l', '0.7 bottle': '0_7_l', '0.7 бут': '0_7_l', '០.៧ ល': '0_7_l',
+      '1_l': '1_l', '1 л': '1_l', '1л': '1_l', '1 l': '1_l', '1l': '1_l', '1.0 л': '1_l', '1.0 l': '1_l', '1 литр': '1_l', '១ ល': '1_l',
+      '10_pcs': '10_pcs', '10 шт': '10_pcs', '10 pcs': '10_pcs', '10шт': '10_pcs', '10pcs': '10_pcs', 'десяток': '10_pcs', '១០ គ្រាប់': '10_pcs',
+      'kg': 'kg', 'кг': 'kg', 'គីឡូ': 'kg',
+      'g': 'g', 'г': 'g', 'ក្រាម': 'g',
+      'pc': 'pc', 'шт': 'pc', 'ផ្លែ/ដើម': 'pc',
+      'bunch': 'bunch', 'пучок': 'bunch', 'ដុំ/បាច់': 'bunch',
+      'pack': 'pack', 'упак': 'pack', 'упаковка': 'pack', 'កញ្ចប់': 'pack'
+    };
+    const key = unitMap[norm] || null;
+    let label = trim;
+    if (key && window.i18n && typeof window.i18n.t === 'function') {
+      const trans = window.i18n.t(`units.${key}`);
+      if (trans && trans !== `units.${key}`) {
+        label = trans;
+      }
+    }
+    return { key: key || norm, label };
+  }
+
   renderPriceBadge(price, unit = '') {
     if (price !== null && price !== undefined && price !== '' && !isNaN(Number(price))) {
       const khr = Number(price);
       const usd = (khr / this.khrRate).toFixed(2);
-      const unitSuffix = unit ? ` / ${this.escapeHtml(unit)}` : '';
+      const uInfo = this.getUnitInfo(unit);
+      const unitLabel = uInfo ? uInfo.label : unit;
+      const unitKey = uInfo ? uInfo.key : '';
+      const unitSuffix = unitLabel ? ` / <span class="badge-unit-text" ${unitKey ? `data-unit-id="${this.escapeHtml(unitKey)}" data-i18n="units.${this.escapeHtml(unitKey)}"` : ''}>${this.escapeHtml(unitLabel)}</span>` : '';
       return `
         <div class="card-price-badge">
           <span class="price-khr">${Math.round(khr).toLocaleString('en-US')} ៛${unitSuffix}</span>
@@ -777,7 +848,8 @@ class ShopApp {
       return;
     }
 
-    const toggleTitle = window.i18n ? window.i18n.t('shop.card_toggle_title') : 'Свернуть / Развернуть';
+    this.applyShopLayout();
+
     const selectQtyTitle = window.i18n ? window.i18n.t('product.select_qty_title') : 'Выберите количество / вес:';
     const backBtnText = window.i18n ? window.i18n.t('product.back_btn') : '✕ Назад';
     const removeBtnTitle = window.i18n ? window.i18n.t('product.remove_btn') : 'Убрать из корзины';
@@ -799,17 +871,11 @@ class ShopApp {
       return `
         <div class="product-card shop-product-card ${inCart ? 'in-cart' : ''}" data-id="${item.id}">
           <div class="card-names-block">
-            <!-- Header with prominent EN Name and In-Cart Badge -->
+            <!-- Header with prominent EN Name -->
             <div class="card-header-row">
-              <div class="card-name-title-wrap" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+              <div class="card-name-title-wrap">
                 <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
-                ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
               </div>
-              <button type="button" class="btn-card-toggle" title="${toggleTitle}" aria-label="${toggleTitle}">
-                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
             </div>
 
             ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
@@ -831,27 +897,27 @@ class ShopApp {
             <!-- 2-Slide Viewport: Slide 1 (Photo) <-> Slide 2 (Options) -->
             <div class="card-slider-viewport">
               <div class="card-slider-track">
-                <!-- Slide 1: Main View (Photo + Description) -->
+                <!-- Slide 1: Main View (Photo with inside In-Cart Badge & Price) -->
                 <div class="card-slide card-slide-main">
                   ${item.img_url ? `
-                    <div class="card-photo-container">
+                    <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
                       <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                      ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
                       ${this.renderPriceBadge(item.price, item.unit)}
                     </div>
                   ` : `
-                    <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
+                    <div class="card-photo-container" data-id="${item.id}" style="display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
                       ${catIcon}
+                      ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
                       ${this.renderPriceBadge(item.price, item.unit)}
                     </div>
                   `}
-                  ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
                 </div>
 
                 <!-- Slide 2: Options Selection View -->
                 <div class="card-slide card-slide-options">
                   <div class="card-options-header">
                     <div class="card-options-title">${selectQtyTitle}</div>
-                    <button type="button" class="btn-options-cancel" data-id="${item.id}">${backBtnText}</button>
                   </div>
 
                   <div class="card-options-grid" data-id="${item.id}">
@@ -861,45 +927,33 @@ class ShopApp {
                       </button>
                     `).join('')}
                   </div>
+
+                  <div class="card-options-actions">
+                    ${inCart ? `
+                      <button type="button" class="btn-options-remove" data-id="${item.id}" title="${removeBtnTitle}">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    ` : ''}
+                    <button type="button" class="btn-options-cancel" data-id="${item.id}" title="${backBtnText}">✕</button>
+                  </div>
                 </div>
               </div>
-
-              <!-- Floating Remove Button (Red FAB, shown only during options edit for in-cart items) -->
-              <button type="button" class="btn-floating-remove" data-id="${item.id}" title="${removeBtnTitle}" style="display: none;">
-                <span class="fab-icon">${FAB_ICONS.trash}</span>
-              </button>
-
-              <!-- Floating Action Button (FAB) -->
-              <button type="button" class="btn-floating-cart ${inCart ? 'is-in-cart' : ''}" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
-                <span class="fab-icon">${inCart ? FAB_ICONS.edit : FAB_ICONS.cart}</span>
-              </button>
             </div>
           </div>
         </div>
       `;
     }).join('');
 
-    // Attach card collapse / expand toggle
-    this.shopProductsGrid.querySelectorAll('.product-card').forEach((card) => {
-      const namesBlock = card.querySelector('.card-names-block');
-      const toggleBtn = card.querySelector('.btn-card-toggle');
-
-      if (toggleBtn) {
-        toggleBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          card.classList.toggle('is-collapsed');
-        });
-      }
-
-      if (namesBlock) {
-        namesBlock.addEventListener('click', (e) => {
-          if (e.target.closest('.btn-card-toggle')) return;
-          card.classList.toggle('is-collapsed');
-        });
-      }
+    // 1. Photo Click Handlers -> Open Options Slider
+    this.shopProductsGrid.querySelectorAll('.card-photo-container').forEach((photo) => {
+      photo.addEventListener('click', (e) => {
+        const card = photo.closest('.product-card');
+        if (!card) return;
+        card.classList.add('is-options-open');
+      });
     });
 
-    // Attach Option Chips Click Handlers
+    // 2. Attach Option Chips Click Handlers (1-tap selection & save)
     this.shopProductsGrid.querySelectorAll('.option-chip').forEach((chip) => {
       chip.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -910,153 +964,79 @@ class ShopApp {
         card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
         e.currentTarget.classList.add('active');
 
-        // Switch FAB from ✕ to ✓
-        const fab = card.querySelector('.btn-floating-cart');
-        if (fab) {
-          fab.classList.add('is-confirm');
-          fab.title = window.i18n ? window.i18n.t('product.confirm_add') : 'Подтвердить и добавить в заказ';
-          const iconEl = fab.querySelector('.fab-icon');
-          if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
+        const product = this.products.find((p) => p.id === id);
+        if (product) {
+          this.cart[id] = {
+            product: product,
+            qty: val
+          };
+          this.saveCart();
+
+          // Slide back to main photo view
+          card.classList.remove('is-options-open');
+          card.classList.add('in-cart');
+
+          // Update badge inside photo container
+          const badge = card.querySelector(`#badge_${id}`);
+          if (badge) {
+            badge.textContent = `✓ ${val}`;
+            badge.style.display = 'inline-flex';
+          }
+
+          // Ensure remove button is shown in options actions
+          const optActions = card.querySelector('.card-options-actions');
+          if (optActions && !optActions.querySelector('.btn-options-remove')) {
+            const btnRemove = document.createElement('button');
+            btnRemove.type = 'button';
+            btnRemove.className = 'btn-options-remove';
+            btnRemove.dataset.id = id;
+            btnRemove.title = window.i18n ? window.i18n.t('product.remove_btn') : 'Убрать из корзины';
+            btnRemove.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+            btnRemove.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              this.handleRemoveProductFromCard(card, id);
+            });
+            optActions.prepend(btnRemove);
+          }
+
+          this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${product.name_en} (${val})`);
         }
       });
     });
 
-    // Cancel / Back Button Click Handlers
-    this.shopProductsGrid.querySelectorAll('.btn-options-cancel').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const card = e.currentTarget.closest('.product-card');
-        const id = e.currentTarget.dataset.id;
-        if (!card) return;
-
-        card.classList.remove('is-options-open');
-        const btnRemove = card.querySelector('.btn-floating-remove');
-        if (btnRemove) btnRemove.style.display = 'none';
-
-        const fab = card.querySelector('.btn-floating-cart');
-        const inCart = Boolean(this.cart[id]);
-        if (fab) {
-          fab.classList.remove('is-confirm');
-          fab.classList.toggle('is-in-cart', inCart);
-          fab.title = inCart 
-            ? (window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ') 
-            : (window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ');
-          const iconEl = fab.querySelector('.fab-icon');
-          if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
-        }
-      });
-    });
-
-    // Floating Remove Button (Red FAB) Click Handlers
-    this.shopProductsGrid.querySelectorAll('.btn-floating-remove').forEach((btnRemove) => {
+    // 3. Remove Button Click Handlers in Options
+    this.shopProductsGrid.querySelectorAll('.btn-options-remove').forEach((btnRemove) => {
       btnRemove.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
         const card = e.currentTarget.closest('.product-card');
-        this.removeFromCart(id, false);
-
         if (card) {
-          card.classList.remove('is-options-open', 'in-cart');
-          btnRemove.style.display = 'none';
-
-          const fab = card.querySelector('.btn-floating-cart');
-          if (fab) {
-            fab.classList.remove('is-confirm', 'is-in-cart');
-            fab.title = window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ';
-            const iconEl = fab.querySelector('.fab-icon');
-            if (iconEl) iconEl.innerHTML = FAB_ICONS.cart;
-          }
-
-          const badge = card.querySelector(`#badge_${id}`);
-          if (badge) badge.style.display = 'none';
-
-          card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
+          this.handleRemoveProductFromCard(card, id);
         }
-
-        this.showToast(window.i18n ? window.i18n.t('toasts.item_removed') : '🗑️ Товар убран из корзины');
       });
     });
 
-    // Floating Action Button (FAB) Click Handlers
-    this.shopProductsGrid.querySelectorAll('.btn-floating-cart').forEach((fab) => {
-      fab.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
+    // 4. Cancel / Back Button Click Handlers
+    this.shopProductsGrid.querySelectorAll('.btn-options-cancel').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const card = e.currentTarget.closest('.product-card');
         if (!card) return;
-
-        const isOptionsOpen = card.classList.contains('is-options-open');
-        const inCart = Boolean(this.cart[id]);
-        const btnRemove = card.querySelector('.btn-floating-remove');
-
-        if (!isOptionsOpen) {
-          // 1. OPEN OPTIONS (Slide to Left)
-          card.classList.add('is-options-open');
-
-          if (inCart) {
-            // Already in cart -> pre-selected, confirm icon (✓), show red remove FAB
-            fab.classList.add('is-confirm');
-            fab.title = window.i18n ? window.i18n.t('product.confirm_changes') : 'Подтвердить изменения';
-            const iconEl = fab.querySelector('.fab-icon');
-            if (iconEl) iconEl.innerHTML = FAB_ICONS.confirm;
-            if (btnRemove) btnRemove.style.display = 'flex';
-          } else {
-            // New item -> no selection, cross icon (✕), hide red remove FAB
-            card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
-            fab.classList.remove('is-confirm');
-            fab.title = window.i18n ? window.i18n.t('product.cancel_back') : 'Назад / Отмена';
-            const iconEl = fab.querySelector('.fab-icon');
-            if (iconEl) iconEl.innerHTML = FAB_ICONS.close;
-            if (btnRemove) btnRemove.style.display = 'none';
-          }
-        } else {
-          // 2. FAB CLICKED WHILE OPTIONS OPEN
-          const isConfirmState = fab.classList.contains('is-confirm');
-          const activeChip = card.querySelector('.option-chip.active');
-          const qty = activeChip?.dataset.val;
-
-          if (btnRemove) btnRemove.style.display = 'none';
-
-          if (!isConfirmState || !qty) {
-            // Act as Cancel / Back
-            card.classList.remove('is-options-open');
-            fab.classList.remove('is-confirm');
-            fab.classList.toggle('is-in-cart', inCart);
-            fab.title = inCart 
-              ? (window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ') 
-              : (window.i18n ? window.i18n.t('product.add_to_cart') : 'Добавить в заказ');
-            const iconEl = fab.querySelector('.fab-icon');
-            if (iconEl) iconEl.innerHTML = inCart ? FAB_ICONS.edit : FAB_ICONS.cart;
-          } else {
-            // Confirm & Save to Cart
-            const product = this.products.find((p) => p.id === id);
-            if (product) {
-              this.cart[id] = {
-                product: product,
-                qty: qty
-              };
-              this.saveCart();
-
-              // Slide back to main view
-              card.classList.remove('is-options-open');
-              card.classList.add('in-cart');
-              fab.classList.remove('is-confirm');
-              fab.classList.add('is-in-cart');
-              fab.title = window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ';
-              const iconEl = fab.querySelector('.fab-icon');
-              if (iconEl) iconEl.innerHTML = FAB_ICONS.edit;
-
-              // Update badge in header
-              const badge = card.querySelector(`#badge_${id}`);
-              if (badge) {
-                badge.textContent = `✓ ${qty}`;
-                badge.style.display = 'inline-flex';
-              }
-
-              this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${product.name_en} (${qty})`);
-            }
-          }
-        }
+        card.classList.remove('is-options-open');
       });
     });
+  }
+
+  handleRemoveProductFromCard(card, id) {
+    this.removeFromCart(id, false);
+    if (card) {
+      card.classList.remove('is-options-open', 'in-cart');
+      const badge = card.querySelector(`#badge_${id}`);
+      if (badge) badge.style.display = 'none';
+      card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
+      card.querySelector('.btn-options-remove')?.remove();
+    }
+    this.showToast(window.i18n ? window.i18n.t('toasts.item_removed') : '🗑️ Товар убран из корзины');
   }
 
   // ------------------------------------------------------------------------
@@ -1573,56 +1553,130 @@ class ShopApp {
   renderProfileView() {
     if (!this.authModalBody) return;
 
-    const defaultCustomer = window.i18n ? window.i18n.t('common.customer') : 'Покупатель';
-    const messengerLabelText = window.i18n ? window.i18n.t('profile.messenger_label') : 'Предпочтительный мессенджер для связи *:';
-    const tgPill = window.i18n ? window.i18n.t('profile.messenger_telegram') : '✈️ Telegram';
-    const waPill = window.i18n ? window.i18n.t('profile.messenger_whatsapp') : '💬 WhatsApp';
-    const phonePill = window.i18n ? window.i18n.t('profile.messenger_phone') : '📞 Звонок';
-    const addressLabelText = window.i18n ? window.i18n.t('profile.address_label') : 'Адрес или ориентир доставки по умолчанию:';
-    const addressPlaceholderText = window.i18n ? window.i18n.t('profile.address_placeholder') : 'Улица, дом, квартира, ориентир';
-    const saveContactsText = window.i18n ? window.i18n.t('profile.save_contacts_btn') : 'Сохранить контакты';
-    const installAppText = window.i18n ? window.i18n.t('profile.install_app_btn') : '📲 Установить приложение на телефон';
-    const howItWorksText = window.i18n ? window.i18n.t('profile.how_it_works_btn') : '📖 Как работает FreshMarket';
-    const logoutBtnText = window.i18n ? window.i18n.t('profile.logout_btn') : 'Выйти из аккаунта';
-    const loginIntroText = window.i18n ? window.i18n.t('profile.login_intro') : 'Войдите через Google или Facebook для связи с закупщиком и оформления заказов:';
-    const googleBtnText = window.i18n ? window.i18n.t('auth.btn_google') : 'Войти через Google';
-    const fbBtnText = window.i18n ? window.i18n.t('auth.btn_facebook') : 'Войти через Facebook';
+    const t = (key, fallback) => (window.i18n ? window.i18n.t(key) : fallback);
+
+    const defaultCustomer = t('common.customer', 'Покупатель');
+    const contactsTitle = t('profile.contacts_title', 'Контакты и доставка');
+    const langTitle = t('profile.lang_title', 'Язык интерфейса');
+    const appTitle = t('profile.app_title', 'Приложение FreshMarket');
+    const appOfflineHint = t('profile.app_offline_hint', 'Быстрый доступ к каталогу и сохраненным контактам даже при нестабильной связи.');
+    const aboutTitle = t('profile.about_title', 'О сервисе FreshMarket');
+    const rulesSchedule = t('profile.rules_schedule', '⏰ Заказы до 23:00 • Закупка в 05:00 на рассвете • Доставка до 13:00');
+    const rulesPricing = t('profile.rules_pricing', '🧾 Оплата: Чеки с рынка + услуга закупки 10% (мин. $3.00) + доставка от $1.50');
+    const accountTitle = t('profile.account_title', 'Аккаунт и вход');
+    const statusOnline = t('profile.status_online', 'В сети');
+    const statusGuest = t('profile.status_guest', 'Гость');
+
+    const messengerLabelText = t('profile.messenger_label', 'Предпочтительный мессенджер для связи *:');
+    const tgPill = t('profile.messenger_telegram', 'Telegram');
+    const waPill = t('profile.messenger_whatsapp', 'WhatsApp');
+    const phonePill = t('profile.messenger_phone', 'Звонок');
+    const addressLabelText = t('profile.address_label', 'Адрес или ориентир доставки по умолчанию:');
+    const addressPlaceholderText = t('profile.address_placeholder', 'Улица, дом, квартира, ориентир');
+    const saveContactsText = t('profile.save_contacts_btn', 'Сохранить контакты');
+    const installAppText = t('profile.install_app_btn', 'Установить приложение');
+    const howItWorksText = t('profile.how_it_works_btn', 'Как работает FreshMarket');
+    const logoutBtnText = t('profile.logout_btn', 'Выйти из аккаунта');
+    const layoutTitle = t('profile.layout_title', 'Вид витрины товаров:');
+    const layout2ColsText = t('profile.layout_2_cols', '2 колонки');
+    const layout1ColText = t('profile.layout_1_col', '1 колонка');
+    const loginIntroText = t('profile.login_intro', 'Войдите через Google или Facebook для связи с закупщиком и оформления заказов:');
+    const googleBtnText = t('auth.btn_google', 'Войти через Google');
+    const fbBtnText = t('auth.btn_facebook', 'Войти через Facebook');
 
     const getPhoneLabelAndPlaceholder = (msgType) => {
       if (msgType === 'telegram') {
         return {
-          label: window.i18n ? window.i18n.t('profile.phone_label_telegram') : 'Юзернейм Telegram (@username) или номер *:',
-          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_telegram') : '@username или +855...'
+          label: t('profile.phone_label_telegram', 'Юзернейм Telegram (@username) или номер *:'),
+          placeholder: t('profile.phone_placeholder_telegram', '@username или +855...')
         };
       } else if (msgType === 'whatsapp') {
         return {
-          label: window.i18n ? window.i18n.t('profile.phone_label_whatsapp') : 'Номер телефона WhatsApp (с кодом) *:',
-          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_whatsapp') : '+855 ... (номер WhatsApp)'
+          label: t('profile.phone_label_whatsapp', 'Номер телефона WhatsApp (с кодом) *:'),
+          placeholder: t('profile.phone_placeholder_whatsapp', '+855 ... (номер WhatsApp)')
         };
       } else {
         return {
-          label: window.i18n ? window.i18n.t('profile.phone_label_call') : 'Номер телефона для звонков *:',
-          placeholder: window.i18n ? window.i18n.t('profile.phone_placeholder_call') : '+855 ...'
+          label: t('profile.phone_label_call', 'Номер телефона для звонков *:'),
+          placeholder: t('profile.phone_placeholder_call', '+855 ...')
         };
       }
     };
 
-    if (this.currentUser) {
-      // 1. Supabase Authenticated User Profile View
-      const name = this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer;
-      const email = this.currentUser.email || '';
-      let currentMessenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
-      let phone = localStorage.getItem('freshmarket_customer_phone') || this.currentUser.phone || '';
-      let address = localStorage.getItem('freshmarket_customer_address') || '';
-      const phoneMeta = getPhoneLabelAndPlaceholder(currentMessenger);
+    let currentMessenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
+    let phone = localStorage.getItem('freshmarket_customer_phone') || (this.currentUser?.phone || '');
+    let address = localStorage.getItem('freshmarket_customer_address') || '';
+    const phoneMeta = getPhoneLabelAndPlaceholder(currentMessenger);
 
-      this.authModalBody.innerHTML = `
-        <div class="profile-view">
-          <div class="profile-avatar">👤</div>
-          <div class="profile-name">${this.escapeHtml(name)}</div>
-          <div class="profile-email">${this.escapeHtml(email)}</div>
-          
-          <div class="profile-edit-box" style="width: 100%; margin-top: 14px; text-align: left; background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+    const currentLang = window.i18n?.currentLang || 'ru';
+    const langBadges = { ru: '🇷🇺 RU', en: '🇬🇧 EN', ua: '🇺🇦 UA', km: '🇰🇭 KM' };
+    const activeLangBadge = langBadges[currentLang] || '🇷🇺 RU';
+
+    const isAuthenticated = !!this.currentUser;
+    const userName = isAuthenticated ? (this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer) : defaultCustomer;
+    const userEmail = isAuthenticated ? (this.currentUser.email || '') : '';
+
+    this.authModalBody.innerHTML = `
+      <div class="profile-view" style="width: 100%;">
+        
+        <!-- SECTION 1: ACCOUNT & SESSION (Open by default) -->
+        <div class="settings-section" id="profileSectionAccount">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span>${accountTitle}</span>
+            </div>
+            <div class="settings-section-header-right">
+              <span class="badge ${isAuthenticated ? 'badge-success' : 'badge-gray'}">${isAuthenticated ? statusOnline : statusGuest}</span>
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
+            ${isAuthenticated ? `
+              <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0;">
+                <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--bg-main, #f5f5f7); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-subtle);">👤</div>
+                <div style="overflow: hidden;">
+                  <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${this.escapeHtml(userName)}</div>
+                  <div style="font-size: 12px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${this.escapeHtml(userEmail)}</div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary" id="btnLogout" style="width: 100%; margin-top: 6px;">
+                ${logoutBtnText}
+              </button>
+            ` : `
+              <div class="auth-intro-text" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 4px;">
+                ${loginIntroText}
+              </div>
+              <button type="button" class="btn-auth-provider btn-auth-google" id="btnLoginGoogle" style="width: 100%; margin-bottom: 8px;">
+                ${googleBtnText}
+              </button>
+              <button type="button" class="btn-auth-provider btn-auth-facebook" id="btnLoginFacebook" style="width: 100%;">
+                ${fbBtnText}
+              </button>
+            `}
+          </div>
+        </div>
+
+        <!-- SECTION 2: CONTACTS & DELIVERY (Only for authenticated users, Collapsed by default) -->
+        ${isAuthenticated ? `
+        <div class="settings-section is-collapsed" id="profileSectionContacts">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span>${contactsTitle}</span>
+            </div>
+            <div class="settings-section-header-right">
+              <span class="badge badge-success" id="profileContactsBadge">${currentMessenger === 'telegram' ? 'Telegram' : currentMessenger === 'whatsapp' ? 'WhatsApp' : 'Телефон'}</span>
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
             <label class="field-label" style="margin-bottom: 2px;">${messengerLabelText}</label>
             <div class="messenger-selector" id="profileMessengerSelector">
               <button type="button" class="messenger-pill ${currentMessenger === 'telegram' ? 'active' : ''}" data-messenger="telegram">${tgPill}</button>
@@ -1638,123 +1692,226 @@ class ShopApp {
             <label class="field-label" for="profileAddress" style="margin-top: 10px;">${addressLabelText}</label>
             <textarea id="profileAddress" class="text-input" rows="2" placeholder="${addressPlaceholderText}">${this.escapeHtml(address)}</textarea>
             
-            <button type="button" class="btn btn-primary btn-sm" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">${saveContactsText}</button>
-          </div>
-
-          <div class="form-actions" style="margin-top: 18px; width: 100%; display: flex; flex-direction: column; gap: 8px;">
-            <button type="button" class="btn btn-primary" id="btnInstallAppUser" style="width: 100%;">${installAppText}</button>
-            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%;">${howItWorksText}</button>
-            <button type="button" class="btn btn-secondary" id="btnLogout" style="width: 100%;">${logoutBtnText}</button>
+            <button type="button" class="btn btn-primary" id="btnSaveProfileDetails" style="margin-top: 6px; width: 100%;">
+              ${saveContactsText}
+            </button>
           </div>
         </div>
-      `;
+        ` : ''}
 
-      // Messenger selector pill click handler
-      const selector = document.getElementById('profileMessengerSelector');
-      selector?.querySelectorAll('.messenger-pill').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          selector.querySelectorAll('.messenger-pill').forEach((b) => b.classList.remove('active'));
-          e.currentTarget.classList.add('active');
-          currentMessenger = e.currentTarget.dataset.messenger;
-          const phoneLabel = document.getElementById('profilePhoneLabel');
-          const phoneInput = document.getElementById('profilePhone');
-          if (phoneLabel && phoneInput) {
-            const updatedMeta = getPhoneLabelAndPlaceholder(currentMessenger);
-            phoneLabel.textContent = updatedMeta.label;
-            phoneInput.placeholder = updatedMeta.placeholder;
+        <!-- SECTION 3: INTERFACE LANGUAGE (Collapsed) -->
+        <div class="settings-section is-collapsed" id="profileSectionLang">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span>${langTitle}</span>
+            </div>
+            <div class="settings-section-header-right">
+              <span class="badge badge-primary">${activeLangBadge}</span>
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'ru' ? 'active' : ''}" data-lang="ru">
+                🇷🇺 Русский
+              </button>
+              <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'en' ? 'active' : ''}" data-lang="en">
+                🇬🇧 English
+              </button>
+              <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'ua' ? 'active' : ''}" data-lang="ua">
+                🇺🇦 Українська
+              </button>
+              <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'km' ? 'active' : ''}" data-lang="km">
+                🇰🇭 ភាសាខ្មែរ
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: APP & PWA (Collapsed) -->
+        <div class="settings-section is-collapsed" id="profileSectionApp">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span>${appTitle}</span>
+            </div>
+            <div class="settings-section-header-right">
+              <span class="badge badge-success">PWA</span>
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
+            <!-- Showcase Layout Selector -->
+            <div class="form-group" style="margin-bottom: 12px;">
+              <label class="form-label">${layoutTitle}</label>
+              <div class="messenger-selector" id="profileLayoutSelector">
+                <button type="button" class="messenger-pill ${this.shopLayout === 'grid-2' ? 'active' : ''}" data-layout="grid-2">
+                  ${layout2ColsText}
+                </button>
+                <button type="button" class="messenger-pill ${this.shopLayout === 'grid-1' ? 'active' : ''}" data-layout="grid-1">
+                  ${layout1ColText}
+                </button>
+              </div>
+            </div>
+
+            <p class="form-field-hint" style="margin: 0 0 10px 0;">
+              ${appOfflineHint}
+            </p>
+            <button type="button" class="btn btn-primary" id="btnInstallAppUser" style="width: 100%;">
+              ${installAppText}
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION 5: SERVICE RULES (Collapsed) -->
+        <div class="settings-section is-collapsed" id="profileSectionAbout">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span>${aboutTitle}</span>
+            </div>
+            <div class="settings-section-header-right">
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
+            <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: flex; flex-direction: column; gap: 6px;">
+              <div>${rulesSchedule}</div>
+              <div>${rulesPricing}</div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnShowOnboardingFromProfile" style="width: 100%; margin-top: 4px;">
+              ${howItWorksText}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Accordion expand/collapse click handlers
+    this.authModalBody.querySelectorAll('.settings-section-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const section = header.closest('.settings-section');
+        if (section) section.classList.toggle('is-collapsed');
+      });
+    });
+
+    // Language pills selection handler
+    this.authModalBody.querySelectorAll('.profile-lang-pill').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang;
+        if (window.i18n && typeof window.i18n.setLanguage === 'function') {
+          window.i18n.setLanguage(lang);
+        }
+      });
+    });
+
+    // Messenger selector pill click handler
+    const selector = document.getElementById('profileMessengerSelector');
+    selector?.querySelectorAll('.messenger-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        selector.querySelectorAll('.messenger-pill').forEach((b) => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        currentMessenger = e.currentTarget.dataset.messenger;
+        const phoneLabel = document.getElementById('profilePhoneLabel');
+        const phoneInput = document.getElementById('profilePhone');
+        if (phoneLabel && phoneInput) {
+          const updatedMeta = getPhoneLabelAndPlaceholder(currentMessenger);
+          phoneLabel.textContent = updatedMeta.label;
+          phoneInput.placeholder = updatedMeta.placeholder;
+        }
+        const badge = document.getElementById('profileContactsBadge');
+        if (badge) {
+          badge.textContent = currentMessenger === 'telegram' ? 'Telegram' : currentMessenger === 'whatsapp' ? 'WhatsApp' : 'Телефон';
+        }
+      });
+    });
+
+    // Save Contacts click handler
+    document.getElementById('btnSaveProfileDetails')?.addEventListener('click', () => {
+      const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
+      const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
+      if (!pPhone) {
+        this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
+        document.getElementById('profilePhone')?.focus();
+        return;
+      }
+      localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
+      localStorage.setItem('freshmarket_customer_phone', pPhone);
+      if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
+      this.showToast(window.i18n ? window.i18n.t('toasts.contacts_saved') : '✅ Контакты сохранены');
+    });
+
+    // Layout selector pill click handler
+    const layoutSelector = document.getElementById('profileLayoutSelector');
+    layoutSelector?.querySelectorAll('.messenger-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        layoutSelector.querySelectorAll('.messenger-pill').forEach((b) => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.shopLayout = e.currentTarget.dataset.layout;
+        localStorage.setItem('freshmarket_shop_layout', this.shopLayout);
+        this.applyShopLayout();
+        this.showToast(window.i18n ? window.i18n.t('toasts.settings_saved') : '✅ Настройки сохранены', 'info', 2000);
+      });
+    });
+
+    // Install App click handler
+    document.getElementById('btnInstallAppUser')?.addEventListener('click', () => {
+      this.triggerInstallPrompt();
+    });
+
+    // Onboarding / How It Works click handler
+    document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
+      this.openOnboarding();
+    });
+
+    // Logout click handler
+    document.getElementById('btnLogout')?.addEventListener('click', async () => {
+      if (this.sb) await this.sb.auth.signOut();
+      this.currentUser = null;
+      this.updateUserAvatar();
+      this.renderProfileView();
+      this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
+    });
+
+    // OAuth Login click handlers
+    document.getElementById('btnLoginGoogle')?.addEventListener('click', () => {
+      if (this.sb) {
+        const redirectTo = window.location.origin + window.location.pathname;
+        this.sb.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo
           }
         });
-      });
+      } else {
+        this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
+      }
+    });
 
-      document.getElementById('btnInstallAppUser')?.addEventListener('click', () => {
-        this.triggerInstallPrompt();
-      });
-
-      document.getElementById('btnSaveProfileDetails')?.addEventListener('click', () => {
-        const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
-        const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
-        if (!pPhone) {
-          this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
-          document.getElementById('profilePhone')?.focus();
-          return;
-        }
-        localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
-        localStorage.setItem('freshmarket_customer_phone', pPhone);
-        if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
-        this.showToast(window.i18n ? window.i18n.t('toasts.contacts_saved') : '✅ Контакты сохранены');
-      });
-
-      document.getElementById('btnShowOnboardingFromProfile')?.addEventListener('click', () => {
-        this.openOnboarding();
-      });
-
-      document.getElementById('btnLogout')?.addEventListener('click', async () => {
-        if (this.sb) await this.sb.auth.signOut();
-        this.currentUser = null;
-        this.updateUserAvatar();
-        this.renderProfileView();
-        this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
-      });
-    } else {
-      // 2. Login Prompt View (Google & Facebook OAuth ONLY)
-      this.authModalBody.innerHTML = `
-        <div class="auth-buttons-column">
-          <button type="button" class="btn btn-primary" id="btnInstallAppIntro" style="width: 100%; margin-bottom: 6px;">${installAppText}</button>
-          
-          <div class="auth-intro-text">
-            ${loginIntroText}
-          </div>
-
-          <button type="button" class="btn-auth-provider btn-auth-google" id="btnLoginGoogle">
-            <span class="auth-provider-icon">🌐</span> ${googleBtnText}
-          </button>
-
-          <button type="button" class="btn-auth-provider btn-auth-facebook" id="btnLoginFacebook">
-            <span class="auth-provider-icon">📘</span> ${fbBtnText}
-          </button>
-
-          <div style="margin-top: 14px; width: 100%;">
-            <button type="button" class="btn btn-secondary" id="btnShowOnboardingGuest" style="width: 100%;">${howItWorksText}</button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btnInstallAppIntro')?.addEventListener('click', () => {
-        this.triggerInstallPrompt();
-      });
-
-      document.getElementById('btnShowOnboardingGuest')?.addEventListener('click', () => {
-        this.openOnboarding();
-      });
-
-      document.getElementById('btnLoginGoogle')?.addEventListener('click', () => {
-        if (this.sb) {
-          const redirectTo = window.location.origin + window.location.pathname;
-          this.sb.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo
-            }
-          });
-        } else {
-          this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
-        }
-      });
-
-      document.getElementById('btnLoginFacebook')?.addEventListener('click', () => {
-        if (this.sb) {
-          const redirectTo = window.location.origin + window.location.pathname;
-          this.sb.auth.signInWithOAuth({
-            provider: 'facebook',
-            options: {
-              redirectTo
-            }
-          });
-        } else {
-          this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
-        }
-      });
-    }
+    document.getElementById('btnLoginFacebook')?.addEventListener('click', () => {
+      if (this.sb) {
+        const redirectTo = window.location.origin + window.location.pathname;
+        this.sb.auth.signInWithOAuth({
+          provider: 'facebook',
+          options: {
+            redirectTo
+          }
+        });
+      } else {
+        this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
+      }
+    });
   }
 
   updateUserAvatar() {

@@ -209,12 +209,18 @@ class AdminAuth {
 
   showLoginGate() {
     if (this.loginGate) this.loginGate.classList.add('active');
-    if (this.adminMainApp) this.adminMainApp.style.display = 'none';
+    if (this.adminMainApp) {
+      this.adminMainApp.classList.add('is-hidden');
+      this.adminMainApp.style.display = '';
+    }
   }
 
   hideLoginGate() {
     if (this.loginGate) this.loginGate.classList.remove('active');
-    if (this.adminMainApp) this.adminMainApp.style.display = 'block';
+    if (this.adminMainApp) {
+      this.adminMainApp.classList.remove('is-hidden');
+      this.adminMainApp.style.display = '';
+    }
   }
 
   showError(msg) {

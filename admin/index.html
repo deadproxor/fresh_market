@@ -24,9 +24,9 @@
     rel="stylesheet" />
 
   <!-- Master Design System, Catalog & Admin Styles -->
-  <link rel="stylesheet" href="../css/components.css?v=1.4.2" />
-  <link rel="stylesheet" href="../css/products.css?v=1.4.2" />
-  <link rel="stylesheet" href="../css/admin.css?v=1.4.2" />
+  <link rel="stylesheet" href="../css/components.css?v=1.4.8" />
+  <link rel="stylesheet" href="../css/products.css?v=1.4.8" />
+  <link rel="stylesheet" href="../css/admin.css?v=1.4.8" />
 </head>
 
 <body>
@@ -37,7 +37,7 @@
         <span class="splash-icon">🌱</span>
       </div>
       <div class="splash-title">FreshMarket Admin</div>
-      <div class="splash-version" id="splashVersion">v1.4.0</div>
+      <div class="splash-version" id="splashVersion">v1.4.8</div>
     </div>
   </div>
 
@@ -75,7 +75,7 @@
   <!-- ========================================================================= -->
   <!-- 2. PROTECTED ADMIN WORKSPACE (Shown after successful authentication)      -->
   <!-- ========================================================================= -->
-  <div id="adminMainApp" class="app-container admin-workspace" style="display: none;">
+  <div id="adminMainApp" class="app-container admin-workspace is-hidden">
 
     <!-- Top Minimal Bar with User status -->
     <header class="app-header">
@@ -181,8 +181,8 @@
                 <!-- Back Handle -->
                 <path d="M36 50 C36 18 84 18 84 50" stroke="url(#handleGrad)" stroke-width="6.5" stroke-linecap="round"
                   fill="none" opacity="0.85" />
-                <path d="M36 50 C36 18 84 18 84 50" stroke="#432818" stroke-width="1.5" stroke-linecap="round" fill="none"
-                  stroke-dasharray="3 4" opacity="0.7" />
+                <path d="M36 50 C36 18 84 18 84 50" stroke="#432818" stroke-width="1.5" stroke-linecap="round"
+                  fill="none" stroke-dasharray="3 4" opacity="0.7" />
 
                 <!-- Empty Basket Interior (Deep Dark Cavity) -->
                 <ellipse cx="60" cy="52" rx="42" ry="16" fill="url(#basketInner)" />
@@ -246,105 +246,356 @@
           <h3 class="orders-title">Параметры сервиса</h3>
         </div>
 
-        <div class="card" style="padding: 20px; margin-bottom: 16px;">
-          <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Услуги и комиссии</h4>
-          <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-            Комиссия закупки: <b>10%</b> от суммы чека с рынка.<br />
-            Зоны доставки: Зона 1 ($1.00) / Зона 2 ($2.00) / Зона 3 ($3.00).
-          </div>
-          <button type="button" class="btn btn-secondary btn-sm"
-            onclick="window.app ? window.app.openSettingsModal() : (document.getElementById('settingsModal').style.display='flex')">
-            ⚙️ Открыть расширенные настройки API (Gemini, Supabase, Cloudinary)
-          </button>
-        </div>
+        <form id="settingsForm" class="product-form" novalidate style="width: 100%;">
 
-        <!-- Card: Currency Exchange Rate (USD -> KHR) -->
-        <div class="card settings-rate-card" style="padding: 20px; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 22px;">💱</span>
-              <div>
-                <h4 style="font-size: 15px; font-weight: 700; margin: 0;">Курс валюты (USD → KHR)</h4>
-                <span style="font-size: 12px; color: var(--text-muted);">Камбоджийский риель за 1 доллар США</span>
+          <!-- 1. SECTION: CURRENCY EXCHANGE RATE (USD -> KHR) (Open by default) -->
+          <div class="settings-section" id="settingsSectionRate">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Курс валюты (USD → KHR)</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-success" id="khrRateBadge">1$ = 4,000 ៛</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
               </div>
             </div>
-            <span class="badge badge-success" id="khrRateBadge">1$ = 4,000 ៛</span>
+            <div class="settings-section-body">
+              <p class="form-field-hint" style="margin: 0;">
+                Используется для пересчета ориентировочных рыночных цен в каталоге, админке и витрине магазина.
+              </p>
+
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="input-wrap" style="flex: 1; position: relative;">
+                  <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">៛</span>
+                  <input type="number" id="settingKhrRate" class="text-input" min="1000" max="10000" step="50"
+                    value="4000" placeholder="4000" />
+                </div>
+                <button type="button" class="btn-settings-action" id="btnSaveKhrRate" style="white-space: nowrap;">
+                  Сохранить курс
+                </button>
+              </div>
+
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="filter-pill" id="btnRatePreset4000">4,000 ៛ (Официальный)</button>
+                <button type="button" class="filter-pill" id="btnRatePreset4100">4,100 ៛ (Рыночный)</button>
+                <button type="button" class="filter-pill" id="btnRatePreset4200">4,200 ៛</button>
+              </div>
+
+            </div>
           </div>
 
-          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-            Используется для пересчета ориентировочных рыночных цен в каталоге, админке и витрине магазина.
-          </p>
-
-          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px;">
-            <div class="input-wrap" style="flex: 1; position: relative;">
-              <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">៛</span>
-              <input type="number" id="settingKhrRate" class="text-input" min="1000" max="10000" step="50" value="4000" placeholder="4000" />
+          <!-- 2. SECTION: AI GEMINI VISION (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionAi">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Google Gemini Vision</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray" id="aiStatusBadge">API Key</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <button type="button" class="btn btn-primary" id="btnSaveKhrRate" style="white-space: nowrap;">
-              Сохранить курс
+            <div class="settings-section-body">
+              <div class="form-group">
+                <label class="field-label" for="settingApiKey">Google Gemini API Key</label>
+                <input type="password" id="settingApiKey" class="text-input" placeholder="AIzaSy..." autocomplete="off"
+                  spellcheck="false" />
+                <div class="form-field-hint">Для автозаполнения полей по фото продуктов и перевода названий на
+                  кхмерский.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="field-label" for="settingModel">Модель Gemini</label>
+                <select id="settingModel" class="text-input select-input">
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Быстрая, мультимодальная — рекомендуется)</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                  <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+                  <option value="custom">Указать вручную (Custom ID)</option>
+                </select>
+              </div>
+
+              <div class="form-group" id="customModelWrap" style="display: none;">
+                <label class="field-label" for="settingCustomModel">Идентификатор модели</label>
+                <input type="text" id="settingCustomModel" class="text-input" placeholder="gemini-..."
+                  autocomplete="off" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. SECTION: SUPABASE DATABASE (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionSupabase">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Облачная база (Supabase)</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray" id="supabaseProviderBadge">Хранилище</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <div class="form-group">
+                <label class="field-label">Хранилище данных</label>
+                <div class="storage-provider-toggle">
+                  <label class="provider-option">
+                    <input type="radio" name="storageProvider" value="local" id="providerLocal" />
+                    <span class="provider-box">
+                      <span class="provider-name">IndexedDB</span>
+                      <span class="provider-desc">Локально на устройстве</span>
+                    </span>
+                  </label>
+                  <label class="provider-option">
+                    <input type="radio" name="storageProvider" value="supabase" id="providerSupabase" checked />
+                    <span class="provider-box">
+                      <span class="provider-name">Supabase</span>
+                      <span class="provider-desc">Облачная синхронизация</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="supabaseFieldsWrap">
+                <div class="form-group">
+                  <label class="field-label" for="settingSupabaseUrl">Supabase Project URL</label>
+                  <input type="text" id="settingSupabaseUrl" class="text-input"
+                    placeholder="https://xyzcompany.supabase.co" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                  <label class="field-label" for="settingSupabaseKey">Supabase Anon Key</label>
+                  <input type="password" id="settingSupabaseKey" class="text-input" placeholder="eyJhbGciOi..."
+                    autocomplete="off" spellcheck="false" />
+                </div>
+                <div class="settings-buttons-row">
+                  <button type="button" class="btn-settings-action" id="btnTestSupabase">
+                    Проверить подключение
+                  </button>
+                  <button type="button" class="btn-settings-action" id="btnMigrateToSupabase">
+                    Перенести локальные данные в облако
+                  </button>
+                </div>
+                <div class="settings-status-box" id="supabaseStatusBox">
+                  <span class="status-dot" id="supabaseStatusDot"></span>
+                  <span class="status-text" id="supabaseStatusText">Статус: не проверено</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. SECTION: CLOUDINARY MEDIA (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionCloudinary">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Медиа-хранилище (Cloudinary)</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray">Фотографии</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <div class="form-group">
+                <label class="field-label" for="settingCloudinaryName">Cloud Name</label>
+                <input type="text" id="settingCloudinaryName" class="text-input" placeholder="например, dn8xxxxxx"
+                  autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label class="field-label" for="settingCloudinaryPreset">Upload Preset (Unsigned)</label>
+                <input type="text" id="settingCloudinaryPreset" class="text-input"
+                  placeholder="например, freshmarket_preset" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label class="field-label" for="settingCloudinaryFolder">Папка на Cloudinary</label>
+                <input type="text" id="settingCloudinaryFolder" class="text-input" value="freshmarket"
+                  placeholder="freshmarket" autocomplete="off" />
+                <div class="form-field-hint">Директория в медиатеке Cloudinary для фото каталога.</div>
+              </div>
+              <div class="form-group">
+                <label class="field-label" for="settingCloudinaryApiKey">Cloudinary API Key (для удаления)</label>
+                <input type="text" id="settingCloudinaryApiKey" class="text-input"
+                  placeholder="например, 123456789012345" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label class="field-label" for="settingCloudinaryApiSecret">Cloudinary API Secret (для удаления)</label>
+                <input type="password" id="settingCloudinaryApiSecret" class="text-input"
+                  placeholder="например, abcdEFGH1234..." autocomplete="off" spellcheck="false" />
+                <div class="form-field-hint">Требуются для автоматического стирания фото из Cloudinary при удалении
+                  товара.</div>
+              </div>
+              <div class="settings-buttons-row">
+                <button type="button" class="btn-settings-action" id="btnTestCloudinary">
+                  Проверить Cloudinary
+                </button>
+              </div>
+              <div class="settings-status-box" id="cloudinaryStatusBox">
+                <span class="status-dot" id="cloudinaryStatusDot"></span>
+                <span class="status-text" id="cloudinaryStatusText">Статус: не проверено</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. SECTION: BACKUP & IMPORT/EXPORT (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionBackup">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Резервная копия и перенос</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray">JSON / Буфер</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <div class="form-field-hint" style="margin: 0;">
+                Экспорт и импорт параметров (API-ключи, Supabase, Cloudinary) для быстрого переноса настроек между
+                устройствами.
+              </div>
+              <div class="settings-buttons-row">
+                <button type="button" class="btn-settings-action" id="btnExportSettings">
+                  Экспорт настроек в файл
+                </button>
+                <button type="button" class="btn-settings-action" id="btnImportSettings">
+                  Импорт настроек из файла
+                </button>
+                <input type="file" id="inputImportSettingsFile" accept=".json,application/json"
+                  style="display: none;" />
+                <button type="button" class="btn-settings-action" id="btnCopySettingsClipboard">
+                  Скопировать настройки в буфер
+                </button>
+                <button type="button" class="btn-settings-action" id="btnPasteSettingsClipboard">
+                  Вставить настройки из буфера
+                </button>
+              </div>
+              <div class="settings-status-box" id="backupStatusBox" style="display: none;">
+                <span class="status-dot" id="backupStatusDot"></span>
+                <span class="status-text" id="backupStatusText"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. SECTION: PRODUCE DICTIONARY (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionDictionary">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Словарь продуктов (Draft)</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-success" id="settingsDictCountBadge">161 слово</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <p class="form-field-hint" style="margin: 0;">
+                Словарь является приоритетным источником наименований и кхмерских написаний. Базовые словарные записи
+                защищены от удаления.
+              </p>
+
+              <!-- Search & Filter Pills -->
+              <div class="dict-draft-controls" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="search-box" style="width: 100%;">
+                  <span class="search-icon">🔍</span>
+                  <input type="text" id="settingsDictSearchInput" class="search-input"
+                    style="padding: 10px 14px 10px 38px; font-size: 13px;" placeholder="Поиск в словаре (RU, EN, KH)..."
+                    autocomplete="off" />
+                  <button type="button" id="settingsDictSearchClear" class="search-clear-btn"
+                    style="display: none;">✕</button>
+                </div>
+                <div class="dict-filter-pills" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;">
+                  <button type="button" class="filter-pill active" data-dict-filter="all" id="dictFilterAll">Все
+                    (161)</button>
+                  <button type="button" class="filter-pill" data-dict-filter="core" id="dictFilterCore">Базовые
+                    (152)</button>
+                  <button type="button" class="filter-pill" data-dict-filter="database" id="dictFilterDb">Из базы
+                    (9)</button>
+                </div>
+              </div>
+
+              <!-- Dictionary Items Preview List -->
+              <div class="settings-dict-list" id="settingsDictList"
+                style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px; background: var(--bg-card-subtle);">
+                <!-- Injected via JS -->
+              </div>
+
+              <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                <span>ℹ️</span>
+                <span>Автосинхронизация и удаление дубликатов из базы запланированы на следующий этап.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7. SECTION: SERVICE & PRICING RULES (Collapsed) -->
+          <div class="settings-section is-collapsed" id="settingsSectionRules">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span>Услуги и комиссии сервиса</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray">10% / Зоны</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
+                  aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                <div>🛒 <b>Комиссия закупки:</b> 10% от суммы чека с рынка (минимальный сервисный сбор <b>$3.00</b>).
+                </div>
+                <div style="margin-top: 4px;">🛵 <b>Зоны доставки:</b> Зона 1 ($1.00) / Зона 2 ($2.00) / Зона 3 ($3.00).
+                </div>
+                <div style="margin-top: 4px;">⏰ <b>График работы:</b> Заказы до 23:00 • Закупка с 06:00 до 09:00 •
+                  Доставка до 13:00.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save All Settings Button -->
+          <div style="margin-top: 8px; margin-bottom: 24px;">
+            <button type="submit" class="btn btn-primary" id="btnSaveAllSettings"
+              style="width: 100%; height: 44px; font-weight: 700;">
+              Сохранить параметры интеграций
             </button>
           </div>
 
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-            <button type="button" class="filter-pill" id="btnRatePreset4000">4,000 ៛ (Официальный)</button>
-            <button type="button" class="filter-pill" id="btnRatePreset4100">4,100 ៛ (Рыночный)</button>
-            <button type="button" class="filter-pill" id="btnRatePreset4200">4,200 ៛</button>
-          </div>
-        </div>
-
-        <!-- Card: Produce Dictionary Draft Section -->
-        <div class="card settings-dict-card" style="padding: 20px; margin-bottom: 16px;">
-          <div
-            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 22px;">📖</span>
-              <div>
-                <h4 style="font-size: 15px; font-weight: 700; margin: 0;">Словарь продуктов (Draft)</h4>
-                <span style="font-size: 12px; color: var(--text-muted);">Справочник рынка Samaki (152 базовых + 9 из
-                  базы)</span>
-              </div>
-            </div>
-            <span class="badge badge-success" id="settingsDictCountBadge">161 слово</span>
-          </div>
-
-          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-            Словарь является приоритетным источником наименований и кхмерских написаний. Базовые словарные записи
-            защищены от удаления.
-          </p>
-
-          <!-- Search & Filter Pills -->
-          <div class="dict-draft-controls"
-            style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;">
-            <div class="search-box" style="width: 100%;">
-              <span class="search-icon">🔍</span>
-              <input type="text" id="settingsDictSearchInput" class="search-input"
-                style="padding: 10px 14px 10px 38px; font-size: 13px;" placeholder="Поиск в словаре (RU, EN, KH)..."
-                autocomplete="off" />
-              <button type="button" id="settingsDictSearchClear" class="search-clear-btn"
-                style="display: none;">✕</button>
-            </div>
-            <div class="dict-filter-pills" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;">
-              <button type="button" class="filter-pill active" data-dict-filter="all" id="dictFilterAll">Все
-                (161)</button>
-              <button type="button" class="filter-pill" data-dict-filter="core" id="dictFilterCore">Базовые
-                (152)</button>
-              <button type="button" class="filter-pill" data-dict-filter="database" id="dictFilterDb">Из базы
-                (9)</button>
-            </div>
-          </div>
-
-          <!-- Dictionary Items Preview List -->
-          <div class="settings-dict-list" id="settingsDictList"
-            style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px; background: var(--bg-card-subtle);">
-            <!-- Injected via JS -->
-          </div>
-
-          <div
-            style="margin-top: 12px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-            <span>ℹ️</span>
-            <span>Автосинхронизация и удаление дубликатов из базы запланированы на следующий этап.</span>
-          </div>
-        </div>
+        </form>
       </section>
 
     </main>
@@ -499,20 +750,31 @@
                     placeholder="напр. 6000" />
                 </div>
                 <div class="unit-input-wrap">
-                  <input type="text" id="fieldUnit" name="unit" class="text-input"
-                    placeholder="напр. 1 кг, 1 шт" list="addUnitSuggestions" />
-                  <datalist id="addUnitSuggestions">
-                    <option value="1 кг">
-                    <option value="500 г">
-                    <option value="250 г">
-                    <option value="100 г">
-                    <option value="1 шт">
-                    <option value="1 пучок">
-                    <option value="1 упак">
-                  </datalist>
+                  <select id="fieldUnit" name="unit" class="text-input select-input unit-select">
+                    <option value="1_kg" selected>1 кг</option>
+                    <option value="500_g">500 г</option>
+                    <option value="250_g">250 г</option>
+                    <option value="100_g">100 г</option>
+                    <option value="1_pc">1 шт</option>
+                    <option value="1_bunch">1 пучок</option>
+                    <option value="1_pack">1 упак</option>
+                    <option value="1_tray">1 лоток</option>
+                    <option value="1_bottle">1 бут</option>
+                    <option value="0_2_l">0.2 л</option>
+                    <option value="0_5_l">0.5 л</option>
+                    <option value="0_7_l">0.7 л</option>
+                    <option value="1_l">1 л</option>
+                    <option value="10_pcs">10 шт</option>
+                    <option value="kg">кг</option>
+                    <option value="g">г</option>
+                    <option value="pc">шт</option>
+                    <option value="bunch">пучок</option>
+                    <option value="pack">упак</option>
+                  </select>
                 </div>
               </div>
-              <div class="form-field-hint" id="priceHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+              <div class="form-field-hint" id="priceHint"
+                style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
                 ≈ $0.00 (по курсу 1 USD = 4,000 KHR)
               </div>
             </div>
@@ -564,65 +826,7 @@
       </div>
     </div>
 
-    <!-- 4. MODAL: SETTINGS (AI, SUPABASE, CLOUDINARY) -->
-    <div id="settingsModal" class="modal-overlay" style="display:none;">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3 class="modal-title">Настройки интеграций</h3>
-          <button type="button" class="modal-close-btn" id="settingsModalCloseBtn">✕</button>
-        </div>
-        <div class="modal-body">
-          <form id="settingsForm">
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">1. Google Gemini API (Распознавание)</h4>
-              <div class="form-group">
-                <label class="field-label" for="settingApiKey">Gemini API Key</label>
-                <input type="password" id="settingApiKey" class="text-input" placeholder="AIzaSy..." />
-              </div>
-
-              <div class="form-group">
-                <label class="field-label" for="settingModel">Модель Gemini</label>
-                <select id="settingModel" class="text-input select-input">
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Рекомендуется)</option>
-                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                  <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">2. Облачная База (Supabase)</h4>
-              <div class="form-group">
-                <label class="field-label" for="settingSupabaseUrl">Supabase Project URL</label>
-                <input type="url" id="settingSupabaseUrl" class="text-input"
-                  placeholder="https://your-project.supabase.co" />
-              </div>
-              <div class="form-group">
-                <label class="field-label" for="settingSupabaseKey">Supabase Public Anon Key</label>
-                <input type="password" id="settingSupabaseKey" class="text-input" placeholder="eyJhbGciOi..." />
-              </div>
-            </div>
-
-            <div class="settings-group">
-              <h4 class="settings-group-title">3. Курс валюты (USD → KHR)</h4>
-              <div class="form-group">
-                <label class="field-label" for="settingModalKhrRate">Камбоджийский риель (៛) за 1 доллар</label>
-                <input type="number" id="settingModalKhrRate" class="text-input" min="1000" max="10000" step="50" placeholder="4000" />
-                <div class="field-hint">Используется для пересчета ориентировочных цен в каталоге и витрине</div>
-              </div>
-            </div>
-
-            <div class="form-actions" style="margin-top: 18px;">
-              <button type="button" class="btn btn-secondary" id="btnCancelSettings">Отмена</button>
-              <button type="submit" class="btn btn-primary" id="btnSaveSettings">Сохранить</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5. Toast Container -->
+    <!-- 4. Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
   </div>
@@ -631,8 +835,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Core Scripts -->
-  <script src="js/admin-catalog.js?v=1.4.2"></script>
-  <script src="js/admin-auth.js?v=1.4.2"></script>
+  <script src="../js/shared/forms.js?v=1.4.8"></script>
+  <script src="js/admin-catalog.js?v=1.4.8"></script>
+  <script src="js/admin-auth.js?v=1.4.8"></script>
 </body>
 
 </html>

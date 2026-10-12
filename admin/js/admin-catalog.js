@@ -47,19 +47,95 @@ const CATEGORIES = [
   { id: 'other', name: 'Другое', icon: '📦' }
 ];
 
-const FORMS = [
+const FORMS = (window.FRESHMARKET_FORMS ? [...window.FRESHMARKET_FORMS] : [
   { id: 'whole', label: 'Целый' },
   { id: 'bunch', label: 'Пучок' },
   { id: 'pods', label: 'Стручок' },
   { id: 'root', label: 'Корень' },
   { id: 'sliced', label: 'Нарезка' },
+  { id: 'fillet', label: 'Филе' },
+  { id: 'minced', label: 'Фарш' },
+  { id: 'peeled', label: 'Очищенный' },
   { id: 'dried', label: 'Сушеный' },
   { id: 'powder', label: 'Молотый' },
   { id: 'paste', label: 'Паста' },
   { id: 'pickled', label: 'Маринованный' },
   { id: 'frozen', label: 'Замороженный' },
-  { id: 'custom', label: 'Свой вариант...' }
+  { id: 'bottle', label: 'Бутылка' }
+]).concat([{ id: 'custom', label: 'Свой вариант...' }]);
+
+function getFormInfo(form) {
+  if (typeof window.normalizeFormInfo === 'function') {
+    return window.normalizeFormInfo(form);
+  }
+  if (!form || typeof form !== 'string') return null;
+  const t = form.trim();
+  return { key: null, label: t, formObj: null };
+}
+
+const UNITS = [
+  { id: '1_kg', label: '1 кг' },
+  { id: '500_g', label: '500 г' },
+  { id: '250_g', label: '250 г' },
+  { id: '100_g', label: '100 г' },
+  { id: '1_pc', label: '1 шт' },
+  { id: '1_bunch', label: '1 пучок' },
+  { id: '1_pack', label: '1 упак' },
+  { id: '1_tray', label: '1 лоток' },
+  { id: '1_bottle', label: '1 бут' },
+  { id: '0_2_l', label: '0.2 л' },
+  { id: '0_5_l', label: '0.5 л' },
+  { id: '0_7_l', label: '0.7 л' },
+  { id: '1_l', label: '1 л' },
+  { id: '10_pcs', label: '10 шт' },
+  { id: 'kg', label: 'кг' },
+  { id: 'g', label: 'г' },
+  { id: 'pc', label: 'шт' },
+  { id: 'bunch', label: 'пучок' },
+  { id: 'pack', label: 'упак' }
 ];
+
+function getUnitInfo(unit) {
+  if (!unit || typeof unit !== 'string') return null;
+  const trim = unit.trim();
+  if (!trim) return null;
+  const norm = trim.toLowerCase();
+  const unitMap = {
+    '1_kg': '1_kg', '1 кг': '1_kg', '1 kg': '1_kg', '1кг': '1_kg', '1kg': '1_kg', '១ គីឡូ': '1_kg',
+    '500_g': '500_g', '500 г': '500_g', '500 g': '500_g', '500г': '500_g', '500g': '500_g', '៥០០ ក្រាម': '500_g',
+    '250_g': '250_g', '250 г': '250_g', '250 g': '250_g', '250г': '250_g', '250g': '250_g', '២៥០ ក្រាម': '250_g',
+    '100_g': '100_g', '100 г': '100_g', '100 g': '100_g', '100г': '100_g', '100g': '100_g', '១០០ ក្រាម': '100_g',
+    '1_pc': '1_pc', '1 шт': '1_pc', '1 pc': '1_pc', '1шт': '1_pc', '1pc': '1_pc', '១ ផ្លែ': '1_pc', '១ ដើម': '1_pc', '១ ផ្លែ/ដើម': '1_pc',
+    '1_bunch': '1_bunch', '1 пучок': '1_bunch', '1 bunch': '1_bunch', '1пучок': '1_bunch', '១ ដុំ': '1_bunch', '១ បាច់': '1_bunch', '១ ដុំ/បាច់': '1_bunch',
+    '1_pack': '1_pack', '1 упак': '1_pack', '1 pack': '1_pack', '1 упаковка': '1_pack', '១ កញ្ចប់': '1_pack',
+    '1_tray': '1_tray', '1 лоток': '1_tray', '1 tray': '1_tray', '១ ថាស': '1_tray',
+    '1_bottle': '1_bottle', '1 бут': '1_bottle', '1 bottle': '1_bottle', '1 бутылка': '1_bottle', '១ ដប': '1_bottle',
+    '0_2_l': '0_2_l', '0.2 л': '0_2_l', '0.2л': '0_2_l', '0.2 l': '0_2_l', '0.2l': '0_2_l', '0.2 bottle': '0_2_l', '0.2 бут': '0_2_l', '០.២ ល': '0_2_l',
+    '0_5_l': '0_5_l', '0.5 л': '0_5_l', '0.5л': '0_5_l', '0.5 l': '0_5_l', '0.5l': '0_5_l', '0.5 bottle': '0_5_l', '0.5 бут': '0_5_l', '០.៥ ល': '0_5_l',
+    '0_7_l': '0_7_l', '0.7 л': '0_7_l', '0.7л': '0_7_l', '0.7 l': '0_7_l', '0.7l': '0_7_l', '0.7 bottle': '0_7_l', '0.7 бут': '0_7_l', '០.៧ ល': '0_7_l',
+    '1_l': '1_l', '1 л': '1_l', '1л': '1_l', '1 l': '1_l', '1l': '1_l', '1.0 л': '1_l', '1.0 l': '1_l', '1 литр': '1_l', '១ ល': '1_l',
+    '10_pcs': '10_pcs', '10 шт': '10_pcs', '10 pcs': '10_pcs', '10шт': '10_pcs', '10pcs': '10_pcs', 'десяток': '10_pcs', '១០ គ្រាប់': '10_pcs',
+    'kg': 'kg', 'кг': 'kg', 'គីឡូ': 'kg',
+    'g': 'g', 'г': 'g', 'ក្រាម': 'g',
+    'pc': 'pc', 'шт': 'pc', 'ផ្លែ/ដើម': 'pc',
+    'bunch': 'bunch', 'пучок': 'bunch', 'ដុំ/បាច់': 'bunch',
+    'pack': 'pack', 'упак': 'pack', 'упаковка': 'pack', 'កញ្ចប់': 'pack'
+  };
+  const key = unitMap[norm] || null;
+  let label = trim;
+  if (key) {
+    if (window.i18n && typeof window.i18n.t === 'function') {
+      const trans = window.i18n.t(`units.${key}`);
+      if (trans && trans !== `units.${key}`) {
+        label = trans;
+      }
+    } else {
+      const found = UNITS.find(u => u.id === key);
+      if (found) label = found.label;
+    }
+  }
+  return { key: key || norm, label };
+}
 
 // Produce Dictionary loaded dynamically from external products_dictionary.json + persistent custom extensions
 let PRODUCE_DICTIONARY = [];
@@ -968,6 +1044,9 @@ class App {
       this.navBtnSettings.addEventListener('click', () => this.switchMainView('viewSettings'));
     }
 
+    // Initialize all Settings values from storage
+    this.loadSettingsFormValues();
+
     // Currency Exchange Rate Controls
     if (this.settingKhrRate) {
       this.settingKhrRate.value = this.khrRate;
@@ -1281,9 +1360,9 @@ class App {
       }
     });
 
-    // FAB Add button is always available at page level
+    // FAB Add button is only available within viewCatalog
     if (this.navBtnFabAdd) {
-      this.navBtnFabAdd.style.display = 'flex';
+      this.navBtnFabAdd.style.display = (viewId === 'viewCatalog') ? 'flex' : 'none';
     }
 
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1293,6 +1372,7 @@ class App {
         window.adminAuth.loadAdminOrders();
       }
     } else if (viewId === 'viewSettings') {
+      this.loadSettingsFormValues();
       this.renderSettingsDictionary();
     } else if (viewId === 'viewCatalog') {
       this.renderCategoriesGrid();
@@ -1526,14 +1606,10 @@ class App {
   }
 
   // ------------------------------------------------------------------------
-  // Settings (Gemini API, Supabase, Cloudinary)
   // ------------------------------------------------------------------------
-  openSettingsModal(isTriggeredByPhoto = false) {
-    if (!this.settingsModal) {
-      this.settingsModal = document.getElementById('settingsModal');
-    }
-    if (!this.settingsModal) return;
-
+  // Settings (Gemini API, Supabase, Cloudinary, Backup)
+  // ------------------------------------------------------------------------
+  loadSettingsFormValues() {
     // AI
     const savedKey = localStorage.getItem('freshmarket_gemini_api_key') || '';
     const savedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
@@ -1548,6 +1624,12 @@ class App {
     }
     this.toggleCustomModelInput();
 
+    const aiBadge = document.getElementById('aiStatusBadge');
+    if (aiBadge) {
+      aiBadge.textContent = savedKey ? 'API Key: OK' : 'Не задан';
+      aiBadge.className = `badge ${savedKey ? 'badge-success' : 'badge-gray'}`;
+    }
+
     // Supabase
     const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
     const supabaseUrl = localStorage.getItem('freshmarket_supabase_url') || '';
@@ -1557,6 +1639,12 @@ class App {
     if (this.providerSupabase) this.providerSupabase.checked = (provider === 'supabase');
     if (this.settingSupabaseUrl) this.settingSupabaseUrl.value = supabaseUrl;
     if (this.settingSupabaseKey) this.settingSupabaseKey.value = supabaseKey;
+
+    const sbBadge = document.getElementById('supabaseProviderBadge');
+    if (sbBadge) {
+      sbBadge.textContent = provider === 'supabase' ? 'Supabase' : 'IndexedDB';
+      sbBadge.className = `badge ${provider === 'supabase' ? 'badge-primary' : 'badge-gray'}`;
+    }
 
     // Cloudinary
     const cloudName = localStorage.getItem('freshmarket_cloudinary_cloud_name') || '';
@@ -1572,20 +1660,26 @@ class App {
     if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = cloudApiSecret;
 
     // Currency Rate
-    if (this.settingModalKhrRate) this.settingModalKhrRate.value = this.khrRate;
+    const rateInput = document.getElementById('settingKhrRate');
+    if (rateInput) rateInput.value = this.khrRate;
+  }
 
-    this.settingsModal.style.display = 'flex';
+  openSettingsModal(isTriggeredByPhoto = false) {
+    this.switchMainView('viewSettings');
+    this.loadSettingsFormValues();
 
     if (isTriggeredByPhoto) {
+      const aiSection = document.getElementById('settingsSectionAi');
+      if (aiSection && aiSection.classList.contains('is-collapsed')) {
+        aiSection.classList.remove('is-collapsed');
+      }
       this.showToast('ℹ️ Введите Gemini API Key для автозаполнения по фото');
+      setTimeout(() => this.settingApiKey?.focus(), 150);
     }
   }
 
   closeSettingsModal() {
-    const modal = this.settingsModal || document.getElementById('settingsModal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
+    this.switchMainView('viewCatalog');
   }
 
   toggleCustomModelInput() {
@@ -1636,18 +1730,19 @@ class App {
     localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
 
     // 4. KHR Exchange Rate
-    if (this.settingModalKhrRate && this.settingModalKhrRate.value) {
-      const modalRate = parseInt(this.settingModalKhrRate.value, 10);
-      if (!isNaN(modalRate) && modalRate >= 1000 && modalRate <= 10000) {
-        this.saveKhrRate(modalRate);
+    const rateInput = document.getElementById('settingKhrRate');
+    if (rateInput && rateInput.value) {
+      const rateVal = parseInt(rateInput.value, 10);
+      if (!isNaN(rateVal) && rateVal >= 1000 && rateVal <= 10000) {
+        this.saveKhrRate(rateVal);
       }
     }
 
     // Re-initialize storage adapter
     storage = getActiveStorage();
 
-    this.closeSettingsModal();
-    this.showToast('✅ Настройки сохранены');
+    this.loadSettingsFormValues();
+    this.showToast('✅ Параметры успешно сохранены');
 
     // Reload catalog with active storage provider
     await this.loadData();
@@ -2086,7 +2181,7 @@ Analyze the food product in this image and return a JSON object with:
 - "category": MUST be one of these exact 9 categories:
   ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Грибы"]
 - "form": The form/state of the item, MUST be one of:
-  ["Целый", "Нарезка", "Филе", "Фарш", "Очищенный", "Сушеный", "Маринованный", "Замороженный"] or another short 1-word descriptor.
+  ["Целый", "Пучок", "Корень", "Стручок", "Нарезка", "Филе", "Фарш", "Очищенный", "Сушеный", "Молотый", "Паста", "Маринованный", "Замороженный", "Бутылка"]. For bottled/jarred sauces, oils, soy/fish sauce and liquid condiments in "Соусы и бакалея", use "Бутылка" (or "Паста" for thick pastes). NEVER use "Жидкий" or "Соус".
 - "description": Short helpful description in Russian (1-2 sentences about taste, culinary use, or how to pick it at the market).
 
 Return ONLY raw valid JSON, no markdown code block fences.`;
@@ -2727,7 +2822,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.fieldPrice.step = '100';
       this.fieldPrice.placeholder = 'напр. 6000';
     }
-    if (this.fieldUnit) this.fieldUnit.value = '';
+    if (this.fieldUnit) this.fieldUnit.value = '1_kg';
     if (this.priceHint) this.priceHint.textContent = `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
     if (this.activeFilterCategory && this.activeFilterCategory !== 'all') {
       this.selectCategoryByName(this.activeFilterCategory);
@@ -2978,7 +3073,10 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     if (price !== null && price !== undefined && price !== '' && !isNaN(Number(price))) {
       const khr = Number(price);
       const usd = (khr / this.khrRate).toFixed(2);
-      const unitSuffix = unit ? ` / ${this.escapeHtml(unit)}` : '';
+      const uInfo = getUnitInfo(unit);
+      const unitLabel = uInfo ? uInfo.label : unit;
+      const unitKey = uInfo ? uInfo.key : '';
+      const unitSuffix = unitLabel ? ` / <span class="badge-unit-text" ${unitKey ? `data-unit-id="${this.escapeHtml(unitKey)}" data-i18n="units.${this.escapeHtml(unitKey)}"` : ''}>${this.escapeHtml(unitLabel)}</span>` : '';
       return `
         <div class="card-price-badge">
           <span class="price-khr">${Math.round(khr).toLocaleString('en-US')} ៛${unitSuffix}</span>
@@ -3060,7 +3158,11 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
             <!-- Badges (Category & Form - hidden in collapsed state) -->
             <div class="card-badges">
               <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}"><span class="badge-cat-icon">${catIcon}</span> <span class="badge-cat-name">${this.escapeHtml(item.category)}</span></span>
-              ${item.form ? `<span class="badge badge-form" data-form="${this.escapeHtml(item.form)}">${this.escapeHtml(item.form)}</span>` : ''}
+              ${(() => {
+                const fInfo = getFormInfo(item.form);
+                if (!fInfo || !fInfo.label) return '';
+                return `<span class="badge badge-form" data-form="${this.escapeHtml(item.form)}" ${fInfo.key ? `data-form-id="${this.escapeHtml(fInfo.key)}"` : ''}>${this.escapeHtml(fInfo.label)}</span>`;
+              })()}
             </div>
 
             ${item.img_url ? `
@@ -3375,18 +3477,13 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
                 placeholder="напр. 6000" />
             </div>
             <div class="unit-input-wrap">
-              <input type="text" id="editUnit" class="text-input"
-                value="${this.escapeHtml(item.unit || '')}"
-                placeholder="напр. 1 кг, 1 шт" list="editUnitSuggestions" />
-              <datalist id="editUnitSuggestions">
-                <option value="1 кг">
-                <option value="500 г">
-                <option value="250 г">
-                <option value="100 г">
-                <option value="1 шт">
-                <option value="1 пучок">
-                <option value="1 упак">
-              </datalist>
+              <select id="editUnit" class="text-input select-input unit-select">
+                ${UNITS.map(u => {
+                  const currentUnitKey = (getUnitInfo(item.unit) || {}).key;
+                  const isSel = (currentUnitKey === u.id || item.unit === u.id || item.unit === u.label);
+                  return `<option value="${u.id}" ${isSel ? 'selected' : ''}>${u.label}</option>`;
+                }).join('')}
+              </select>
             </div>
           </div>
           <div class="form-field-hint" id="editPriceHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">

@@ -29,8 +29,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.3.9" />
-  <link rel="stylesheet" href="css/shop.css?v=1.3.9" />
+  <link rel="stylesheet" href="css/components.css?v=1.4.8" />
+  <link rel="stylesheet" href="css/shop.css?v=1.4.8" />
+  <script src="js/shared/forms.js?v=1.4.8"></script>
   <script src="js/shared/i18n.js"></script>
 </head>
 
@@ -43,7 +44,7 @@
       </div>
       <div class="splash-title" data-i18n="splash.title">FreshMarket</div>
       <div class="splash-subtitle" data-i18n="splash.subtitle">Доставка свежих продуктов</div>
-      <div class="splash-version" id="splashVersion">v1.1.0</div>
+      <div class="splash-version" id="splashVersion">v1.4.8</div>
     </div>
   </div>
 
@@ -300,7 +301,7 @@
       <!-- ================= VIEW 4: USER PROFILE ================= -->
       <section class="shop-view-page" id="viewProfile" style="display: none;">
         <div class="view-page-header">
-          <h2 class="view-page-title" id="authModalTitle" data-i18n="auth.modal_title">Профиль и Вход</h2>
+          <h2 class="view-page-title" id="authModalTitle" data-i18n="profile.title">Профиль и Настройки</h2>
         </div>
         <div id="authModalBody">
           <!-- Injected via JS (Logged in view or Login buttons) -->
@@ -365,7 +366,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.4.0"></script>
+  <script src="js/shop.js?v=1.4.8"></script>
 </body>
 
 </html>
