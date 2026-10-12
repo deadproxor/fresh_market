@@ -756,6 +756,47 @@
             </div>
             <div class="mobile-frame-preview">
               <div class="product-card shop-product-card" id="cardDemo3">
+                <!-- 1. Photo & Interactive Options Viewport -->
+                <div class="card-slider-viewport">
+                  <div class="card-slider-track">
+                    <!-- Slide 1: Photo & Price -->
+                    <div class="card-slide card-slide-main">
+                      <div class="card-photo-container" onclick="demoOpenPhotoOptions()" title="Нажмите для выбора веса">
+                        <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
+                        <span class="badge-in-cart" id="demoBadgeInCart" style="display: none;">✓ 1.5 кг</span>
+                        <div class="card-price-badge">
+                          <span class="price-usd">$1.50</span>
+                          <span class="price-khr">~6,000 ៛</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Slide 2: Options Selection -->
+                    <div class="card-slide card-slide-options">
+                      <div class="card-options-header">
+                        <div class="card-options-title">Выберите вес / количество:</div>
+                      </div>
+
+                      <div class="card-options-grid" id="demoOptionsGrid">
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '0.5 кг')">0.5 кг</button>
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '1 кг')">1 кг</button>
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '1.5 кг')">1.5 кг</button>
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '2 кг')">2 кг</button>
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '3 кг')">3 кг</button>
+                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '5 кг')">5 кг</button>
+                      </div>
+
+                      <div class="card-options-actions">
+                        <button type="button" class="btn-options-remove" id="demoBtnRemove" onclick="demoRemoveFromCart()" title="Убрать из корзины" style="display: none;">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                        <button type="button" class="btn-options-cancel" onclick="demoCancelOptions()">✕</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2. Product Names Block -->
                 <div class="card-names-block">
                   <div class="card-header-row">
                     <div class="card-name-title-wrap" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
@@ -766,51 +807,10 @@
                   <div class="card-name-ru">Манго желтое спелое</div>
                 </div>
 
-                <div class="card-collapsible-body">
-                  <div class="card-badges">
-                    <span class="badge badge-category">🥭 Фрукты</span>
-                    <span class="badge badge-form">Спелый</span>
-                  </div>
-
-                  <!-- 2-Slide Viewport -->
-                  <div class="card-slider-viewport">
-                    <div class="card-slider-track">
-                      <!-- Slide 1: Photo & Price -->
-                      <div class="card-slide card-slide-main">
-                        <div class="card-photo-container" onclick="demoOpenPhotoOptions()" title="Нажмите для выбора веса">
-                          <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
-                          <span class="badge-in-cart" id="demoBadgeInCart" style="display: none;">✓ 1.5 кг</span>
-                          <div class="card-price-badge">
-                            <span class="price-usd">$1.50</span>
-                            <span class="price-khr">~6,000 ៛</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Slide 2: Options Selection -->
-                      <div class="card-slide card-slide-options">
-                        <div class="card-options-header">
-                          <div class="card-options-title">Выберите вес / количество:</div>
-                        </div>
-
-                        <div class="card-options-grid" id="demoOptionsGrid">
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '0.5 кг')">0.5 кг</button>
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '1 кг')">1 кг</button>
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '1.5 кг')">1.5 кг</button>
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '2 кг')">2 кг</button>
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '3 кг')">3 кг</button>
-                          <button type="button" class="option-chip" onclick="demoSelectChip(this, '5 кг')">5 кг</button>
-                        </div>
-
-                        <div class="card-options-actions">
-                          <button type="button" class="btn-options-remove" id="demoBtnRemove" onclick="demoRemoveFromCart()" title="Убрать из корзины" style="display: none;">
-                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                          </button>
-                          <button type="button" class="btn-options-cancel" onclick="demoCancelOptions()">✕</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <!-- 3. Badges Block -->
+                <div class="card-badges">
+                  <span class="badge badge-category" title="Фрукты" aria-label="Фрукты"><span class="badge-cat-icon">🥭</span></span>
+                  <span class="badge badge-form">Спелый</span>
                 </div>
               </div>
             </div>

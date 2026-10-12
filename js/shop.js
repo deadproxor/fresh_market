@@ -868,78 +868,84 @@ class ShopApp {
       const currentSelectedQty = inCart ? cartItem.qty : '';
       const formInfo = this.getFormInfo(item.form);
 
+      // 1. Photo & Interactive Options Viewport Block
+      const photoBlock = `
+        <div class="card-slider-viewport">
+          <div class="card-slider-track">
+            <!-- Slide 1: Main View (Photo with inside In-Cart Badge & Price) -->
+            <div class="card-slide card-slide-main">
+              ${item.img_url ? `
+                <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
+                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                  ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
+                  ${this.renderPriceBadge(item.price, item.unit)}
+                </div>
+              ` : `
+                <div class="card-photo-container" data-id="${item.id}" style="display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
+                  ${catIcon}
+                  ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
+                  ${this.renderPriceBadge(item.price, item.unit)}
+                </div>
+              `}
+            </div>
+
+            <!-- Slide 2: Options Selection View -->
+            <div class="card-slide card-slide-options">
+              <div class="card-options-header">
+                <div class="card-options-title">${selectQtyTitle}</div>
+              </div>
+
+              <div class="card-options-grid" data-id="${item.id}">
+                ${optionsConfig.options.map((opt) => `
+                  <button type="button" class="option-chip ${currentSelectedQty === opt ? 'active' : ''}" data-id="${item.id}" data-val="${opt}">
+                    ${opt}
+                  </button>
+                `).join('')}
+              </div>
+
+              <div class="card-options-actions">
+                ${inCart ? `
+                  <button type="button" class="btn-options-remove" data-id="${item.id}" title="${removeBtnTitle}">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                ` : ''}
+                <button type="button" class="btn-options-cancel" data-id="${item.id}" title="${backBtnText}">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // 2. Product Names Block (EN / KH / RU)
+      const namesBlock = `
+        <div class="card-names-block">
+          <div class="card-header-row">
+            <div class="card-name-title-wrap">
+              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+            </div>
+          </div>
+          ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
+          <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
+        </div>
+      `;
+
+      // 3. Badges Block (Category Icon & Form Badge)
+      const badgesBlock = `
+        <div class="card-badges">
+          <span class="badge badge-category" data-cat-id="${this.escapeHtml(catId)}" title="${this.escapeHtml(catName)}" aria-label="${this.escapeHtml(catName)}">
+            <span class="badge-cat-icon">${catIcon}</span>
+          </span>
+          ${formInfo ? `
+            <span class="badge badge-form" ${formInfo.key ? `data-form-id="${this.escapeHtml(formInfo.key)}" data-i18n="forms.${this.escapeHtml(formInfo.key)}"` : ''}>${this.escapeHtml(formInfo.label)}</span>
+          ` : ''}
+        </div>
+      `;
+
       return `
         <div class="product-card shop-product-card ${inCart ? 'in-cart' : ''}" data-id="${item.id}">
-          <div class="card-names-block">
-            <!-- Header with prominent EN Name -->
-            <div class="card-header-row">
-              <div class="card-name-title-wrap">
-                <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
-              </div>
-            </div>
-
-            ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
-            <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
-          </div>
-
-          <div class="card-collapsible-body">
-            <!-- Badges (Category & Form with data-i18n) -->
-            <div class="card-badges">
-              <span class="badge badge-category" data-cat-id="${this.escapeHtml(catId)}">
-                <span class="badge-cat-icon">${catIcon}</span>
-                <span class="badge-cat-name" ${catObj ? `data-i18n="categories.${this.escapeHtml(catObj.id)}"` : ''}>${this.escapeHtml(catName)}</span>
-              </span>
-              ${formInfo ? `
-                <span class="badge badge-form" ${formInfo.key ? `data-form-id="${this.escapeHtml(formInfo.key)}" data-i18n="forms.${this.escapeHtml(formInfo.key)}"` : ''}>${this.escapeHtml(formInfo.label)}</span>
-              ` : ''}
-            </div>
-
-            <!-- 2-Slide Viewport: Slide 1 (Photo) <-> Slide 2 (Options) -->
-            <div class="card-slider-viewport">
-              <div class="card-slider-track">
-                <!-- Slide 1: Main View (Photo with inside In-Cart Badge & Price) -->
-                <div class="card-slide card-slide-main">
-                  ${item.img_url ? `
-                    <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
-                      <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
-                      ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
-                      ${this.renderPriceBadge(item.price, item.unit)}
-                    </div>
-                  ` : `
-                    <div class="card-photo-container" data-id="${item.id}" style="display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
-                      ${catIcon}
-                      ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
-                      ${this.renderPriceBadge(item.price, item.unit)}
-                    </div>
-                  `}
-                </div>
-
-                <!-- Slide 2: Options Selection View -->
-                <div class="card-slide card-slide-options">
-                  <div class="card-options-header">
-                    <div class="card-options-title">${selectQtyTitle}</div>
-                  </div>
-
-                  <div class="card-options-grid" data-id="${item.id}">
-                    ${optionsConfig.options.map((opt) => `
-                      <button type="button" class="option-chip ${currentSelectedQty === opt ? 'active' : ''}" data-id="${item.id}" data-val="${opt}">
-                        ${opt}
-                      </button>
-                    `).join('')}
-                  </div>
-
-                  <div class="card-options-actions">
-                    ${inCart ? `
-                      <button type="button" class="btn-options-remove" data-id="${item.id}" title="${removeBtnTitle}">
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      </button>
-                    ` : ''}
-                    <button type="button" class="btn-options-cancel" data-id="${item.id}" title="${backBtnText}">✕</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          ${photoBlock}
+          ${namesBlock}
+          ${badgesBlock}
         </div>
       `;
     }).join('');

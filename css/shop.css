@@ -477,6 +477,7 @@
   background: var(--bg-hover, rgba(255, 255, 255, 0.06));
 }
 
-.card-desc {
-  display: none;
+.card-desc,
+.cat-card-count {
+  display: none !important;
 }
