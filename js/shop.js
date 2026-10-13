@@ -1385,9 +1385,9 @@ class ShopApp {
       payment_status: 'pending',
       payment_method: 'cash',
       market_items_total: 0.00,
-      service_fee: 3.00,
-      delivery_fee: 1.50,
-      grand_total: 4.50,
+      service_fee: 0.00,
+      delivery_fee: 1.00,
+      grand_total: 1.00,
       created_at: new Date().toISOString()
     };
 
@@ -1591,10 +1591,10 @@ class ShopApp {
           <div class="order-card-footer">
             <div class="order-calc-breakdown">
               <div>${marketLabel} <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
-              <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 3) + Number(order.delivery_fee || 1.5)).toFixed(2)}</b></div>
+              <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0)).toFixed(2)}</b></div>
             </div>
             <div class="order-grand-total">
-              ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + 4.5)).toFixed(2)}</b>
+              ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0))).toFixed(2)}</b>
             </div>
           </div>
         </div>
@@ -1624,8 +1624,8 @@ class ShopApp {
     const appTitle = t('profile.app_title', 'Приложение FreshMarket');
     const appOfflineHint = t('profile.app_offline_hint', 'Быстрый доступ к каталогу и сохраненным контактам даже при нестабильной связи.');
     const aboutTitle = t('profile.about_title', 'О сервисе FreshMarket');
-    const rulesSchedule = t('profile.rules_schedule', '⏰ Заказы до 23:00 • Закупка в 05:00 на рассвете • Доставка до 13:00');
-    const rulesPricing = t('profile.rules_pricing', '🧾 Оплата: Чеки с рынка + услуга закупки 10% (мин. $3.00) + доставка от $1.50');
+    const rulesSchedule = t('profile.rules_schedule', '⏰ Приём заказов до 23:00 • Доставка 9:00–12:00');
+    const rulesPricing = t('profile.rules_pricing', '🧾 Оплата: Чеки с рынка + сервисный сбор 10% + доставка ($1 / $2 / $3)');
     const accountTitle = t('profile.account_title', 'Аккаунт и вход');
     const statusOnline = t('profile.status_online', 'В сети');
     const statusGuest = t('profile.status_guest', 'Гость');

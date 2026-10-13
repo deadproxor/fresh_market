@@ -133,6 +133,91 @@ body {
 }
 
 /* ==========================================================================
+   0. 12-COLUMN RESPONSIVE CSS GRID SYSTEM
+   Unified layout engine for landing, desktop pages, and wide viewports
+   ========================================================================== */
+.grid-12 {
+  display: grid !important;
+  grid-template-columns: repeat(12, 1fr) !important;
+  gap: clamp(16px, 2.5vw, 24px);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Base Spans (Desktop / Default) */
+.col-1  { grid-column: span 1; }
+.col-2  { grid-column: span 2; }
+.col-3  { grid-column: span 3; }
+.col-4  { grid-column: span 4; }
+.col-5  { grid-column: span 5; }
+.col-6  { grid-column: span 6; }
+.col-7  { grid-column: span 7; }
+.col-8  { grid-column: span 8; }
+.col-9  { grid-column: span 9; }
+.col-10 { grid-column: span 10; }
+.col-11 { grid-column: span 11; }
+.col-12 { grid-column: span 12; }
+
+/* Grid Offsets (Starts) */
+.col-start-1  { grid-column-start: 1; }
+.col-start-2  { grid-column-start: 2; }
+.col-start-3  { grid-column-start: 3; }
+.col-start-4  { grid-column-start: 4; }
+.col-start-5  { grid-column-start: 5; }
+.col-start-6  { grid-column-start: 6; }
+.col-start-7  { grid-column-start: 7; }
+.col-start-8  { grid-column-start: 8; }
+.col-start-9  { grid-column-start: 9; }
+.col-start-10 { grid-column-start: 10; }
+.col-start-11 { grid-column-start: 11; }
+.col-start-12 { grid-column-start: 12; }
+.col-start-auto { grid-column-start: auto; }
+
+/* Alignment Helpers */
+.grid-items-center  { align-items: center; }
+.grid-items-start   { align-items: start; }
+.grid-items-end     { align-items: end; }
+.grid-items-stretch { align-items: stretch; }
+
+/* Gap Modifiers */
+.grid-gap-0  { gap: 0px !important; }
+.grid-gap-sm { gap: 12px !important; }
+.grid-gap-md { gap: clamp(16px, 2vw, 24px) !important; }
+.grid-gap-lg { gap: clamp(24px, 3.5vw, 40px) !important; }
+.grid-gap-xl { gap: clamp(32px, 4.5vw, 68px) !important; }
+
+/* Responsive: Laptops & Narrow Desktops (< 1080px) */
+@media (max-width: 1080px) {
+  .col-lg-12 { grid-column: span 12; }
+  .col-lg-8  { grid-column: span 8; }
+  .col-lg-6  { grid-column: span 6; }
+  .col-lg-4  { grid-column: span 4; }
+  .col-lg-3  { grid-column: span 3; }
+}
+
+/* Responsive: Tablets & Mobile Landscape (< 768px) */
+@media (max-width: 768px) {
+  .col-md-12 { grid-column: span 12; }
+  .col-md-8  { grid-column: span 8; }
+  .col-md-6  { grid-column: span 6; }
+  .col-md-4  { grid-column: span 4; }
+  .col-md-3  { grid-column: span 3; }
+  .col-md-start-auto { grid-column-start: auto; }
+}
+
+/* Responsive: Mobile Portrait (< 480px) */
+@media (max-width: 480px) {
+  .grid-12 > [class*="col-"]:not(.col-sm-6):not(.col-sm-4):not(.col-sm-3) {
+    grid-column: span 12;
+  }
+  .col-sm-12 { grid-column: span 12; }
+  .col-sm-6  { grid-column: span 6; }
+  .col-sm-4  { grid-column: span 4; }
+  .col-sm-3  { grid-column: span 3; }
+  .col-sm-start-auto { grid-column-start: auto; }
+}
+
+/* ==========================================================================
    1. APP HEADER & BRAND
    ========================================================================== */
 .header-bar,

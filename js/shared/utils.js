@@ -45,25 +45,25 @@ function generateUUID() {
 }
 
 /**
- * Kampot Delivery Zones Definition
+ * Delivery Zones Definition (3 zones)
  */
 const DELIVERY_ZONES = {
   zone_1: {
     id: 'zone_1',
-    name: 'Зона 1: Центр и Набережная',
-    desc: 'Центр Кампота, Старый рынок, Набережная реки',
+    name: 'Зона 1: Центр',
+    desc: 'Центральные районы города',
     fee: 1.00
   },
   zone_2: {
     id: 'zone_2',
-    name: 'Зона 2: Остров и Пригород',
-    desc: 'Рыбный остров (Fish Island), Ближний пригород',
+    name: 'Зона 2: Средние районы',
+    desc: 'Средние районы города',
     fee: 2.00
   },
   zone_3: {
     id: 'zone_3',
-    name: 'Зона 3: Дальние виллы и курорты',
-    desc: 'River Road (вверх по реке), Соляные поля, отдаленные виллы',
+    name: 'Зона 3: Окраины',
+    desc: 'Окраины города',
     fee: 3.00
   }
 };

@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Master Core Design System & Components -->
-  <link rel="stylesheet" href="css/components.css?v=1.4.8" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.0" />
   <script src="js/shared/forms.js?v=1.4.8"></script>
   <script src="js/shared/i18n.js"></script>
 
@@ -331,6 +331,10 @@
           <span>🔤 Мультиязычный текст</span>
           <span class="nav-count">EN/KH/RU</span>
         </a>
+        <a href="#section-grid" class="sidebar-nav-item">
+          <span>📐 12-колоночная Сетка</span>
+          <span class="nav-count">Grid 12</span>
+        </a>
 
         <div class="sidebar-nav-group-title">Структура и Поиск</div>
         <a href="#section-headers" class="sidebar-nav-item">
@@ -495,6 +499,81 @@
               </div>
               <div class="card-name-kh khmer-font">ត្រកួនបំពងស្រួយ (KH 17px Noto Sans Khmer)</div>
               <div class="card-name-ru">Водяной шпинат / Морнинг глори (RU 13px Medium)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 2.5: 12-COLUMN GRID SYSTEM ================= -->
+      <section id="section-grid" class="workbench-section">
+        <div class="section-title-wrap">
+          <h2 class="section-title">📐 12-колоночная CSS Grid система</h2>
+          <span class="section-tag">.grid-12 & .col-1...12</span>
+        </div>
+        <p class="section-desc">
+          Универсальная адаптивная сетка на чистом CSS Grid. Базовые пропорции (12, 6+6, 4+4+4, 3+3+3+3, 8+4, смещения) с плавным перестроением на планшетах и смартфонах.
+        </p>
+
+        <div class="component-box" style="margin-bottom: 24px;">
+          <div class="component-box-header">
+            <span class="component-box-title">Базовые комбинации колонок</span>
+            <span class="component-box-class">.grid-12 > .col-*</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px; padding: 12px 0;">
+            <!-- 12 Columns Full Width -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Полноширинный блок (100%)</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-12" style="background: rgba(16, 185, 129, 0.12); border: 1px dashed var(--accent-emerald); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 700; color: var(--accent-emerald);">.col-12 (12 колонок • 100%)</div>
+              </div>
+            </div>
+
+            <!-- 6 + 6 Columns (Hero Split) -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Двухколоночный сплит (50% / 50%) — Hero, промо-блоки</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-6 col-md-12" style="background: rgba(0, 113, 227, 0.10); border: 1px dashed var(--accent-cyan); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-cyan);">.col-6 .col-md-12 (6 колонок • 50%)</div>
+                <div class="col-6 col-md-12" style="background: rgba(0, 113, 227, 0.10); border: 1px dashed var(--accent-cyan); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-cyan);">.col-6 .col-md-12 (6 колонок • 50%)</div>
+              </div>
+            </div>
+
+            <!-- 4 + 4 + 4 Columns (Features) -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Трехколоночная раскладка (33% / 33% / 33%) — Преимущества, категории</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-4 col-md-6 col-sm-12" style="background: rgba(16, 185, 129, 0.08); border: 1px dashed var(--accent-emerald); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-emerald);">.col-4 .col-md-6 (4 кол.)</div>
+                <div class="col-4 col-md-6 col-sm-12" style="background: rgba(16, 185, 129, 0.08); border: 1px dashed var(--accent-emerald); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-emerald);">.col-4 .col-md-6 (4 кол.)</div>
+                <div class="col-4 col-md-12 col-sm-12" style="background: rgba(16, 185, 129, 0.08); border: 1px dashed var(--accent-emerald); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-emerald);">.col-4 .col-md-12 (4 кол.)</div>
+              </div>
+            </div>
+
+            <!-- 3 + 3 + 3 + 3 Columns (Metrics / Steps) -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Четыре колонки (25% x 4) — Этапы, метрики, таймлайн</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-3 col-md-6 col-sm-6" style="background: rgba(178, 94, 2, 0.08); border: 1px dashed var(--accent-amber); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-amber);">.col-3 (3 кол.)</div>
+                <div class="col-3 col-md-6 col-sm-6" style="background: rgba(178, 94, 2, 0.08); border: 1px dashed var(--accent-amber); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-amber);">.col-3 (3 кол.)</div>
+                <div class="col-3 col-md-6 col-sm-6" style="background: rgba(178, 94, 2, 0.08); border: 1px dashed var(--accent-amber); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-amber);">.col-3 (3 кол.)</div>
+                <div class="col-3 col-md-6 col-sm-6" style="background: rgba(178, 94, 2, 0.08); border: 1px dashed var(--accent-amber); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-amber);">.col-3 (3 кол.)</div>
+              </div>
+            </div>
+
+            <!-- 8 + 4 Columns (Main Content + Sidebar) -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Контент + Боковая панель (66.6% / 33.3%)</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-8 col-md-12" style="background: rgba(29, 29, 31, 0.05); border: 1px dashed var(--border-medium); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-primary);">.col-8 .col-md-12 (Основной контент • 8 колонок)</div>
+                <div class="col-4 col-md-12" style="background: rgba(29, 29, 31, 0.05); border: 1px dashed var(--border-medium); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--text-primary);">.col-4 .col-md-12 (Сайдбар • 4 колонки)</div>
+              </div>
+            </div>
+
+            <!-- Offset Center: 8 Columns centered (.col-8 .col-start-3) -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;">Центрирование со смещением (.col-8 .col-start-3)</div>
+              <div class="grid-12 grid-gap-sm">
+                <div class="col-8 col-start-3 col-md-12 col-md-start-auto" style="background: rgba(215, 0, 21, 0.06); border: 1px dashed var(--accent-rose); border-radius: var(--radius-sm); padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-rose);">.col-8 .col-start-3 (Центрированный блок на 8 колонок без пустых разделителей)</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1019,7 +1098,7 @@
               <span class="schedule-icon">🌅</span>
               <div class="schedule-info">
                 <span class="schedule-title">Прием заказов до 23:00</span>
-                <span class="schedule-sub">Закупка на рынке в 05:00 • Доставка до 13:00</span>
+                <span class="schedule-sub">Закупка на рассвете • Доставка 9:00–12:00</span>
               </div>
             </div>
           </div>
@@ -1408,7 +1487,7 @@
           <!-- Slide 3 -->
           <div class="component-box" style="padding: 12px;">
             <div class="component-box-header" style="margin-bottom: 8px;">
-              <span class="component-box-title">Слайд 3: Доставка до обеда</span>
+              <span class="component-box-title">Слайд 3: Доставка 9:00–12:00</span>
               <span class="component-box-class">slide-3-delivery.png</span>
             </div>
             <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle); background: var(--bg-card); display: flex; flex-direction: column; height: 380px;">
@@ -1418,8 +1497,8 @@
               </div>
               <div style="padding: 12px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; flex: 1;">
                 <div>
-                  <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Доставка до обеда</h4>
-                  <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Заказ до 23:00 — закупка на рассвете в 05:00 и доставка до обеда.</p>
+                  <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text-primary);">Доставка 9:00–12:00</h4>
+                  <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">Заказ до 23:00 — закупка на рассвете и доставка с 9:00 до 12:00.</p>
                 </div>
                 <div class="onboarding-dots" style="margin-top: 8px;">
                   <span class="dot"></span>
@@ -1472,8 +1551,8 @@
                       <div class="onboarding-media-fade"></div>
                     </div>
                     <div class="onboarding-content-wrap" style="padding: 10px 14px 0 14px;">
-                      <h3 class="onboarding-title" style="font-size: 16px; margin-bottom: 6px;">Доставка до обеда</h3>
-                      <p class="onboarding-desc" style="font-size: 12px; line-height: 1.4;">Заказ до 23:00 — закупаем в 05:00 на рассвете и доставляем до обеда.</p>
+                      <h3 class="onboarding-title" style="font-size: 16px; margin-bottom: 6px;">Доставка 9:00–12:00</h3>
+                      <p class="onboarding-desc" style="font-size: 12px; line-height: 1.4;">Заказ до 23:00 — закупаем на рассвете и доставляем с 9:00 до 12:00.</p>
                     </div>
                   </div>
                 </div>
@@ -1645,7 +1724,7 @@
         </p>
         <div style="background: var(--bg-card-subtle); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
           <div style="font-weight: 600; margin-bottom: 4px;">🥬 Утренняя закупка FreshMarket</div>
-          <div style="font-size: 13px; color: var(--text-secondary);">Оформление заказа до 23:00, доставка на следующий день до 13:00.</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">Оформление заказа до 23:00, доставка на следующий день с 9:00 до 12:00.</div>
         </div>
       </div>
       <div class="form-actions" style="margin-top: 20px;">
