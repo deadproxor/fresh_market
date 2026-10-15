@@ -31,7 +31,7 @@
   "header": {
     "brand_title": "FreshMarket",
     "search_placeholder": "ស្វែងរកបន្លែ ផ្លែឈើ (ឈ្មោះខ្មែរ)...",
-    "btn_to_shop": "ទៅកាន់ហាង 🛒",
+    "btn_to_shop": "ទៅកាន់ហាង",
     "btn_profile": "គណនី",
     "btn_cart": "កន្ត្រក"
   },
@@ -268,7 +268,7 @@
   },
   "landing": {
     "common": {
-      "btn_to_shop": "ទៅកាន់ហាង 🛒",
+      "btn_to_shop": "ទៅកាន់ហាង",
       "btn_catalog": "បើកកាតាឡុក និងកុម្ម៉ង់ →",
       "footer_rights": "FreshMarket • បន្លែផ្លែឈើស្រស់ពីផ្សារដល់មាត់ទ្វារ",
       "footer_version": "v1.5.0 • PWA Ready",

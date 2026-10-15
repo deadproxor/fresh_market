@@ -205,6 +205,7 @@ body:lang(km) {
    1. HERO: WIDE PANORAMIC SPLIT
    ========================================================================== */
 .section-hero {
+  background-color: var(--c-bg-subtle);
   padding-top: clamp(36px, 5.5vw, 68px);
   padding-bottom: clamp(48px, 6vw, 84px);
   position: relative;
@@ -307,7 +308,7 @@ body:lang(km) {
   gap: 16px;
   padding-top: 26px;
   border-top: 1px solid var(--c-border);
-  max-width: 580px;
+  max-width: 600px;
 }
 
 .metric-val {

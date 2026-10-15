@@ -31,7 +31,7 @@
   "header": {
     "brand_title": "FreshMarket",
     "search_placeholder": "Rechercher des produits frais (nom, khmer)...",
-    "btn_to_shop": "Vers la boutique 🛒",
+    "btn_to_shop": "Vers la boutique",
     "btn_profile": "Profil",
     "btn_cart": "Panier"
   },
@@ -268,7 +268,7 @@
   },
   "landing": {
     "common": {
-      "btn_to_shop": "Vers la boutique 🛒",
+      "btn_to_shop": "Vers la boutique",
       "btn_catalog": "Ouvrir le catalogue 🥦",
       "footer_rights": "Tous droits réservés. Service de livraison de produits frais du marché du matin.",
       "footer_version": "v1.7",

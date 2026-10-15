@@ -31,7 +31,7 @@
   "header": {
     "brand_title": "FreshMarket",
     "search_placeholder": "Поиск продуктов (название, кхмерский)...",
-    "btn_to_shop": "В магазин 🛒",
+    "btn_to_shop": "В магазин",
     "btn_profile": "Профиль",
     "btn_cart": "Корзина"
   },
@@ -268,7 +268,7 @@
   },
   "landing": {
     "common": {
-      "btn_to_shop": "В магазин 🛒",
+      "btn_to_shop": "В магазин",
       "btn_catalog": "Открыть каталог и заказать →",
       "footer_rights": "FreshMarket • Свежие продукты с рынка у вашей двери",
       "footer_version": "v1.5.0 • PWA Ready",

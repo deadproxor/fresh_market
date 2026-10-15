@@ -31,7 +31,7 @@
   "header": {
     "brand_title": "FreshMarket",
     "search_placeholder": "Пошук продуктів (назва, кхмерська)...",
-    "btn_to_shop": "До магазину 🛒",
+    "btn_to_shop": "До магазину",
     "btn_profile": "Профіль",
     "btn_cart": "Кошик"
   },
@@ -268,7 +268,7 @@
   },
   "landing": {
     "common": {
-      "btn_to_shop": "Перейти до каталогу 🛍️",
+      "btn_to_shop": "До магазину",
       "btn_catalog": "Каталог продуктів",
       "switcher_journal": "Ранок на ринку (Хроніка)",
       "switcher_stalls": "Ряди та човни (Вітрина)",

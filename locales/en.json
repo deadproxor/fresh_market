@@ -31,7 +31,7 @@
   "header": {
     "brand_title": "FreshMarket",
     "search_placeholder": "Search fresh produce (name, Khmer)...",
-    "btn_to_shop": "To Shop 🛒",
+    "btn_to_shop": "To Shop",
     "btn_profile": "Profile",
     "btn_cart": "Cart"
   },
@@ -268,7 +268,7 @@
   },
   "landing": {
     "common": {
-      "btn_to_shop": "To Shop 🛒",
+      "btn_to_shop": "To Shop",
       "btn_catalog": "Open Catalog & Order →",
       "footer_rights": "FreshMarket • Fresh market produce at your doorstep",
       "footer_version": "v1.5.0 • PWA Ready",
