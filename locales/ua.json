@@ -130,7 +130,17 @@
     "price_usd_placeholder": "напр. 1.50",
     "unit_field_placeholder": "напр. 1 кг, 1 шт",
     "price_field_placeholder": "напр. 6000 (залиште порожнім для n/a)",
-    "price_rate_hint": "≈ {khr} ៛ (за курсом 1 USD = {rate} KHR)"
+    "price_rate_hint": "≈ {khr} ៛ (за курсом 1 USD = {rate} KHR)",
+    "sheet_title": "Вибір товару",
+    "comment_label": "Побажання закупівельнику",
+    "comment_placeholder": "Наприклад: стигліше, середній розмір, почистити",
+    "comment_tag_ripe": "Стигле",
+    "comment_tag_firm": "Твердіше",
+    "comment_tag_green": "Зеленіше",
+    "comment_tag_cleaned": "Почистити",
+    "btn_add_with_price": "У замовлення • ~",
+    "btn_update_order": "Зберегти зміни",
+    "btn_remove_item": "Прибрати із замовлення"
   },
   "cart": {
     "title": "Ваш кошик",
@@ -167,7 +177,10 @@
     "pricing_formula_note": "ℹ️ <b>Формула розрахунку:</b> Чеки з ринку + сервісний збір 10% + доставка ($1 / $2 / $3 за зонами). Оплата готівкою або переказом за фактом доставки.",
     "checkout_btn": "Оформити замовлення",
     "submit_btn": "Оформити замовлення",
-    "auth_required_hint": "Для підтвердження замовлення увійдіть через Google"
+    "auth_required_hint": "Для підтвердження замовлення увійдіть через Google",
+    "floating_items": "позицій",
+    "floating_to_cart": "До замовлення →",
+    "item_wish_prefix": "Побажання:"
   },
   "orders": {
     "modal_title": "Мої замовлення",

@@ -130,7 +130,17 @@
     "price_usd_placeholder": "e.g. 1.50",
     "unit_field_placeholder": "e.g. 1 kg, 1 pc",
     "price_field_placeholder": "e.g. 6000 (leave empty for n/a)",
-    "price_rate_hint": "≈ ${usd} (exchange rate 1 USD = {rate} KHR)"
+    "price_rate_hint": "≈ ${usd} (exchange rate 1 USD = {rate} KHR)",
+    "sheet_title": "Product Options",
+    "comment_label": "Note for picker",
+    "comment_placeholder": "e.g. ripe, medium size, cleaned",
+    "comment_tag_ripe": "Ripe",
+    "comment_tag_firm": "Firm",
+    "comment_tag_green": "Green / Unripe",
+    "comment_tag_cleaned": "Cleaned",
+    "btn_add_with_price": "Add to Order • ~",
+    "btn_update_order": "Save Changes",
+    "btn_remove_item": "Remove from Order"
   },
   "cart": {
     "title": "Your Cart",
@@ -167,7 +177,10 @@
     "pricing_formula_note": "ℹ️ <b>Pricing formula:</b> Market receipts + 10% shopping service + delivery ($1 / $2 / $3 by zone). Payment in cash or bank transfer upon delivery.",
     "checkout_btn": "Place Order",
     "submit_btn": "Place Order",
-    "auth_required_hint": "Please sign in with Google to confirm your order"
+    "auth_required_hint": "Please sign in with Google to confirm your order",
+    "floating_items": "items",
+    "floating_to_cart": "To Order →",
+    "item_wish_prefix": "Note:"
   },
   "orders": {
     "modal_title": "My Orders",

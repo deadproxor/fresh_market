@@ -130,7 +130,17 @@
     "price_usd_placeholder": "ឧ. 1.50",
     "unit_field_placeholder": "ឧ. ១ គីឡូ, ១ ផ្លែ",
     "price_field_placeholder": "ឧ. 6000 (ទុកនៅទំនេរសម្រាប់ n/a)",
-    "price_rate_hint": "≈ ${usd} (អត្រាប្តូរប្រាក់ 1 USD = {rate} KHR)"
+    "price_rate_hint": "≈ ${usd} (អត្រាប្តូរប្រាក់ 1 USD = {rate} KHR)",
+    "sheet_title": "ការជ្រើសរើសទំនិញ",
+    "comment_label": "បំណងប្រាថ្នាសម្រាប់អ្នកទិញ",
+    "comment_placeholder": "ឧ. ទុំល្អ ទំហំមធ្យម ធ្វើស្អាត",
+    "comment_tag_ripe": "ទុំល្អ",
+    "comment_tag_firm": "រឹងល្អ",
+    "comment_tag_green": "ខ្ចីល្អ",
+    "comment_tag_cleaned": "ធ្វើស្អាត",
+    "btn_add_with_price": "ដាក់ក្នុងការកុម្ម៉ង់ • ~",
+    "btn_update_order": "រក្សាទុកការផ្លាស់ប្តូរ",
+    "btn_remove_item": "ដកចេញពីការកុម្ម៉ង់"
   },
   "cart": {
     "title": "កន្ត្រកទំនិញរបស់អ្នក",
@@ -167,7 +177,10 @@
     "pricing_formula_note": "ℹ️ <b>រូបមន្តគិតថ្លៃ៖</b> វិក្កយបត្រផ្សារ + សេវាទិញ ១០% + ថ្លៃដឹក ($១ / $២ / $៣ តាមតំបន់)។ ទូទាត់សាច់ប្រាក់ ឬផ្ទេរប្រាក់ពេលទទួលទំនិញ។",
     "checkout_btn": "បញ្ជាទិញ",
     "submit_btn": "បញ្ជាទិញ",
-    "auth_required_hint": "សូមចូលតាម Google ដើម្បីបញ្ជាក់ការកុម្ម៉ង់"
+    "auth_required_hint": "សូមចូលតាម Google ដើម្បីបញ្ជាក់ការកុម្ម៉ង់",
+    "floating_items": "មុខ",
+    "floating_to_cart": "ទៅការកុម្ម៉ង់ →",
+    "item_wish_prefix": "បំណងប្រាថ្នា៖"
   },
   "orders": {
     "modal_title": "ការកុម្ម៉ង់របស់ខ្ញុំ",

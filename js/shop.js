@@ -185,6 +185,29 @@ class ShopApp {
     this.btnSkipOnboarding = document.getElementById('btnSkipOnboarding');
     this.btnNextOnboarding = document.getElementById('btnNextOnboarding');
     this.chkDontShowOnboarding = document.getElementById('chkDontShowOnboarding');
+
+    // Product Bottom Sheet Elements
+    this.productBottomSheet = document.getElementById('productBottomSheet');
+    this.sheetBtnClose = document.getElementById('sheetBtnClose');
+    this.sheetBtnRemove = document.getElementById('sheetBtnRemove');
+    this.sheetBtnSubmit = document.getElementById('sheetBtnSubmit');
+    this.sheetProductMedia = document.getElementById('sheetProductMedia');
+    this.sheetProductName = document.getElementById('sheetProductName');
+    this.sheetProductKhmer = document.getElementById('sheetProductKhmer');
+    this.sheetPriceUsd = document.getElementById('sheetPriceUsd');
+    this.sheetPriceKhr = document.getElementById('sheetPriceKhr');
+    this.sheetFormBadge = document.getElementById('sheetFormBadge');
+    this.sheetOptionsGrid = document.getElementById('sheetOptionsGrid');
+    this.sheetCommentInput = document.getElementById('sheetCommentInput');
+    this.sheetTagsRow = document.getElementById('sheetTagsRow');
+
+    // Floating Cart Bar Elements
+    this.floatingCartBar = document.getElementById('floatingCartBar');
+    this.floatingCartCount = document.getElementById('floatingCartCount');
+    this.floatingCartTotal = document.getElementById('floatingCartTotal');
+    this.btnFloatingToCart = document.getElementById('btnFloatingToCart');
+    this.activeSheetProductId = null;
+    this.activeSheetSelectedQty = null;
   }
 
   // ------------------------------------------------------------------------
@@ -205,11 +228,54 @@ class ShopApp {
       });
     }
 
+    // Product Bottom Sheet & Floating Bar listeners
+    if (this.sheetBtnClose) {
+      this.sheetBtnClose.addEventListener('click', () => this.closeProductSheet());
+    }
+    if (this.productBottomSheet) {
+      this.productBottomSheet.addEventListener('click', (e) => {
+        if (e.target === this.productBottomSheet) this.closeProductSheet();
+      });
+    }
+    if (this.sheetBtnSubmit) {
+      this.sheetBtnSubmit.addEventListener('click', () => this.submitProductSheet());
+    }
+    if (this.sheetBtnRemove) {
+      this.sheetBtnRemove.addEventListener('click', () => this.removeProductFromSheet());
+    }
+    if (this.btnFloatingToCart) {
+      this.btnFloatingToCart.addEventListener('click', () => this.switchView('cart'));
+    }
+    if (this.sheetTagsRow) {
+      this.sheetTagsRow.querySelectorAll('.sheet-tag-btn').forEach((tagBtn) => {
+        tagBtn.addEventListener('click', () => {
+          const tagKey = tagBtn.dataset.tagKey;
+          const tagText = (tagKey && window.i18n ? window.i18n.t(`product.${tagKey}`) : null) || tagBtn.dataset.tag || tagBtn.textContent.trim();
+          if (!this.sheetCommentInput) return;
+          if (this.sheetCommentInput.value) {
+            if (!this.sheetCommentInput.value.includes(tagText)) {
+              this.sheetCommentInput.value += ', ' + tagText;
+            }
+          } else {
+            this.sheetCommentInput.value = tagText;
+          }
+        });
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeProductSheet();
+      }
+    });
+
     // i18n Language change reactive re-render
     window.addEventListener('freshmarket:langchange', () => {
       this.renderCategories();
       this.renderProducts();
       this.updateCartUi();
+      if (this.productBottomSheet && this.productBottomSheet.style.display === 'flex' && this.activeSheetProductId) {
+        this.openProductSheet(this.activeSheetProductId);
+      }
       if (this.currentView === 'cart') {
         this.renderCartModalList();
         this.prefillCheckoutData();
@@ -384,6 +450,7 @@ class ShopApp {
     });
 
     window.scrollTo({ top: 0, behavior: 'instant' });
+    this.updateFloatingCartBar();
 
     // Render contents on demand
     if (viewName === 'cart') {
@@ -960,50 +1027,22 @@ class ShopApp {
       const primaryName = this.getLocalizedProductName(item);
       const khmerName = this.getKhmerSubtitle(item);
 
-      // 1. Photo & Interactive Options Viewport Block
+      // 1. Photo Container with In-Cart Badge, Price Badge and Add/Edit Button
       const photoBlock = `
         <div class="card-slider-viewport">
-          <div class="card-slider-track">
-            <!-- Slide 1: Main View (Photo with inside In-Cart Badge & Price) -->
-            <div class="card-slide card-slide-main">
-              ${item.img_url ? `
-                <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
-                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
-                  ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
-                  ${this.renderPriceBadge(item.price, item.unit)}
-                </div>
-              ` : `
-                <div class="card-photo-container" data-id="${item.id}" style="display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
-                  ${catIcon}
-                  ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
-                  ${this.renderPriceBadge(item.price, item.unit)}
-                </div>
-              `}
-            </div>
-
-            <!-- Slide 2: Options Selection View -->
-            <div class="card-slide card-slide-options">
-              <div class="card-options-header">
-                <div class="card-options-title">${selectQtyTitle}</div>
+          <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
+            ${item.img_url ? `
+              <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
+            ` : `
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
+                ${catIcon}
               </div>
-
-              <div class="card-options-grid" data-id="${item.id}">
-                ${optionsConfig.options.map((opt) => `
-                  <button type="button" class="option-chip ${currentSelectedQty === opt ? 'active' : ''}" data-id="${item.id}" data-val="${opt}">
-                    ${opt}
-                  </button>
-                `).join('')}
-              </div>
-
-              <div class="card-options-actions">
-                ${inCart ? `
-                  <button type="button" class="btn-options-remove" data-id="${item.id}" title="${removeBtnTitle}">
-                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                ` : ''}
-                <button type="button" class="btn-options-cancel" data-id="${item.id}" title="${backBtnText}">✕</button>
-              </div>
-            </div>
+            `}
+            ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}${cartItem.comment ? ' 💬' : ''}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
+            ${this.renderPriceBadge(item.price, item.unit)}
+            <button type="button" class="card-btn-add" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
+              ${inCart ? '✓' : '+'}
+            </button>
           </div>
         </div>
       `;
@@ -1041,99 +1080,188 @@ class ShopApp {
       `;
     }).join('');
 
-    // 1. Photo Click Handlers -> Open Options Slider
-    this.shopProductsGrid.querySelectorAll('.card-photo-container').forEach((photo) => {
-      photo.addEventListener('click', (e) => {
-        const card = photo.closest('.product-card');
-        if (!card) return;
-        card.classList.add('is-options-open');
-      });
-    });
-
-    // 2. Attach Option Chips Click Handlers (1-tap selection & save)
-    this.shopProductsGrid.querySelectorAll('.option-chip').forEach((chip) => {
-      chip.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
-        const val = e.currentTarget.dataset.val;
-        const card = e.currentTarget.closest('.product-card');
-        if (!card) return;
-
-        card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-
-        const product = this.products.find((p) => p.id === id);
-        if (product) {
-          this.cart[id] = {
-            product: product,
-            qty: val
-          };
-          this.saveCart();
-
-          // Slide back to main photo view
-          card.classList.remove('is-options-open');
-          card.classList.add('in-cart');
-
-          // Update badge inside photo container
-          const badge = card.querySelector(`#badge_${id}`);
-          if (badge) {
-            badge.textContent = `✓ ${val}`;
-            badge.style.display = 'inline-flex';
-          }
-
-          // Ensure remove button is shown in options actions
-          const optActions = card.querySelector('.card-options-actions');
-          if (optActions && !optActions.querySelector('.btn-options-remove')) {
-            const btnRemove = document.createElement('button');
-            btnRemove.type = 'button';
-            btnRemove.className = 'btn-options-remove';
-            btnRemove.dataset.id = id;
-            btnRemove.title = window.i18n ? window.i18n.t('product.remove_btn') : 'Убрать из корзины';
-            btnRemove.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-            btnRemove.addEventListener('click', (ev) => {
-              ev.stopPropagation();
-              this.handleRemoveProductFromCard(card, id);
-            });
-            optActions.prepend(btnRemove);
-          }
-
-          this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${this.getLocalizedProductName(product)} (${val})`);
-        }
-      });
-    });
-
-    // 3. Remove Button Click Handlers in Options
-    this.shopProductsGrid.querySelectorAll('.btn-options-remove').forEach((btnRemove) => {
-      btnRemove.addEventListener('click', (e) => {
+    // Click Handlers -> Open Product Bottom Sheet
+    this.shopProductsGrid.querySelectorAll('.card-photo-container, .card-btn-add').forEach((el) => {
+      el.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = e.currentTarget.dataset.id;
-        const card = e.currentTarget.closest('.product-card');
-        if (card) {
-          this.handleRemoveProductFromCard(card, id);
+        const id = el.dataset.id;
+        if (id) {
+          this.openProductSheet(id);
         }
-      });
-    });
-
-    // 4. Cancel / Back Button Click Handlers
-    this.shopProductsGrid.querySelectorAll('.btn-options-cancel').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const card = e.currentTarget.closest('.product-card');
-        if (!card) return;
-        card.classList.remove('is-options-open');
       });
     });
   }
 
-  handleRemoveProductFromCard(card, id) {
-    this.removeFromCart(id, false);
-    if (card) {
-      card.classList.remove('is-options-open', 'in-cart');
-      const badge = card.querySelector(`#badge_${id}`);
-      if (badge) badge.style.display = 'none';
-      card.querySelectorAll('.option-chip').forEach((c) => c.classList.remove('active'));
-      card.querySelector('.btn-options-remove')?.remove();
+  // ------------------------------------------------------------------------
+  // Product Bottom Sheet Implementation
+  // ------------------------------------------------------------------------
+  openProductSheet(productId) {
+    const product = this.products.find((p) => p.id === productId);
+    if (!product || !this.productBottomSheet) return;
+
+    this.activeSheetProductId = productId;
+    const cartItem = this.cart[productId];
+    const inCart = Boolean(cartItem);
+    const optionsConfig = this.getProductOptions(product);
+
+    // Initial selected quantity
+    this.activeSheetSelectedQty = inCart ? cartItem.qty : (optionsConfig.defaultQty || optionsConfig.options[0]);
+
+    // Product Header Info
+    const catObj = CATEGORIES.find((c) => c.name === product.category || c.id === product.category);
+    const catIcon = catObj ? catObj.icon : '📦';
+    const primaryName = this.getLocalizedProductName(product);
+    const khmerName = this.getKhmerSubtitle(product);
+    const formInfo = this.getFormInfo(product.form);
+
+    if (this.sheetProductMedia) {
+      if (product.img_url) {
+        this.sheetProductMedia.innerHTML = `<img src="${product.img_url}" alt="${this.escapeHtml(primaryName)}" />`;
+      } else {
+        this.sheetProductMedia.innerHTML = catIcon;
+      }
     }
-    this.showToast(window.i18n ? window.i18n.t('toasts.item_removed') : '🗑️ Товар убран из корзины');
+
+    if (this.sheetProductName) this.sheetProductName.textContent = primaryName;
+    if (this.sheetProductKhmer) this.sheetProductKhmer.textContent = khmerName || '';
+
+    // Price tags
+    const priceUsd = typeof product.price === 'number' && product.price > 0 ? `$${product.price.toFixed(2)}` : (window.i18n ? window.i18n.t('product.price_na') : 'n/a');
+    const rate = this.exchangeRate || 4000;
+    const priceKhr = typeof product.price === 'number' && product.price > 0 ? `~${Math.round(product.price * rate).toLocaleString()} ៛` : '';
+
+    if (this.sheetPriceUsd) this.sheetPriceUsd.textContent = priceUsd;
+    if (this.sheetPriceKhr) this.sheetPriceKhr.textContent = priceKhr;
+
+    if (this.sheetFormBadge) {
+      if (formInfo) {
+        this.sheetFormBadge.textContent = formInfo.label;
+        this.sheetFormBadge.style.display = 'inline-flex';
+      } else {
+        this.sheetFormBadge.style.display = 'none';
+      }
+    }
+
+    // Populate Option Chips
+    if (this.sheetOptionsGrid) {
+      this.sheetOptionsGrid.innerHTML = optionsConfig.options.map((opt) => `
+        <button type="button" class="sheet-option-chip ${this.activeSheetSelectedQty === opt ? 'active' : ''}" data-val="${opt}">
+          ${opt}
+        </button>
+      `).join('');
+
+      this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((c) => c.classList.remove('active'));
+          chip.classList.add('active');
+          this.activeSheetSelectedQty = chip.dataset.val;
+          this.updateSheetSubmitBtnText(product, inCart);
+        });
+      });
+    }
+
+    // Customer Comment Input
+    if (this.sheetCommentInput) {
+      this.sheetCommentInput.value = (cartItem && cartItem.comment) ? cartItem.comment : '';
+    }
+
+    // Action buttons
+    if (this.sheetBtnRemove) {
+      this.sheetBtnRemove.style.display = inCart ? 'block' : 'none';
+    }
+
+    this.updateSheetSubmitBtnText(product, inCart);
+
+    // Show modal
+    this.productBottomSheet.style.display = 'flex';
+  }
+
+  updateSheetSubmitBtnText(product, inCart) {
+    if (!this.sheetBtnSubmit) return;
+    if (inCart) {
+      this.sheetBtnSubmit.textContent = window.i18n ? window.i18n.t('product.btn_update_order') : 'Сохранить изменения';
+    } else {
+      let estPrice = '';
+      if (typeof product.price === 'number' && product.price > 0) {
+        const numMatch = (this.activeSheetSelectedQty || '').match(/^([\d.]+)/);
+        if (numMatch) {
+          const qtyVal = parseFloat(numMatch[1]) || 1;
+          estPrice = ` • ~$${(product.price * qtyVal).toFixed(2)}`;
+        }
+      }
+      const addText = window.i18n ? window.i18n.t('product.confirm_btn') : 'В заказ';
+      this.sheetBtnSubmit.textContent = `${addText}${estPrice}`;
+    }
+  }
+
+  closeProductSheet() {
+    if (this.productBottomSheet) {
+      this.productBottomSheet.style.display = 'none';
+    }
+    this.activeSheetProductId = null;
+    this.activeSheetSelectedQty = null;
+  }
+
+  submitProductSheet() {
+    if (!this.activeSheetProductId) return;
+    const product = this.products.find((p) => p.id === this.activeSheetProductId);
+    if (!product) return;
+
+    const qty = this.activeSheetSelectedQty || '1 кг';
+    const comment = this.sheetCommentInput ? this.sheetCommentInput.value.trim() : '';
+
+    this.cart[this.activeSheetProductId] = {
+      product: product,
+      qty: qty,
+      comment: comment
+    };
+
+    this.saveCart();
+    this.renderProducts();
+    if (this.currentView === 'cart') {
+      this.renderCartModalList();
+    }
+    this.closeProductSheet();
+
+    const localizedName = this.getLocalizedProductName(product);
+    const addedMsg = window.i18n ? window.i18n.t('toasts.item_added') : 'В корзине';
+    this.showToast(`${addedMsg}: ${localizedName} (${qty})`);
+  }
+
+  removeProductFromSheet() {
+    if (!this.activeSheetProductId) return;
+    const id = this.activeSheetProductId;
+    this.removeFromCart(id);
+    this.closeProductSheet();
+  }
+
+  updateFloatingCartBar() {
+    if (!this.floatingCartBar) return;
+    const items = Object.values(this.cart);
+    const count = items.length;
+
+    // Only show on catalog view when items > 0
+    if (count > 0 && this.currentView === 'catalog') {
+      if (this.floatingCartCount) this.floatingCartCount.textContent = count;
+
+      // Estimate total sum
+      let sum = 0;
+      items.forEach(({ product, qty }) => {
+        if (product && typeof product.price === 'number') {
+          const numMatch = (qty || '').match(/^([\d.]+)/);
+          const qVal = numMatch ? parseFloat(numMatch[1]) : 1;
+          sum += product.price * qVal;
+        }
+      });
+
+      if (this.floatingCartTotal) {
+        this.floatingCartTotal.textContent = sum > 0 ? `~$${sum.toFixed(2)}` : '';
+      }
+
+      this.floatingCartBar.style.display = 'flex';
+    } else {
+      this.floatingCartBar.style.display = 'none';
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -1231,6 +1359,8 @@ class ShopApp {
         this.navCartBadge.style.display = 'none';
       }
     }
+
+    this.updateFloatingCartBar();
   }
 
   // ------------------------------------------------------------------------
@@ -1303,11 +1433,16 @@ class ShopApp {
     const qtyPlaceholder = window.i18n ? window.i18n.t('cart.qty_placeholder') : '1 кг / 3 шт';
     const removeTitle = window.i18n ? window.i18n.t('cart.remove_item') : 'Удалить';
 
-    this.cartItemsList.innerHTML = items.map(({ product, qty }) => `
+    this.cartItemsList.innerHTML = items.map(({ product, qty, comment }) => `
       <div class="cart-item-row" data-id="${product.id}">
-        <div class="cart-item-info">
+        <div class="cart-item-info" title="${window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ'}">
           <div class="cart-item-name">${this.escapeHtml(this.getLocalizedProductName(product))}</div>
           <div class="cart-item-kh khmer-font">${this.escapeHtml(this.getKhmerSubtitle(product))}</div>
+          ${comment ? `
+            <div class="cart-item-comment-row">
+              <span class="cart-comment-badge">💬 ${this.escapeHtml(comment)}</span>
+            </div>
+          ` : ''}
         </div>
         <div class="cart-item-qty-input-wrap">
           <input type="text" class="cart-item-qty-input" value="${this.escapeHtml(qty)}" data-id="${product.id}" placeholder="${qtyPlaceholder}" />
@@ -1315,6 +1450,18 @@ class ShopApp {
         <button type="button" class="cart-item-remove-btn" data-id="${product.id}" title="${removeTitle}">✕</button>
       </div>
     `).join('');
+
+    // Clicking cart item info opens Product Bottom Sheet for easy adjustment
+    this.cartItemsList.querySelectorAll('.cart-item-info').forEach((info) => {
+      info.style.cursor = 'pointer';
+      info.addEventListener('click', (e) => {
+        const row = info.closest('.cart-item-row');
+        const id = row ? row.dataset.id : null;
+        if (id) {
+          this.openProductSheet(id);
+        }
+      });
+    });
 
     // Quantity manual change & remove listeners
     this.cartItemsList.querySelectorAll('.cart-item-qty-input').forEach((input) => {
@@ -1425,7 +1572,7 @@ class ShopApp {
       created_at: new Date().toISOString()
     };
 
-    const orderItemsPayload = items.map(({ product, qty }) => ({
+    const orderItemsPayload = items.map(({ product, qty, comment }) => ({
       id: generateUUID(),
       order_id: orderId,
       product_id: product.id,
@@ -1436,6 +1583,7 @@ class ShopApp {
       product_category: product.category || '',
       product_form: product.form || '',
       requested_qty: qty,
+      customer_comment: comment || '',
       status: 'pending',
       actual_cost: 0.00,
       created_at: new Date().toISOString()
@@ -1613,7 +1761,7 @@ class ShopApp {
           <div class="order-card-items">
             ${items.map((item) => `
               <div class="order-item-mini">
-                <span class="order-item-mini-name">${this.escapeHtml(item.product_name_en)} (${this.escapeHtml(item.requested_qty)})</span>
+                <span class="order-item-mini-name">${this.escapeHtml(item.product_name_en)} (${this.escapeHtml(item.requested_qty)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
                 ${item.receipt_url ? `
                   <a href="${item.receipt_url}" target="_blank" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
                 ` : ''}

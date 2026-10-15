@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Master Core Design System & Components -->
-  <link rel="stylesheet" href="css/components.css?v=1.5.0" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.1" />
   <script src="js/shared/forms.js?v=1.4.8"></script>
   <script src="js/shared/i18n.js"></script>
 
@@ -827,53 +827,44 @@
             </div>
           </div>
 
-          <!-- 3. Client Shop Card with Actions (2-Slide Photo Interactive Grid) -->
+          <!-- 3. Client Shop Card with Actions (Bottom Sheet Trigger Flow) -->
           <div class="component-box">
             <div class="component-box-header">
-              <span class="component-box-title">3. Карточка покупателя (Выбор по клику на фото)</span>
-              <span class="component-box-class">.shop-product-card + клик по .card-photo-container</span>
+              <span class="component-box-title">3. Карточка покупателя (Шторка выбора по клику)</span>
+              <span class="component-box-class">.shop-product-card + .card-btn-add</span>
             </div>
             <div class="mobile-frame-preview">
               <div class="product-card shop-product-card" id="cardDemo3">
-                <!-- 1. Photo & Interactive Options Viewport -->
-                <div class="card-slider-viewport">
-                  <div class="card-slider-track">
-                    <!-- Slide 1: Photo & Price -->
-                    <div class="card-slide card-slide-main">
-                      <div class="card-photo-container" onclick="demoOpenPhotoOptions()" title="Нажмите для выбора веса">
-                        <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
-                        <span class="badge-in-cart" id="demoBadgeInCart" style="display: none;">✓ 1.5 кг</span>
-                        <div class="card-price-badge">
-                          <span class="price-usd">$1.50</span>
-                          <span class="price-khr">~6,000 ៛</span>
-                        </div>
-                      </div>
-                    </div>
+                <!-- 1. Photo Container with Badges & Add Button -->
+                <div class="card-photo-container" onclick="demoOpenProductBottomSheet()" title="Нажмите для выбора веса и пожеланий">
+                  <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" class="card-photo-full" alt="Mango" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'70\' viewBox=\'0 0 100 70\'><rect width=\'100\' height=\'70\' fill=\'%2317171a\'/><text x=\'50\' y=\'38\' font-size=\'22\' text-anchor=\'middle\'>🥭</text></svg>';" />
+                  <span class="badge-in-cart" id="demoBadgeInCart" style="display: none;">✓ 1.5 кг</span>
+                  <div class="card-price-badge">
+                    <span class="price-usd">$1.50</span>
+                    <span class="price-khr">~6,000 ៛</span>
+                  </div>
+                  <button type="button" class="card-btn-add" id="demoCardBtnAdd" title="Добавить">+</button>
+                </div>
 
-                    <!-- Slide 2: Options Selection -->
-                    <div class="card-slide card-slide-options">
-                      <div class="card-options-header">
-                        <div class="card-options-title">Выберите вес / количество:</div>
-                      </div>
-
-                      <div class="card-options-grid" id="demoOptionsGrid">
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '0.5 кг')">0.5 кг</button>
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '1 кг')">1 кг</button>
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '1.5 кг')">1.5 кг</button>
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '2 кг')">2 кг</button>
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '3 кг')">3 кг</button>
-                        <button type="button" class="option-chip" onclick="demoSelectChip(this, '5 кг')">5 кг</button>
-                      </div>
-
-                      <div class="card-options-actions">
-                        <button type="button" class="btn-options-remove" id="demoBtnRemove" onclick="demoRemoveFromCart()" title="Убрать из корзины" style="display: none;">
-                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                        <button type="button" class="btn-options-cancel" onclick="demoCancelOptions()">✕</button>
-                      </div>
+                <!-- 2. Product Names Block -->
+                <div class="card-names-block">
+                  <div class="card-header-row">
+                    <div class="card-name-title-wrap" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                      <div class="card-name-en">Ripe Sweet Mango</div>
                     </div>
                   </div>
+                  <div class="card-name-kh khmer-font">ស្វាយទុំផ្អែម</div>
+                  <div class="card-name-ru">Манго желтое спелое</div>
                 </div>
+
+                <!-- 3. Badges Block -->
+                <div class="card-badges">
+                  <span class="badge badge-category" title="Фрукты" aria-label="Фрукты"><span class="badge-cat-icon">🥭</span></span>
+                  <span class="badge badge-form">Спелый</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
                 <!-- 2. Product Names Block -->
                 <div class="card-names-block">
@@ -1595,67 +1586,95 @@
       <!-- ================= SECTION 10: BOTTOM SHEET / MODAL ================= -->
       <section id="section-bottom-sheet" class="workbench-section">
         <div class="section-title-wrap">
-          <h2 class="section-title">📑 Модальная шторка (Bottom Sheet)</h2>
-          <span class="section-tag">.modal-overlay & .modal-card</span>
+          <h2 class="section-title">📑 Модальная шторка (Bottom Sheet) & Плавающая плашка</h2>
+          <span class="section-tag">.product-bottom-sheet-card & .floating-cart-bar</span>
         </div>
-        <p class="section-desc">Шторка выезжает снизу экрана с эффектом размытия фона (Backdrop Blur), скругленными верхними углами и оптимизирована под мобильный жест свайпа.</p>
+        <p class="section-desc">Шторка выезжает снизу экрана с эффектом размытия фона (Backdrop Blur), скругленными верхними углами и оптимизирована под мобильный выбор веса и пожеланий. Плавающая плашка заказа всплывает над таб-баром при наличии товаров в корзине.</p>
 
         <div class="workbench-grid-2">
           <!-- Static Sheet Preview inside Mobile Frame -->
           <div class="component-box">
             <div class="component-box-header">
-              <span class="component-box-title">Структура шторки (Mobile Preview)</span>
-              <span class="component-box-class">.modal-card (Bottom Sheet)</span>
+              <span class="component-box-title">Шторка товара (Product Bottom Sheet)</span>
+              <span class="component-box-class">.product-bottom-sheet-card</span>
             </div>
             <div class="mobile-frame-preview" style="padding: 0; overflow: hidden; background: rgba(0, 0, 0, 0.4); display: flex; flex-direction: column; justify-content: flex-end;">
-              <!-- Simulated Modal Card inside Preview -->
-              <div style="background: var(--bg-card); border-top: 1px solid var(--border-subtle); border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 16px 18px 20px 18px; width: 100%;">
-                <!-- Drag Handle Bar -->
-                <div style="width: 36px; height: 4px; background: var(--border-subtle); border-radius: 4px; margin: 0 auto 12px auto;"></div>
-
-                <!-- Modal Header -->
-                <div class="modal-header" style="position: static; margin-bottom: 12px; padding-bottom: 8px;">
-                  <span class="modal-title" style="font-size: 16px;">🛒 Корзина заказа</span>
-                  <button type="button" class="modal-close-btn">✕</button>
+              <!-- Simulated Product Bottom Sheet inside Preview -->
+              <div class="product-bottom-sheet-card" style="width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: none;">
+                <div class="sheet-drag-handle-wrap">
+                  <div class="sheet-drag-handle"></div>
                 </div>
-
-                <!-- Modal Sample Content -->
-                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px; margin-bottom: 16px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-card-subtle); border-radius: var(--radius-sm);">
-                    <span>🥭 Манго желтое (2 кг)</span>
-                    <b>$5.00</b>
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-card-subtle); border-radius: var(--radius-sm);">
-                    <span>🥦 Капуста пак-чой (1 кг)</span>
-                    <b>$1.80</b>
+                <div class="sheet-header-product">
+                  <div class="sheet-product-media">🥭</div>
+                  <div class="sheet-product-details">
+                    <div class="sheet-product-title-row">
+                      <div class="sheet-product-name">Ripe Sweet Mango</div>
+                      <button type="button" class="sheet-close-btn">✕</button>
+                    </div>
+                    <div class="sheet-product-khmer khmer-font">ស្វាយទុំផ្អែម</div>
+                    <div class="sheet-product-price-row">
+                      <span class="sheet-price-tag">$1.50</span>
+                      <span class="sheet-price-khr">~6,000 ៛</span>
+                      <span class="badge badge-form">Спелый</span>
+                    </div>
                   </div>
                 </div>
-
-                <!-- Action Button in Bottom Sheet (1/3 к 2/3) -->
-                <div class="form-actions">
-                  <button type="button" class="btn btn-secondary btn-sm">Очистить</button>
-                  <button type="button" class="btn btn-primary btn-sm">Оформить</button>
+                <div class="sheet-body-scroll" style="max-height: 220px;">
+                  <div class="sheet-section">
+                    <div class="sheet-section-title">Количество / Вес</div>
+                    <div class="sheet-options-grid">
+                      <div class="sheet-option-chip">0.5 кг</div>
+                      <div class="sheet-option-chip active">1 кг</div>
+                      <div class="sheet-option-chip">1.5 кг</div>
+                      <div class="sheet-option-chip">2 кг</div>
+                      <div class="sheet-option-chip">3 кг</div>
+                      <div class="sheet-option-chip">5 кг</div>
+                    </div>
+                  </div>
+                  <div class="sheet-section sheet-comment-wrap">
+                    <div class="sheet-section-title">Пожелание закупщику</div>
+                    <input type="text" class="sheet-comment-input" value="Поспелее на салат" readonly />
+                    <div class="sheet-tags-row">
+                      <span class="sheet-tag-btn active">Спелое</span>
+                      <span class="sheet-tag-btn">Потверже</span>
+                      <span class="sheet-tag-btn">Позеленее</span>
+                      <span class="sheet-tag-btn">Почистить</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="sheet-actions-footer">
+                  <button type="button" class="btn-sheet-remove">Удалить</button>
+                  <button type="button" class="btn btn-primary btn-sheet-add">В заказ • ~$1.50</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Interactive Sheet Launcher -->
+          <!-- Floating Cart Bar Preview & Interactive Sheet Launcher -->
           <div class="component-box" style="justify-content: space-between;">
             <div class="component-box-header">
-              <span class="component-box-title">Интерактивный запуск</span>
-              <span class="component-box-class">Живой полноэкранный оверлей</span>
+              <span class="component-box-title">Плавающая плашка заказа (Floating Cart Bar)</span>
+              <span class="component-box-class">.floating-cart-bar</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5;">
-                Нажмите кнопку ниже, чтобы протестировать настоящую мобильную шторку во весь экран: анимацию <code>slideUp</code> снизу, блюр оверлея и закрытие по клику вне контента или клавише Escape.
+            <div style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                Плавающая плашка появляется над нижней панелью навигации при наличии хотя бы одной позиции в заказе:
               </p>
-              <button type="button" class="btn btn-primary" onclick="openDemoBottomSheet()" style="max-width: 260px;">
-                🚀 Открыть живую шторку
-              </button>
+              <div class="floating-cart-bar" style="position: static; transform: none; width: 100%; box-sizing: border-box; margin: 6px 0;">
+                <div class="floating-cart-summary">
+                  <span class="floating-cart-badge">3</span>
+                  <span class="floating-cart-text">позиций • <span class="floating-cart-total">$7.50</span></span>
+                </div>
+                <button type="button" class="floating-cart-btn">В заказ →</button>
+              </div>
+              <div style="margin-top: 10px;">
+                <button type="button" class="btn btn-primary" onclick="demoOpenProductBottomSheet()" style="width: 100%;">
+                  🚀 Открыть живую шторку товара
+                </button>
+              </div>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-card-subtle); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-              💡 <b>Классы системы:</b> <code>.modal-overlay</code>, <code>.modal-card</code>, <code>.modal-header</code>, <code>.modal-close-btn</code>.
+            <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-card-subtle); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); width: 100%; box-sizing: border-box;">
+              💡 <b>Классы системы:</b> <code>.product-bottom-sheet-card</code>, <code>.sheet-options-grid</code>, <code>.sheet-option-chip</code>, <code>.sheet-comment-input</code>, <code>.floating-cart-bar</code>.
             </div>
           </div>
         </div>
@@ -1730,6 +1749,59 @@
       <div class="form-actions" style="margin-top: 20px;">
         <button type="button" class="btn btn-secondary" onclick="closeDemoBottomSheet()">Закрыть</button>
         <button type="button" class="btn btn-primary" onclick="showToastDemo('Действие в шторке выполнено!'); closeDemoBottomSheet();">Подтвердить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Demo Product Bottom Sheet Modal -->
+  <div id="demoProductBottomSheetModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeDemoProductBottomSheet()">
+    <div class="modal-card product-bottom-sheet-card">
+      <div class="sheet-drag-handle-wrap">
+        <div class="sheet-drag-handle"></div>
+      </div>
+      <div class="sheet-header-product">
+        <div class="sheet-product-media">
+          <img src="https://images.unsplash.com/photo-1553279768-865429fa0078?w=600&auto=format&fit=crop&q=80" alt="Mango" />
+        </div>
+        <div class="sheet-product-details">
+          <div class="sheet-product-title-row">
+            <div class="sheet-product-name">Ripe Sweet Mango</div>
+            <button type="button" class="sheet-close-btn" onclick="closeDemoProductBottomSheet()">✕</button>
+          </div>
+          <div class="sheet-product-khmer khmer-font">ស្វាយទុំផ្អែម</div>
+          <div class="sheet-product-price-row">
+            <span class="sheet-price-tag">$1.50</span>
+            <span class="sheet-price-khr">~6,000 ៛</span>
+            <span class="badge badge-form">Спелый</span>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-body-scroll">
+        <div class="sheet-section">
+          <div class="sheet-section-title">Количество / Вес</div>
+          <div class="sheet-options-grid" id="demoSheetOptionsGrid">
+            <button type="button" class="sheet-option-chip" onclick="demoSelectSheetChip(this, '0.5 кг')">0.5 кг</button>
+            <button type="button" class="sheet-option-chip active" onclick="demoSelectSheetChip(this, '1 кг')">1 кг</button>
+            <button type="button" class="sheet-option-chip" onclick="demoSelectSheetChip(this, '1.5 кг')">1.5 кг</button>
+            <button type="button" class="sheet-option-chip" onclick="demoSelectSheetChip(this, '2 кг')">2 кг</button>
+            <button type="button" class="sheet-option-chip" onclick="demoSelectSheetChip(this, '3 кг')">3 кг</button>
+            <button type="button" class="sheet-option-chip" onclick="demoSelectSheetChip(this, '5 кг')">5 кг</button>
+          </div>
+        </div>
+        <div class="sheet-section sheet-comment-wrap">
+          <div class="sheet-section-title">Пожелание закупщику</div>
+          <input type="text" id="demoSheetCommentInput" class="sheet-comment-input" placeholder="Например: поспелее, средний размер, почистить" />
+          <div class="sheet-tags-row">
+            <button type="button" class="sheet-tag-btn" onclick="demoAddSheetTag('Спелое')">Спелое</button>
+            <button type="button" class="sheet-tag-btn" onclick="demoAddSheetTag('Потверже')">Потверже</button>
+            <button type="button" class="sheet-tag-btn" onclick="demoAddSheetTag('Позеленее')">Позеленее</button>
+            <button type="button" class="sheet-tag-btn" onclick="demoAddSheetTag('Почистить')">Почистить</button>
+          </div>
+        </div>
+      </div>
+      <div class="sheet-actions-footer">
+        <button type="button" class="btn-sheet-remove" id="demoSheetBtnRemove" onclick="demoRemoveSheetItem()" style="display: none;">Удалить</button>
+        <button type="button" class="btn btn-primary btn-sheet-add" id="demoSheetBtnSubmit" onclick="demoSubmitSheetItem()">В заказ • ~$1.50</button>
       </div>
     </div>
   </div>
@@ -1971,9 +2043,76 @@
       if (modal) modal.style.display = 'none';
     }
 
+    // Demo Product Bottom Sheet Controller
+    let demoProductCurrentQty = '1 кг';
+    function openDemoProductBottomSheet() {
+      const modal = document.getElementById('demoProductBottomSheetModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeDemoProductBottomSheet() {
+      const modal = document.getElementById('demoProductBottomSheetModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function demoSelectSheetChip(btn, val) {
+      document.querySelectorAll('#demoSheetOptionsGrid .sheet-option-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      demoProductCurrentQty = val;
+      const submitBtn = document.getElementById('demoSheetBtnSubmit');
+      if (submitBtn) {
+        submitBtn.textContent = `В заказ (${val}) • ~$${(parseFloat(val) * 1.5).toFixed(2)}`;
+      }
+    }
+
+    function demoAddSheetTag(tagText) {
+      const input = document.getElementById('demoSheetCommentInput');
+      if (!input) return;
+      if (input.value) {
+        if (!input.value.includes(tagText)) input.value += ', ' + tagText;
+      } else {
+        input.value = tagText;
+      }
+    }
+
+    function demoSubmitSheetItem() {
+      const badge = document.getElementById('demoBadgeInCart');
+      const card = document.getElementById('cardDemo3');
+      const addBtn = document.getElementById('demoCardBtnAdd');
+      const removeBtn = document.getElementById('demoSheetBtnRemove');
+      const comment = document.getElementById('demoSheetCommentInput')?.value || '';
+
+      if (badge) {
+        badge.textContent = `✓ ${demoProductCurrentQty}` + (comment ? ' 💬' : '');
+        badge.style.display = 'inline-flex';
+      }
+      if (card) card.classList.add('in-cart');
+      if (addBtn) addBtn.textContent = '✓';
+      if (removeBtn) removeBtn.style.display = 'inline-flex';
+
+      showToastDemo(`✅ В заказе: Ripe Sweet Mango (${demoProductCurrentQty})`);
+      closeDemoProductBottomSheet();
+    }
+
+    function demoRemoveSheetItem() {
+      const badge = document.getElementById('demoBadgeInCart');
+      const card = document.getElementById('cardDemo3');
+      const addBtn = document.getElementById('demoCardBtnAdd');
+      const removeBtn = document.getElementById('demoSheetBtnRemove');
+
+      if (badge) badge.style.display = 'none';
+      if (card) card.classList.remove('in-cart');
+      if (addBtn) addBtn.textContent = '+';
+      if (removeBtn) removeBtn.style.display = 'none';
+
+      showToastDemo('🗑️ Товар убран из заказа');
+      closeDemoProductBottomSheet();
+    }
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeDemoBottomSheet();
+        closeDemoProductBottomSheet();
       }
     });
 

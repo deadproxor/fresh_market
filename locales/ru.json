@@ -130,7 +130,17 @@
     "price_usd_placeholder": "напр. 1.50",
     "unit_field_placeholder": "напр. 1 кг, 1 шт",
     "price_field_placeholder": "напр. 6000 (оставьте пустым для n/a)",
-    "price_rate_hint": "≈ {khr} ៛ (по курсу 1 USD = {rate} KHR)"
+    "price_rate_hint": "≈ {khr} ៛ (по курсу 1 USD = {rate} KHR)",
+    "sheet_title": "Выбор товара",
+    "comment_label": "Пожелание закупщику",
+    "comment_placeholder": "Например: поспелее, средний размер, почистить",
+    "comment_tag_ripe": "Спелое",
+    "comment_tag_firm": "Потверже",
+    "comment_tag_green": "Позеленее",
+    "comment_tag_cleaned": "Почистить",
+    "btn_add_with_price": "В заказ • ~",
+    "btn_update_order": "Сохранить изменения",
+    "btn_remove_item": "Убрать из заказа"
   },
   "cart": {
     "title": "Ваша корзина",
@@ -167,7 +177,10 @@
     "pricing_formula_note": "ℹ️ <b>Формула расчета:</b> Чеки с рынка + сервисный сбор 10% + доставка ($1 / $2 / $3 по зонам). Оплата наличными или переводом по факту доставки.",
     "checkout_btn": "Оформить заказ",
     "submit_btn": "Оформить заказ",
-    "auth_required_hint": "Для подтверждения заказа войдите через Google"
+    "auth_required_hint": "Для подтверждения заказа войдите через Google",
+    "floating_items": "позиций",
+    "floating_to_cart": "В заказ →",
+    "item_wish_prefix": "Пожелание:"
   },
   "orders": {
     "modal_title": "Мои заказы",

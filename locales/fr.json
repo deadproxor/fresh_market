@@ -130,7 +130,17 @@
     "price_usd_placeholder": "ex. : 1.50",
     "unit_field_placeholder": "ex. : 1 kg, 1 pc",
     "price_field_placeholder": "ex. : 6000 (laisser vide si n/d)",
-    "price_rate_hint": "≈ {usd} $ (taux de change 1 USD = {rate} KHR)"
+    "price_rate_hint": "≈ {usd} $ (taux de change 1 USD = {rate} KHR)",
+    "sheet_title": "Sélection du produit",
+    "comment_label": "Note pour l'acheteur",
+    "comment_placeholder": "Ex. mûr, taille moyenne, nettoyé",
+    "comment_tag_ripe": "Mûr",
+    "comment_tag_firm": "Ferme",
+    "comment_tag_green": "Vert / Moins mûr",
+    "comment_tag_cleaned": "Nettoyé",
+    "btn_add_with_price": "Ajouter à la commande • ~",
+    "btn_update_order": "Enregistrer les modifications",
+    "btn_remove_item": "Retirer de la commande"
   },
   "cart": {
     "title": "Votre Panier",
@@ -167,7 +177,10 @@
     "pricing_formula_note": "ℹ️ <b>Formule tarifaire :</b> Tickets réels du marché + 10% de service d'achat + livraison (1 $ / 2 $ / 3 $ par zone). Paiement en espèces ou virement à la livraison.",
     "checkout_btn": "Passer la commande",
     "submit_btn": "Passer la commande",
-    "auth_required_hint": "Veuillez vous connecter avec Google pour confirmer votre commande"
+    "auth_required_hint": "Veuillez vous connecter avec Google pour confirmer votre commande",
+    "floating_items": "articles",
+    "floating_to_cart": "Voir la commande →",
+    "item_wish_prefix": "Note :"
   },
   "orders": {
     "modal_title": "Mes Commandes",

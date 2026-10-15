@@ -29,9 +29,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.4.14" />
-  <link rel="stylesheet" href="css/shop.css?v=1.4.14" />
-  <script src="js/shared/forms.js?v=1.4.14"></script>
+  <link rel="stylesheet" href="css/components.css?v=1.5.1" />
+  <link rel="stylesheet" href="css/shop.css?v=1.4.18" />
+  <script src="js/shared/forms.js?v=1.4.18"></script>
   <script src="js/shared/i18n.js"></script>
 </head>
 
@@ -365,13 +365,87 @@
       </button>
     </nav>
 
+    <!-- Floating Cart Bar (Appears when items are in cart during catalog browsing) -->
+    <div id="floatingCartBar" class="floating-cart-bar" style="display: none;">
+      <div class="floating-cart-summary">
+        <span class="floating-cart-badge" id="floatingCartCount">0</span>
+        <span class="floating-cart-text">
+          <span id="floatingCartLabel" data-i18n="cart.floating_items">позиций</span> •
+          <span class="floating-cart-total" id="floatingCartTotal">$0.00</span>
+        </span>
+      </div>
+      <button type="button" class="floating-cart-btn" id="btnFloatingToCart" data-i18n="cart.floating_to_cart">
+        В заказ →
+      </button>
+    </div>
+
+    <!-- Product Bottom Sheet Modal (Interactive single instance) -->
+    <div id="productBottomSheet" class="modal-overlay" style="display: none;">
+      <div class="modal-card product-bottom-sheet-card">
+        <div class="sheet-drag-handle-wrap" id="sheetDragHandle">
+          <div class="sheet-drag-handle"></div>
+        </div>
+
+        <div class="sheet-header-product">
+          <div class="sheet-product-media" id="sheetProductMedia">
+            <!-- Dynamically injected: photo img or category emoji -->
+          </div>
+          <div class="sheet-product-details">
+            <div class="sheet-product-title-row">
+              <div class="sheet-product-name" id="sheetProductName">Product Name</div>
+              <button type="button" class="sheet-close-btn" id="sheetBtnClose" aria-label="Close">✕</button>
+            </div>
+            <div class="sheet-product-khmer khmer-font" id="sheetProductKhmer">Khmer Name</div>
+            <div class="sheet-product-price-row">
+              <span class="sheet-price-tag" id="sheetPriceUsd">$0.00</span>
+              <span class="sheet-price-khr" id="sheetPriceKhr">~0 ៛</span>
+              <span class="badge badge-form" id="sheetFormBadge" style="display: none;"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet-body-scroll">
+          <!-- Weight / Quantity Selection -->
+          <div class="sheet-section">
+            <div class="sheet-section-title" data-i18n="product.select_qty_title">Количество / Вес</div>
+            <div class="sheet-options-grid" id="sheetOptionsGrid">
+              <!-- Dynamically populated chips -->
+            </div>
+          </div>
+
+          <!-- Customer Wishes / Note for Picker -->
+          <div class="sheet-section sheet-comment-wrap">
+            <div class="sheet-section-title" data-i18n="product.comment_label">Пожелание закупщику</div>
+            <input type="text" id="sheetCommentInput" class="sheet-comment-input"
+              placeholder="Например: поспелее, средний размер, почистить"
+              data-i18n-placeholder="product.comment_placeholder" maxlength="120" />
+            <div class="sheet-tags-row" id="sheetTagsRow">
+              <button type="button" class="sheet-tag-btn" data-tag="Спелое" data-tag-key="comment_tag_ripe" data-i18n="product.comment_tag_ripe">Спелое</button>
+              <button type="button" class="sheet-tag-btn" data-tag="Потверже" data-tag-key="comment_tag_firm" data-i18n="product.comment_tag_firm">Потверже</button>
+              <button type="button" class="sheet-tag-btn" data-tag="Позеленее" data-tag-key="comment_tag_green" data-i18n="product.comment_tag_green">Позеленее</button>
+              <button type="button" class="sheet-tag-btn" data-tag="Почистить" data-tag-key="comment_tag_cleaned" data-i18n="product.comment_tag_cleaned">Почистить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sheet-actions-footer">
+          <button type="button" class="btn-sheet-remove" id="sheetBtnRemove" style="display: none;" data-i18n="product.btn_remove_item">
+            Убрать из заказа
+          </button>
+          <button type="button" class="btn btn-primary btn-sheet-add" id="sheetBtnSubmit">
+            В заказ
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.4.17"></script>
+  <script src="js/shop.js?v=1.4.18"></script>
 </body>
 
 </html>
