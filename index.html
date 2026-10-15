@@ -37,7 +37,7 @@
 
   <!-- Dedicated Stylesheets -->
   <link rel="stylesheet" href="css/components.css?v=1.5.0" />
-  <link rel="stylesheet" href="css/landing.css?v=1.9.1" />
+  <link rel="stylesheet" href="css/landing.css?v=1.9.6" />
 
   <!-- Leaflet Interactive Map Library -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -304,24 +304,24 @@
               </p>
             </div>
 
-            <!-- Single Slot Schedule Card -->
-            <div class="map-slot-card">
-              <div class="map-slot-left">
-                <div class="map-slot-badge">Fixed Schedule</div>
-                <div class="map-slot-time">9&nbsp;AM — 12&nbsp;PM</div>
-              </div>
-              <div class="map-slot-right">
-                <div class="map-slot-status">Single Morning Delivery Slot</div>
-                <div class="map-slot-text">
-                  Procured at sunrise, delivered cold directly to your kitchen in time for lunch prep.
+            <!-- 4-Card Coverage & Schedule Matrix -->
+            <div class="map-coverage-matrix map-zones-interactive" role="tablist" aria-label="Delivery Zone Tiers & Schedule">
+
+              <!-- Card 1: Single Slot Schedule Card -->
+              <div class="map-slot-card">
+                <div class="map-slot-left">
+                  <div class="map-slot-badge">Fixed Schedule</div>
+                  <div class="map-slot-time">9&nbsp;AM — 12&nbsp;PM</div>
+                </div>
+                <div class="map-slot-right">
+                  <div class="map-slot-status">Single Morning Delivery Slot</div>
+                  <div class="map-slot-text">
+                    Procured at sunrise, delivered cold directly to your kitchen in time for lunch prep.
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 3 Interactive Zone Rows -->
-            <div class="map-zones-interactive" role="tablist" aria-label="Delivery Zone Tiers">
-
-              <!-- Zone 1 -->
+              <!-- Card 2: Zone 1 -->
               <div class="zone-interactive-row active" data-zone="1" tabindex="0" role="tab" aria-selected="true">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$1.00</span>
@@ -335,7 +335,7 @@
                 </div>
               </div>
 
-              <!-- Zone 2 -->
+              <!-- Card 3: Zone 2 -->
               <div class="zone-interactive-row" data-zone="2" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$2.00</span>
@@ -349,7 +349,7 @@
                 </div>
               </div>
 
-              <!-- Zone 3 -->
+              <!-- Card 4: Zone 3 -->
               <div class="zone-interactive-row" data-zone="3" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$3.00</span>
@@ -471,9 +471,8 @@
           </p>
         </div>
 
-        <div class="timeline-matrix-row grid-12">
-
-          <div class="timeline-matrix-card col-3 col-md-6 col-sm-12">
+        <div class="timeline-matrix-row">
+          <div class="timeline-matrix-card">
             <div class="step-badge">Phase 01</div>
             <div class="matrix-hour">11&nbsp;PM</div>
             <h4 class="matrix-title">Evening Order Cutoff</h4>
@@ -483,7 +482,7 @@
             </p>
           </div>
 
-          <div class="timeline-matrix-card col-3 col-md-6 col-sm-12">
+          <div class="timeline-matrix-card">
             <div class="step-badge">Phase 02</div>
             <div class="matrix-hour">5&nbsp;AM</div>
             <h4 class="matrix-title">Dawn Market Selection</h4>
@@ -492,7 +491,7 @@
             </p>
           </div>
 
-          <div class="timeline-matrix-card col-3 col-md-6 col-sm-12">
+          <div class="timeline-matrix-card">
             <div class="step-badge">Phase 03</div>
             <div class="matrix-hour">7:30&nbsp;AM</div>
             <h4 class="matrix-title">Weighing & Vendor Receipt</h4>
@@ -502,7 +501,7 @@
             </p>
           </div>
 
-          <div class="timeline-matrix-card col-3 col-md-6 col-sm-12">
+          <div class="timeline-matrix-card">
             <div class="step-badge">Phase 04</div>
             <div class="matrix-hour">9&nbsp;AM — 12&nbsp;PM</div>
             <h4 class="matrix-title">Doorstep Cold Delivery</h4>
@@ -511,7 +510,6 @@
               or KHQR.
             </p>
           </div>
-
         </div>
 
       </div>
@@ -616,6 +614,12 @@
       // 2. Live Ambient Leaflet Map Controller
       const HUB_COORDS = [10.6120, 104.1780]; // Dawn Market Hub location
 
+      // Parallax Configuration: tweak amplitude and viewport progress pivot
+      const MAP_PARALLAX_CONFIG = {
+        amplitude: 180,       // Total vertical travel distance in pixels
+        centerProgress: 0.7   // Viewport scroll pivot (0.0 = bottom entry, 0.5 = middle, 1.0 = top exit)
+      };
+
       let liveMap = null;
       let zoneCircles = {};
 
@@ -623,6 +627,7 @@
       function getFramerCamera(customZoom) {
         const visualPane = document.querySelector('.map-visual-pane');
         const mapEl = document.getElementById('liveLeafletMap');
+        const mapWrapper = document.querySelector('.unified-map-wrapper');
         const zoom = (typeof customZoom === 'number') ? customZoom : (window.innerWidth > 1080 ? 12.3 : 11.5);
 
         if (!visualPane || !mapEl || !liveMap || window.innerWidth <= 1080) {
@@ -630,12 +635,12 @@
         }
 
         const vRect = visualPane.getBoundingClientRect();
-        const mRect = mapEl.getBoundingClientRect();
-        const targetContainerX = (vRect.left - mRect.left) + (vRect.width / 2);
-        const targetContainerY = (vRect.top - mRect.top) + (vRect.height / 2);
+        const refRect = mapWrapper ? mapWrapper.getBoundingClientRect() : mapEl.getBoundingClientRect();
+        const targetContainerX = (vRect.left - refRect.left) + (vRect.width / 2);
+        const targetContainerY = (vRect.top - refRect.top) + (vRect.height / 2);
 
-        const containerCenterX = mRect.width / 2;
-        const containerCenterY = mRect.height / 2;
+        const containerCenterX = refRect.width / 2;
+        const containerCenterY = refRect.height / 2;
 
         const offsetX = targetContainerX - containerCenterX;
         const offsetY = targetContainerY - containerCenterY;
@@ -722,7 +727,7 @@
           circle.on('mouseover', () => highlightZone(z));
         });
 
-        // Tactile drag restriction: max 100px from calibrated home center
+        // Tactile drag restriction: max 200px from calibrated home center
         let isSpringingBack = false;
 
         liveMap.on('drag', () => {
@@ -735,7 +740,7 @@
 
           const dx = currentPoint.x - homePoint.x;
           const dy = currentPoint.y - homePoint.y;
-          const MAX_DRAG = 100; // 100px limit in all directions
+          const MAX_DRAG = 200; // Expanded to 200px limit in all directions
 
           const clampedDx = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, dx));
           const clampedDy = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, dy));
@@ -778,6 +783,36 @@
           }, { threshold: 0.25 });
           observer.observe(zonesSection);
         }
+
+        // Smooth GPU Scroll Parallax for Unified Map Underlay
+        const mapWrapper = document.querySelector('.unified-map-wrapper');
+        const mapUnderlay = document.getElementById('unifiedMapUnderlay');
+        let isParallaxTicking = false;
+
+        function updateMapParallax() {
+          if (!mapWrapper || !mapUnderlay) return;
+          const rect = mapWrapper.getBoundingClientRect();
+          const winH = window.innerHeight;
+
+          if (rect.bottom > 0 && rect.top < winH) {
+            // Scroll progress through viewport: 0 entering bottom, 1 leaving top
+            const progress = (winH - rect.top) / (winH + rect.height);
+            // Parallax offset based on configured pivot and amplitude
+            const translateY = (progress - MAP_PARALLAX_CONFIG.centerProgress) * MAP_PARALLAX_CONFIG.amplitude;
+            mapUnderlay.style.transform = `translate3d(0, ${translateY.toFixed(1)}px, 0)`;
+          }
+          isParallaxTicking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+          if (!isParallaxTicking) {
+            requestAnimationFrame(updateMapParallax);
+            isParallaxTicking = true;
+          }
+        }, { passive: true });
+
+        // Initial alignment
+        updateMapParallax();
       }
 
       const zoneRows = document.querySelectorAll('.zone-interactive-row');

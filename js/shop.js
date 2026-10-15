@@ -856,6 +856,31 @@ class ShopApp {
     `;
   }
 
+  getLocalizedProductName(item, lang = null) {
+    if (!item) return '';
+    const currentLang = (lang || (window.i18n ? window.i18n.currentLang : 'ru')).toLowerCase();
+
+    if (currentLang === 'ua' || currentLang === 'uk') {
+      return item.name_ua || item.ua || item.name_ru || item.ru || item.name_en || item.en || '';
+    }
+    if (currentLang === 'fr') {
+      return item.name_fr || item.fr || item.name_en || item.en || item.name_ru || item.ru || '';
+    }
+    if (currentLang === 'en') {
+      return item.name_en || item.en || item.name_ru || item.ru || '';
+    }
+    if (currentLang === 'km') {
+      return item.name_km || item.name_kh || item.kh || item.name_en || item.en || '';
+    }
+    // Default: Russian
+    return item.name_ru || item.ru || item.name_en || item.en || '';
+  }
+
+  getKhmerSubtitle(item) {
+    if (!item) return '';
+    return item.name_kh || item.name_km || item.kh || '';
+  }
+
   renderProducts() {
     if (!this.shopProductsGrid) return;
 
@@ -872,17 +897,24 @@ class ShopApp {
       });
     }
 
-    // Filter by Search Query (EN, KH, RU)
+    // Filter by Search Query (EN, KH, RU, UA, FR)
     if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter((p) => {
-        const en = (p.name_en || '').toLowerCase();
-        const kh = (p.name_kh || '').toLowerCase();
-        const ru = (p.name_ru || '').toLowerCase();
-        const cat = (p.category || '').toLowerCase();
-        return en.includes(this.searchQuery) ||
-          kh.includes(this.searchQuery) ||
-          ru.includes(this.searchQuery) ||
-          cat.includes(this.searchQuery);
+        const en = (p.name_en || p.en || '').toLowerCase();
+        const kh = (p.name_kh || p.name_km || p.kh || '').toLowerCase();
+        const ru = (p.name_ru || p.ru || '').toLowerCase();
+        const ua = (p.name_ua || p.ua || '').toLowerCase();
+        const fr = (p.name_fr || p.fr || '').toLowerCase();
+        const cat = (p.category || p.cat || '').toLowerCase();
+        const desc = (p.description || p.desc || '').toLowerCase();
+        return en.includes(q) ||
+          kh.includes(q) ||
+          ru.includes(q) ||
+          ua.includes(q) ||
+          fr.includes(q) ||
+          cat.includes(q) ||
+          desc.includes(q);
       });
     }
 
@@ -925,6 +957,9 @@ class ShopApp {
       const currentSelectedQty = inCart ? cartItem.qty : '';
       const formInfo = this.getFormInfo(item.form);
 
+      const primaryName = this.getLocalizedProductName(item);
+      const khmerName = this.getKhmerSubtitle(item);
+
       // 1. Photo & Interactive Options Viewport Block
       const photoBlock = `
         <div class="card-slider-viewport">
@@ -933,7 +968,7 @@ class ShopApp {
             <div class="card-slide card-slide-main">
               ${item.img_url ? `
                 <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
-                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                  <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
                   ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
                   ${this.renderPriceBadge(item.price, item.unit)}
                 </div>
@@ -973,16 +1008,15 @@ class ShopApp {
         </div>
       `;
 
-      // 2. Product Names Block (EN / KH / RU)
+      // 2. Product Names Block: Primary localized title + Khmer subtitle with phonetic transcription
       const namesBlock = `
         <div class="card-names-block">
           <div class="card-header-row">
             <div class="card-name-title-wrap">
-              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
+              <div class="card-name-en card-name-primary">${this.escapeHtml(primaryName)}</div>
             </div>
           </div>
-          ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
-          <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
+          ${khmerName ? `<div class="card-name-kh khmer-font">${this.escapeHtml(khmerName)}</div>` : ''}
         </div>
       `;
 
@@ -1062,7 +1096,7 @@ class ShopApp {
             optActions.prepend(btnRemove);
           }
 
-          this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${product.name_en} (${val})`);
+          this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : '✅ В корзине'}: ${this.getLocalizedProductName(product)} (${val})`);
         }
       });
     });
@@ -1135,7 +1169,7 @@ class ShopApp {
 
     this.saveCart();
     this.renderProducts();
-    this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : 'Добавлено'}: ${product.name_en}`);
+    this.showToast(`${window.i18n ? window.i18n.t('toasts.item_added') : 'Добавлено'}: ${this.getLocalizedProductName(product)}`);
   }
 
   increaseQty(productId) {
@@ -1272,8 +1306,8 @@ class ShopApp {
     this.cartItemsList.innerHTML = items.map(({ product, qty }) => `
       <div class="cart-item-row" data-id="${product.id}">
         <div class="cart-item-info">
-          <div class="cart-item-name">${this.escapeHtml(product.name_en)}</div>
-          <div class="cart-item-kh khmer-font">${this.escapeHtml(product.name_kh || '')}</div>
+          <div class="cart-item-name">${this.escapeHtml(this.getLocalizedProductName(product))}</div>
+          <div class="cart-item-kh khmer-font">${this.escapeHtml(this.getKhmerSubtitle(product))}</div>
         </div>
         <div class="cart-item-qty-input-wrap">
           <input type="text" class="cart-item-qty-input" value="${this.escapeHtml(qty)}" data-id="${product.id}" placeholder="${qtyPlaceholder}" />
@@ -1672,7 +1706,7 @@ class ShopApp {
     const phoneMeta = getPhoneLabelAndPlaceholder(currentMessenger);
 
     const currentLang = window.i18n?.currentLang || 'ru';
-    const langBadges = { ru: '🇷🇺 RU', en: '🇬🇧 EN', ua: '🇺🇦 UA', km: '🇰🇭 KM' };
+    const langBadges = { ru: '🇷🇺 RU', en: '🇬🇧 EN', fr: '🇫🇷 FR', ua: '🇺🇦 UA', km: '🇰🇭 KM' };
     const activeLangBadge = langBadges[currentLang] || '🇷🇺 RU';
 
     const isAuthenticated = !!this.currentUser;
@@ -1784,6 +1818,9 @@ class ShopApp {
               </button>
               <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'en' ? 'active' : ''}" data-lang="en">
                 🇬🇧 English
+              </button>
+              <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'fr' ? 'active' : ''}" data-lang="fr">
+                🇫🇷 Français
               </button>
               <button type="button" class="filter-pill profile-lang-pill ${currentLang === 'ua' ? 'active' : ''}" data-lang="ua">
                 🇺🇦 Українська

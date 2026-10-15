@@ -9,8 +9,9 @@
 
   const SUPPORTED_LANGS = {
     ru: { code: 'ru', label: 'RU', name: 'Русский', flag: '🇷🇺' },
-    ua: { code: 'ua', label: 'UA', name: 'Українська', flag: '🇺🇦' },
     en: { code: 'en', label: 'EN', name: 'English', flag: '🇬🇧' },
+    fr: { code: 'fr', label: 'FR', name: 'Français', flag: '🇫🇷' },
+    ua: { code: 'ua', label: 'UA', name: 'Українська', flag: '🇺🇦' },
     km: { code: 'km', label: 'KM', name: 'ភាសាខ្មែរ', flag: '🇰🇭' }
   };
 
@@ -55,6 +56,7 @@
           const code = l.toLowerCase().split('-')[0];
           if (code === 'uk' || code === 'ua') return 'ua';
           if (code === 'ru' || code === 'be') return 'ru';
+          if (code === 'fr') return 'fr';
           if (code === 'km') return 'km';
           if (code === 'en') return 'en';
         }

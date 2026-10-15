@@ -356,18 +356,22 @@ body:lang(km) {
   position: relative;
   overflow: hidden;
   background: var(--c-bg-subtle);
-  border-top: 1px solid var(--c-border);
+  border-top: 0px solid var(--c-border);
 }
 
 .unified-map-underlay {
   position: absolute;
-  inset: 0;
+  top: -150px;
+  bottom: -150px;
+  left: 0;
+  right: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% + 300px);
   pointer-events: auto;
   user-select: none;
   z-index: 0;
   overflow: hidden;
+  will-change: transform;
 }
 
 .live-leaflet-map {
@@ -845,7 +849,8 @@ body:lang(km) {
   line-height: 1.4;
 }
 
-/* Interactive Zone Rows */
+/* Coverage Matrix (Schedule + 3 Zones) */
+.map-coverage-matrix,
 .map-zones-interactive {
   display: flex;
   flex-direction: column;
@@ -1117,8 +1122,8 @@ body:lang(km) {
 .section-timeline {
   padding: clamp(56px, 7vw, 100px) 0;
   background: var(--c-bg-subtle);
-  border-top: 1px solid var(--c-border);
-  border-bottom: 1px solid var(--c-border);
+  border-top: 0px solid var(--c-border);
+  border-bottom: 0px solid var(--c-border);
 }
 
 .timeline-matrix-row {
@@ -1137,6 +1142,9 @@ body:lang(km) {
   position: relative;
   box-shadow: var(--shadow-card);
   transition: border-color 0.2s ease, transform 0.2s ease;
+  grid-column: auto !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .timeline-matrix-card:hover {
@@ -1323,6 +1331,7 @@ body:lang(km) {
 
 /* Laptops & Tablets Landscape (< 1080px) */
 @media (max-width: 1080px) {
+
   /* Hero choreography: Image directly after Title on mobile/tablets */
   .hero-grid {
     display: flex !important;
@@ -1393,46 +1402,115 @@ body:lang(km) {
     display: none !important;
   }
 
-  /* Mobile/Tablet: Neutral delivery zone rows (no highlight/gradient fill, no active hover glow) */
-  .zone-interactive-row,
-  .zone-interactive-row.active,
-  .zone-interactive-row:hover {
-    border-color: var(--c-border);
-    background: #ffffff;
-    box-shadow: none;
-    transform: none;
+  /* Mobile/Tablet: 4-Card Coverage Matrix (2 Columns) */
+  .map-coverage-matrix {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px !important;
+    align-items: stretch;
+  }
+
+  .map-coverage-matrix .map-slot-card,
+  .map-coverage-matrix .zone-interactive-row {
+    grid-column: auto !important;
+    width: 100% !important;
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between;
+    padding: 16px 14px !important;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--c-border) !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    transform: none !important;
     cursor: default;
+    height: 100%;
   }
 
-  .zone-interactive-row .zir-rate,
-  .zone-interactive-row.active .zir-rate,
-  .zone-interactive-row:hover .zir-rate {
+  .map-slot-card .map-slot-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .map-slot-card .map-slot-badge {
+    font-size: 10px;
+    font-weight: 800;
     color: var(--c-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
-  .zone-interactive-row .zir-radius,
-  .zone-interactive-row.active .zir-radius,
-  .zone-interactive-row:hover .zir-radius {
-    color: var(--c-text-muted);
-  }
-
-  .zone-interactive-row .zir-name,
-  .zone-interactive-row.active .zir-name,
-  .zone-interactive-row:hover .zir-name {
+  .map-slot-card .map-slot-time {
+    font-size: clamp(15px, 3.8vw, 17px);
+    font-weight: 800;
     color: var(--c-text-main);
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+    margin-top: 2px;
   }
 
-  .zone-interactive-row .zir-tag,
-  .zone-interactive-row.active .zir-tag,
-  .zone-interactive-row:hover .zir-tag {
-    background: var(--c-accent-soft);
-    color: var(--c-accent);
+  .map-slot-card .map-slot-right {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
   }
 
-  .zone-interactive-row .zir-desc,
-  .zone-interactive-row.active .zir-desc,
-  .zone-interactive-row:hover .zir-desc {
+  .map-slot-card .map-slot-status {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--c-text-main);
+    line-height: 1.25;
+  }
+
+  .map-slot-card .map-slot-text {
+    font-size: 11px;
     color: var(--c-text-muted);
+    line-height: 1.38;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-rate-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-rate {
+    font-size: clamp(19px, 4.4vw, 24px) !important;
+    font-weight: 800;
+    color: var(--c-accent) !important;
+    font-family: ui-monospace, monospace;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-radius {
+    font-size: 10.5px !important;
+    color: var(--c-text-muted) !important;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-name {
+    font-size: 12.5px !important;
+    font-weight: 700;
+    color: var(--c-text-main) !important;
+    line-height: 1.25;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-desc {
+    font-size: 11px !important;
+    color: var(--c-text-muted) !important;
+    line-height: 1.38;
   }
 
   .bento-tile,
@@ -1442,7 +1520,8 @@ body:lang(km) {
   }
 
   .timeline-matrix-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
   }
 
   .showcase-grid-expansive {
@@ -1475,19 +1554,13 @@ body:lang(km) {
     padding: 22px 18px;
   }
 
-  .map-slot-card {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  .map-coverage-matrix {
+    gap: clamp(10px, 2.5vw, 12px) !important;
   }
 
-  .zone-interactive-row {
-    grid-template-columns: 75px 1fr;
-    gap: 12px;
-    padding: 12px 14px;
-  }
-
-  .zir-rate {
-    font-size: 20px;
+  .map-coverage-matrix .map-slot-card,
+  .map-coverage-matrix .zone-interactive-row {
+    padding: 14px 12px !important;
   }
 
   .bento-split-media {
@@ -1514,7 +1587,35 @@ body:lang(km) {
   }
 
   .timeline-matrix-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: clamp(10px, 2.5vw, 16px);
+  }
+
+  .timeline-matrix-card {
+    padding: 18px 14px;
+    border-radius: var(--radius-lg);
+  }
+
+  .step-badge {
+    font-size: 10px;
+    margin-bottom: 8px;
+  }
+
+  .matrix-hour {
+    font-size: clamp(1.15rem, 3.8vw, 1.45rem);
+    margin-bottom: 6px;
+    white-space: nowrap;
+  }
+
+  .matrix-title {
+    font-size: 13.5px;
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+
+  .matrix-desc {
+    font-size: 11.5px;
+    line-height: 1.38;
   }
 
   .hero-metrics-bar {
@@ -1566,9 +1667,36 @@ body:lang(km) {
     padding: 20px 16px;
   }
 
-  .zone-interactive-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
+  .timeline-matrix-card {
+    padding: 14px 11px;
+  }
+
+  .map-coverage-matrix {
+    gap: 8px !important;
+  }
+
+  .map-coverage-matrix .map-slot-card,
+  .map-coverage-matrix .zone-interactive-row {
+    padding: 12px 10px !important;
+  }
+
+  .map-slot-card .map-slot-time {
+    font-size: 13.5px !important;
+  }
+
+  .map-coverage-matrix .zone-interactive-row .zir-rate {
+    font-size: 18px !important;
+  }
+
+  .map-slot-card .map-slot-status,
+  .map-coverage-matrix .zone-interactive-row .zir-name {
+    font-size: 11.5px !important;
+  }
+
+  .map-slot-card .map-slot-text,
+  .map-coverage-matrix .zone-interactive-row .zir-desc {
+    font-size: 10px !important;
+    line-height: 1.32;
   }
 
   .footer-bottom {
