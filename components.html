@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Master Core Design System & Components -->
-  <link rel="stylesheet" href="css/components.css?v=1.5.1" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.2" />
   <script src="js/shared/forms.js?v=1.4.8"></script>
   <script src="js/shared/i18n.js"></script>
 
@@ -2036,11 +2036,13 @@
     function openDemoBottomSheet() {
       const modal = document.getElementById('demoBottomSheetModal');
       if (modal) modal.style.display = 'flex';
+      document.body.classList.add('modal-open');
     }
 
     function closeDemoBottomSheet() {
       const modal = document.getElementById('demoBottomSheetModal');
       if (modal) modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
     }
 
     // Demo Product Bottom Sheet Controller
@@ -2048,11 +2050,13 @@
     function openDemoProductBottomSheet() {
       const modal = document.getElementById('demoProductBottomSheetModal');
       if (modal) modal.style.display = 'flex';
+      document.body.classList.add('modal-open');
     }
 
     function closeDemoProductBottomSheet() {
       const modal = document.getElementById('demoProductBottomSheetModal');
       if (modal) modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
     }
 
     function demoSelectSheetChip(btn, val) {

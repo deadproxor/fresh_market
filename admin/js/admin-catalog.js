@@ -1452,16 +1452,28 @@ class App {
       this.selectCategoryByName(this.activeFilterCategory);
     }
     this.addModal.style.display = 'flex';
+    document.body.classList.add('modal-open');
   }
 
   closeAddModal() {
     this.addModal.style.display = 'none';
+    this.checkModalOpenState();
   }
 
   closeEditModal() {
     this.editModal.style.display = 'none';
     if (this.modalBody) this.modalBody.innerHTML = '';
     this.editModalImageBase64 = '';
+    this.checkModalOpenState();
+  }
+
+  checkModalOpenState() {
+    const isAnyModalOpen = (this.addModal && this.addModal.style.display === 'flex') ||
+      (this.editModal && this.editModal.style.display === 'flex') ||
+      (this.deleteModal && this.deleteModal.style.display === 'flex');
+    if (!isAnyModalOpen) {
+      document.body.classList.remove('modal-open');
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -2834,12 +2846,14 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     this.pendingDeleteName = name;
     this.deleteConfirmMsg.textContent = `Вы действительно хотите удалить «${name}» из каталога?`;
     this.deleteModal.style.display = 'flex';
+    document.body.classList.add('modal-open');
   }
 
   closeDeleteModal() {
     this.deleteModal.style.display = 'none';
     this.pendingDeleteId = null;
     this.pendingDeleteName = '';
+    this.checkModalOpenState();
   }
 
   async deleteProductEverywhere(id, product = null) {
@@ -3707,6 +3721,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     });
 
     this.editModal.style.display = 'flex';
+    document.body.classList.add('modal-open');
   }
 
   // ------------------------------------------------------------------------

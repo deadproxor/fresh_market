@@ -577,6 +577,7 @@ class ShopApp {
     }
     if (this.onboardingOverlay) {
       this.onboardingOverlay.style.display = 'flex';
+      document.body.classList.add('modal-open');
     }
   }
 
@@ -609,6 +610,9 @@ class ShopApp {
     }
     if (this.onboardingOverlay) {
       this.onboardingOverlay.style.display = 'none';
+      if (!this.productBottomSheet || this.productBottomSheet.style.display !== 'flex') {
+        document.body.classList.remove('modal-open');
+      }
     }
   }
 
@@ -1174,6 +1178,7 @@ class ShopApp {
 
     // Show modal
     this.productBottomSheet.style.display = 'flex';
+    document.body.classList.add('modal-open');
   }
 
   updateSheetSubmitBtnText(product, inCart) {
@@ -1197,6 +1202,9 @@ class ShopApp {
   closeProductSheet() {
     if (this.productBottomSheet) {
       this.productBottomSheet.style.display = 'none';
+      if (!this.onboardingOverlay || this.onboardingOverlay.style.display !== 'flex') {
+        document.body.classList.remove('modal-open');
+      }
     }
     this.activeSheetProductId = null;
     this.activeSheetSelectedQty = null;
