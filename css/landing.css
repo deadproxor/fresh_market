@@ -767,7 +767,8 @@ body:lang(km) {
   position: relative;
   width: 100%;
   border-radius: var(--radius-xl);
-  background: #ffffff;
+  /*background: #ffffff;*/
+  background-color: rgba(5, 150, 105, .3);
   border: 1px solid var(--c-border);
   box-shadow: var(--shadow-card);
   padding: 30px 28px;

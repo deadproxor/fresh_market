@@ -139,7 +139,7 @@
     "comment_tag_green": "Green / Unripe",
     "comment_tag_cleaned": "Cleaned",
     "btn_add_with_price": "Add to Order • ~",
-    "btn_update_order": "Save Changes",
+    "btn_update_order": "Save",
     "btn_remove_item": "Remove from Order"
   },
   "cart": {

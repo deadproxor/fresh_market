@@ -58,6 +58,8 @@ class ShopApp {
     this.activeHomeTab = 'categories';
     this.cart = this.loadCart();
     this.currentUser = null;
+    this.userProfile = null;
+    this.cloudCartDebounceTimer = null;
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
     this.shopLayout = localStorage.getItem('freshmarket_shop_layout') || 'grid-2';
@@ -70,6 +72,7 @@ class ShopApp {
     this.initOnboarding();
     this.loadCatalog();
     this.updateCartUi();
+    this.updateHeaderUi();
     this.initServiceWorker();
   }
 
@@ -114,11 +117,19 @@ class ShopApp {
             autoRefreshToken: true
           }
         });
-        this.sb.auth.onAuthStateChange((event, session) => {
+        this.sb.auth.onAuthStateChange(async (event, session) => {
           this.currentUser = session?.user || null;
           this.updateUserAvatar();
+          if (this.currentUser) {
+            await this.loadUserProfileAndSyncCart();
+          } else {
+            this.userProfile = null;
+          }
           if (this.currentView === 'profile') {
             this.renderProfileView();
+          } else if (this.currentView === 'cart') {
+            this.renderCartModalList();
+            this.prefillCheckoutData();
           }
         });
       } catch (err) {
@@ -127,13 +138,109 @@ class ShopApp {
     }
   }
 
+  // ------------------------------------------------------------------------
+  // 2. User Profile & Cross-Device Cart Synchronization
+  // ------------------------------------------------------------------------
+  async loadUserProfileAndSyncCart() {
+    if (!this.sb || !this.currentUser) return;
+
+    try {
+      const { data: profile, error } = await this.sb
+        .from('profiles')
+        .select('*')
+        .eq('id', this.currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn('[FreshMarket Shop] Error fetching profile:', error);
+        return;
+      }
+
+      if (!profile) {
+        const newProfile = {
+          id: this.currentUser.id,
+          email: this.currentUser.email || '',
+          full_name: this.currentUser.user_metadata?.full_name || this.currentUser.user_metadata?.name || '',
+          avatar_url: this.currentUser.user_metadata?.avatar_url || this.currentUser.user_metadata?.picture || '',
+          messenger: localStorage.getItem('freshmarket_customer_messenger') || 'telegram',
+          phone: localStorage.getItem('freshmarket_customer_phone') || '',
+          address: localStorage.getItem('freshmarket_customer_address') || '',
+          cart: this.cart || {},
+          updated_at: new Date().toISOString()
+        };
+        await this.sb.from('profiles').upsert(newProfile);
+        this.userProfile = newProfile;
+        return;
+      }
+
+      this.userProfile = profile;
+
+      // 1. Sync contacts to localStorage
+      if (profile.messenger) {
+        localStorage.setItem('freshmarket_customer_messenger', profile.messenger);
+      }
+      if (profile.phone) {
+        localStorage.setItem('freshmarket_customer_phone', profile.phone);
+      }
+      if (profile.address) {
+        localStorage.setItem('freshmarket_customer_address', profile.address);
+      }
+
+      // 2. Cross-device Cart Synchronization & Merging
+      const cloudCart = (profile.cart && typeof profile.cart === 'object' && !Array.isArray(profile.cart))
+        ? profile.cart
+        : {};
+
+      const cloudKeys = Object.keys(cloudCart);
+      const localKeys = Object.keys(this.cart || {});
+
+      if (cloudKeys.length > 0 || localKeys.length > 0) {
+        const mergedCart = { ...cloudCart, ...this.cart };
+        this.cart = mergedCart;
+        localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
+        this.updateCartUi();
+        this.renderProducts();
+
+        const needsCloudPush = localKeys.some((k) => !cloudCart[k]);
+        if (needsCloudPush) {
+          this.syncCartToCloud();
+        }
+      }
+
+      this.updateUserAvatar();
+    } catch (err) {
+      console.warn('[FreshMarket Shop] Error syncing profile & cart:', err);
+    }
+  }
+
+  syncCartToCloud() {
+    if (!this.sb || !this.currentUser) return;
+    if (this.cloudCartDebounceTimer) {
+      clearTimeout(this.cloudCartDebounceTimer);
+    }
+    this.cloudCartDebounceTimer = setTimeout(async () => {
+      try {
+        await this.sb.from('profiles').update({
+          cart: this.cart || {},
+          updated_at: new Date().toISOString()
+        }).eq('id', this.currentUser.id);
+      } catch (err) {
+        console.warn('[FreshMarket Shop] Failed to sync cart to cloud:', err);
+      }
+    }, 400);
+  }
+
 
 
   // ------------------------------------------------------------------------
   // 3. DOM Elements & Navigation
   // ------------------------------------------------------------------------
   initDomElements() {
-    // Header & Search
+    // Header Actions & Search
+    this.headerLangPicker = document.getElementById('headerLangPicker');
+    this.headerCartBtn = document.getElementById('headerCartBtn');
+    this.headerCartBadge = document.getElementById('headerCartBadge');
+    this.headerAvatarBtn = document.getElementById('headerAvatarBtn');
     this.btnAuthProfile = document.getElementById('btnAuthProfile');
     this.btnShopHeaderLogout = document.getElementById('btnShopHeaderLogout');
     this.userAvatarIcon = document.getElementById('userAvatarIcon');
@@ -214,6 +321,14 @@ class ShopApp {
   // 4. Event Listeners
   // ------------------------------------------------------------------------
   initEventListeners() {
+    // Header Actions
+    if (this.headerAvatarBtn) {
+      this.headerAvatarBtn.addEventListener('click', () => this.switchView('profile'));
+    }
+    if (this.headerCartBtn) {
+      this.headerCartBtn.addEventListener('click', () => this.switchView('cart'));
+    }
+
     // Profile & Auth
     if (this.btnAuthProfile) {
       this.btnAuthProfile.addEventListener('click', () => this.openAuthModal());
@@ -223,6 +338,7 @@ class ShopApp {
       this.btnShopHeaderLogout.addEventListener('click', async () => {
         if (this.sb) await this.sb.auth.signOut();
         this.currentUser = null;
+        this.userProfile = null;
         this.updateUserAvatar();
         this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
       });
@@ -1130,9 +1246,11 @@ class ShopApp {
     if (this.sheetProductKhmer) this.sheetProductKhmer.textContent = khmerName || '';
 
     // Price tags
-    const priceUsd = typeof product.price === 'number' && product.price > 0 ? `$${product.price.toFixed(2)}` : (window.i18n ? window.i18n.t('product.price_na') : 'n/a');
-    const rate = this.exchangeRate || 4000;
-    const priceKhr = typeof product.price === 'number' && product.price > 0 ? `~${Math.round(product.price * rate).toLocaleString()} ៛` : '';
+    const rate = this.khrRate || 4000;
+    const hasPrice = product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price)) && Number(product.price) > 0;
+    const khrPrice = hasPrice ? Number(product.price) : 0;
+    const priceUsd = hasPrice ? `$${(khrPrice / rate).toFixed(2)}` : (window.i18n ? window.i18n.t('product.price_na') : 'n/a');
+    const priceKhr = hasPrice ? `~${Math.round(khrPrice).toLocaleString('en-US')} ៛` : '';
 
     if (this.sheetPriceUsd) this.sheetPriceUsd.textContent = priceUsd;
     if (this.sheetPriceKhr) this.sheetPriceKhr.textContent = priceKhr;
@@ -1183,17 +1301,23 @@ class ShopApp {
 
   updateSheetSubmitBtnText(product, inCart) {
     if (!this.sheetBtnSubmit) return;
-    if (inCart) {
-      this.sheetBtnSubmit.textContent = window.i18n ? window.i18n.t('product.btn_update_order') : 'Сохранить изменения';
-    } else {
-      let estPrice = '';
-      if (typeof product.price === 'number' && product.price > 0) {
-        const numMatch = (this.activeSheetSelectedQty || '').match(/^([\d.]+)/);
-        if (numMatch) {
-          const qtyVal = parseFloat(numMatch[1]) || 1;
-          estPrice = ` • ~$${(product.price * qtyVal).toFixed(2)}`;
-        }
+
+    let estPrice = '';
+    const hasPrice = product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price)) && Number(product.price) > 0;
+    if (hasPrice) {
+      const numMatch = (this.activeSheetSelectedQty || '').match(/^([\d.]+)/);
+      if (numMatch) {
+        const qtyVal = parseFloat(numMatch[1]) || 1;
+        const rate = this.khrRate || 4000;
+        const usdPerUnit = Number(product.price) / rate;
+        estPrice = ` • ~$${(usdPerUnit * qtyVal).toFixed(2)}`;
       }
+    }
+
+    if (inCart) {
+      const saveText = window.i18n ? window.i18n.t('product.btn_update_order') : 'Сохранить';
+      this.sheetBtnSubmit.textContent = `${saveText}${estPrice}`;
+    } else {
       const addText = window.i18n ? window.i18n.t('product.confirm_btn') : 'В заказ';
       this.sheetBtnSubmit.textContent = `${addText}${estPrice}`;
     }
@@ -1252,18 +1376,23 @@ class ShopApp {
     if (count > 0 && this.currentView === 'catalog') {
       if (this.floatingCartCount) this.floatingCartCount.textContent = count;
 
-      // Estimate total sum
-      let sum = 0;
+      // Estimate total sum in KHR and USD
+      let sumKhr = 0;
       items.forEach(({ product, qty }) => {
-        if (product && typeof product.price === 'number') {
+        if (product && product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price))) {
           const numMatch = (qty || '').match(/^([\d.]+)/);
           const qVal = numMatch ? parseFloat(numMatch[1]) : 1;
-          sum += product.price * qVal;
+          sumKhr += Number(product.price) * qVal;
         }
       });
 
+      const rate = this.khrRate || 4000;
+      const sumUsd = sumKhr / rate;
+
       if (this.floatingCartTotal) {
-        this.floatingCartTotal.textContent = sum > 0 ? `~$${sum.toFixed(2)}` : '';
+        this.floatingCartTotal.textContent = sumKhr > 0
+          ? `~$${sumUsd.toFixed(2)} / ${Math.round(sumKhr).toLocaleString('en-US')} ៛`
+          : '';
       }
 
       this.floatingCartBar.style.display = 'flex';
@@ -1287,6 +1416,9 @@ class ShopApp {
   saveCart() {
     localStorage.setItem('freshmarket_cart', JSON.stringify(this.cart));
     this.updateCartUi();
+    if (this.currentUser) {
+      this.syncCartToCloud();
+    }
   }
 
   addToCart(productId) {
@@ -1368,6 +1500,16 @@ class ShopApp {
       }
     }
 
+    // Update Header Cart Badge Indicator
+    if (this.headerCartBadge) {
+      if (count > 0) {
+        this.headerCartBadge.textContent = count;
+        this.headerCartBadge.style.display = 'inline-flex';
+      } else {
+        this.headerCartBadge.style.display = 'none';
+      }
+    }
+
     this.updateFloatingCartBar();
   }
 
@@ -1395,12 +1537,21 @@ class ShopApp {
     let address = localStorage.getItem('freshmarket_customer_address') || '';
 
     if (this.currentUser) {
-      name = this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer;
+      name = this.currentUser.user_metadata?.full_name || this.currentUser.user_metadata?.name || this.currentUser.email || defaultCustomer;
       email = this.currentUser.email || '';
       if (!phone && this.currentUser.phone) {
         phone = this.currentUser.phone;
       }
     }
+
+    if (this.userProfile) {
+      if (this.userProfile.full_name) name = this.userProfile.full_name;
+      if (this.userProfile.phone) phone = this.userProfile.phone;
+      if (this.userProfile.messenger) messenger = this.userProfile.messenger;
+      if (this.userProfile.address) address = this.userProfile.address;
+      if (this.userProfile.email) email = this.userProfile.email;
+    }
+
     return { name, email, messenger, phone, address };
   }
 
@@ -1866,8 +2017,9 @@ class ShopApp {
     const activeLangBadge = langBadges[currentLang] || '🇷🇺 RU';
 
     const isAuthenticated = !!this.currentUser;
-    const userName = isAuthenticated ? (this.currentUser.user_metadata?.full_name || this.currentUser.email || defaultCustomer) : defaultCustomer;
-    const userEmail = isAuthenticated ? (this.currentUser.email || '') : '';
+    const userName = isAuthenticated ? (this.userProfile?.full_name || this.currentUser.user_metadata?.full_name || this.currentUser.user_metadata?.name || this.currentUser.email || defaultCustomer) : defaultCustomer;
+    const userEmail = isAuthenticated ? (this.userProfile?.email || this.currentUser.email || '') : '';
+    const userAvatarUrl = isAuthenticated ? (this.userProfile?.avatar_url || this.currentUser.user_metadata?.avatar_url || this.currentUser.user_metadata?.picture || '') : '';
 
     this.authModalBody.innerHTML = `
       <div class="profile-view" style="width: 100%;">
@@ -1890,7 +2042,9 @@ class ShopApp {
           <div class="settings-section-body">
             ${isAuthenticated ? `
               <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0;">
-                <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--bg-main, #f5f5f7); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-subtle);">👤</div>
+                <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--bg-main, #f5f5f7); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-subtle); overflow: hidden; flex-shrink: 0;">
+                  ${userAvatarUrl ? `<img src="${userAvatarUrl}" alt="${this.escapeHtml(userName)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : '👤'}
+                </div>
                 <div style="overflow: hidden;">
                   <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${this.escapeHtml(userName)}</div>
                   <div style="font-size: 12px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${this.escapeHtml(userEmail)}</div>
@@ -2094,7 +2248,7 @@ class ShopApp {
     });
 
     // Save Contacts click handler
-    document.getElementById('btnSaveProfileDetails')?.addEventListener('click', () => {
+    document.getElementById('btnSaveProfileDetails')?.addEventListener('click', async () => {
       const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
       const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
       if (!pPhone) {
@@ -2105,6 +2259,25 @@ class ShopApp {
       localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
       localStorage.setItem('freshmarket_customer_phone', pPhone);
       if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
+
+      if (this.sb && this.currentUser) {
+        try {
+          await this.sb.from('profiles').update({
+            phone: pPhone,
+            address: pAddress,
+            messenger: currentMessenger,
+            updated_at: new Date().toISOString()
+          }).eq('id', this.currentUser.id);
+          if (this.userProfile) {
+            this.userProfile.phone = pPhone;
+            this.userProfile.address = pAddress;
+            this.userProfile.messenger = currentMessenger;
+          }
+        } catch (err) {
+          console.warn('[FreshMarket Shop] Error saving profile to Supabase:', err);
+        }
+      }
+
       this.showToast(window.i18n ? window.i18n.t('toasts.contacts_saved') : '✅ Контакты сохранены');
     });
 
@@ -2135,6 +2308,7 @@ class ShopApp {
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
       if (this.sb) await this.sb.auth.signOut();
       this.currentUser = null;
+      this.userProfile = null;
       this.updateUserAvatar();
       this.renderProfileView();
       this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
@@ -2170,14 +2344,48 @@ class ShopApp {
     });
   }
 
-  updateUserAvatar() {
+  updateHeaderUi() {
     const isAuth = this.isUserAuthenticated();
-    if (this.userAvatarIcon) {
-      this.userAvatarIcon.textContent = isAuth ? '🟢' : '👤';
+
+    // 1. Language Picker (Visible only for guests)
+    if (this.headerLangPicker) {
+      this.headerLangPicker.style.display = isAuth ? 'none' : 'inline-flex';
     }
+
+    // 2. Header Cart Button (Visible only for authenticated users)
+    if (this.headerCartBtn) {
+      this.headerCartBtn.style.display = isAuth ? 'inline-flex' : 'none';
+    }
+
+    // 3. Header Avatar / Profile Button
+    if (this.headerAvatarBtn) {
+      if (isAuth) {
+        const avatarUrl = this.userProfile?.avatar_url || this.currentUser?.user_metadata?.avatar_url || this.currentUser?.user_metadata?.picture || '';
+        const userName = this.userProfile?.full_name || this.currentUser?.user_metadata?.full_name || this.currentUser?.email || '';
+        if (avatarUrl) {
+          this.headerAvatarBtn.innerHTML = `<img src="${avatarUrl}" alt="${this.escapeHtml(userName)}" />`;
+        } else {
+          const initial = userName ? userName.charAt(0).toUpperCase() : '👤';
+          this.headerAvatarBtn.innerHTML = `<span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${this.escapeHtml(initial)}</span>`;
+        }
+      } else {
+        // Guest: clean neutral silhouette
+        this.headerAvatarBtn.innerHTML = `
+          <svg class="header-avatar-silhouette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        `;
+      }
+    }
+
     if (this.btnShopHeaderLogout) {
       this.btnShopHeaderLogout.style.display = isAuth ? 'inline-flex' : 'none';
     }
+  }
+
+  updateUserAvatar() {
+    this.updateHeaderUi();
   }
 
   // ------------------------------------------------------------------------

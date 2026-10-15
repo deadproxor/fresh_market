@@ -139,7 +139,7 @@
     "comment_tag_green": "Позеленее",
     "comment_tag_cleaned": "Почистить",
     "btn_add_with_price": "В заказ • ~",
-    "btn_update_order": "Сохранить изменения",
+    "btn_update_order": "Сохранить",
     "btn_remove_item": "Убрать из заказа"
   },
   "cart": {

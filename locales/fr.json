@@ -139,7 +139,7 @@
     "comment_tag_green": "Vert / Moins mûr",
     "comment_tag_cleaned": "Nettoyé",
     "btn_add_with_price": "Ajouter à la commande • ~",
-    "btn_update_order": "Enregistrer les modifications",
+    "btn_update_order": "Enregistrer",
     "btn_remove_item": "Retirer de la commande"
   },
   "cart": {
