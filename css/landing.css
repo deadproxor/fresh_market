@@ -808,7 +808,6 @@ body:lang(km) {
   background: #fbfbf9;
   border: 0px solid var(--c-border);
   border-radius: var(--radius-lg);
-  align-items: center;
 }
 
 .map-slot-left {
