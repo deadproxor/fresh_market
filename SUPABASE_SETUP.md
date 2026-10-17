@@ -290,6 +290,206 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT OR UPDATE ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================================================
+-- 2.5. ТРАНЗАКЦИОННАЯ RPC-ФУНКЦИЯ ОФОРМЛЕНИЯ ЗАКАЗА (public.create_order)
+-- ============================================================================
+-- Решает проблему неатомарности (§3.2 Аудита) и исключает подделку стоимости/статуса
+CREATE OR REPLACE FUNCTION public.create_order(
+  p_order_id UUID DEFAULT NULL,
+  p_customer_name TEXT DEFAULT NULL,
+  p_customer_phone TEXT DEFAULT NULL,
+  p_customer_messenger TEXT DEFAULT 'telegram',
+  p_delivery_address TEXT DEFAULT NULL,
+  p_delivery_zone TEXT DEFAULT 'zone_1',
+  p_customer_comment TEXT DEFAULT NULL,
+  p_replacement_policy TEXT DEFAULT 'call_to_agree',
+  p_target_delivery_date DATE DEFAULT NULL,
+  p_items JSONB DEFAULT '[]'::jsonb
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_order_id UUID;
+  v_order_number TEXT;
+  v_delivery_fee NUMERIC(10, 2);
+  v_target_date DATE;
+  v_item RECORD;
+  v_result JSONB;
+BEGIN
+  -- 1. Проверка аутентификации пользователя
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Unauthorized: order creation requires authentication';
+  END IF;
+
+  -- 2. Валидация обязательных данных
+  IF p_customer_phone IS NULL OR trim(p_customer_phone) = '' THEN
+    RAISE EXCEPTION 'Customer phone or messenger contact is required';
+  END IF;
+
+  IF p_items IS NULL OR jsonb_array_length(p_items) = 0 THEN
+    RAISE EXCEPTION 'Order must contain at least one item';
+  END IF;
+
+  -- 3. Серверная тарификация доставки по зонам (защита от клиентских манипуляций)
+  CASE p_delivery_zone
+    WHEN 'zone_1' THEN v_delivery_fee := 1.00;
+    WHEN 'zone_2' THEN v_delivery_fee := 2.00;
+    WHEN 'zone_3' THEN v_delivery_fee := 3.50;
+    ELSE v_delivery_fee := 3.50;
+  END CASE;
+
+  -- 4. Генерация/присвоение идентификаторов
+  v_order_id := COALESCE(p_order_id, gen_random_uuid());
+  
+  -- Генерация последовательного номера заказа FM-YYMMDD-NNN
+  v_order_number := 'FM-' || to_char(CURRENT_DATE, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
+  v_target_date := COALESCE(p_target_delivery_date, CURRENT_DATE + INTERVAL '1 day');
+
+  -- 5. Вставка шапки заказа (атомарно в транзакции)
+  -- Если заказ с таким p_order_id уже был вставлен (повторная синхронизация), обновляем контакты
+  INSERT INTO public.orders (
+    id,
+    order_number,
+    user_id,
+    status,
+    payment_status,
+    payment_method,
+    customer_name,
+    customer_phone,
+    customer_messenger,
+    delivery_address,
+    customer_notes,
+    customer_comment,
+    target_delivery_date,
+    replacement_policy,
+    replace_rule,
+    delivery_zone,
+    delivery_fee,
+    service_percent,
+    estimated_total,
+    market_items_total,
+    actual_market_total,
+    service_fee,
+    grand_total,
+    created_at,
+    updated_at
+  ) VALUES (
+    v_order_id,
+    v_order_number,
+    v_user_id,
+    'pending',
+    'pending',
+    'cash',
+    p_customer_name,
+    p_customer_phone,
+    COALESCE(p_customer_messenger, 'telegram'),
+    p_delivery_address,
+    p_customer_comment,
+    p_customer_comment,
+    v_target_date,
+    COALESCE(p_replacement_policy, 'call_to_agree'),
+    COALESCE(p_replacement_policy, 'call_to_agree'),
+    p_delivery_zone,
+    v_delivery_fee,
+    10.00,
+    0.00,
+    0.00,
+    0.00,
+    0.00,
+    v_delivery_fee,
+    now(),
+    now()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    customer_phone = EXCLUDED.customer_phone,
+    delivery_address = EXCLUDED.delivery_address,
+    customer_notes = EXCLUDED.customer_notes,
+    updated_at = now()
+  RETURNING order_number INTO v_order_number;
+
+  -- 6. Вставка всех позиций заказа в той же транзакции
+  FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS (
+    id UUID,
+    product_id UUID,
+    product_title TEXT,
+    product_name_en TEXT,
+    product_name_kh TEXT,
+    product_name_ru TEXT,
+    product_img_url TEXT,
+    product_category TEXT,
+    product_form TEXT,
+    quantity NUMERIC,
+    requested_qty NUMERIC,
+    unit TEXT,
+    customer_comment TEXT,
+    estimated_price NUMERIC
+  )
+  LOOP
+    INSERT INTO public.order_items (
+      id,
+      order_id,
+      product_id,
+      product_title,
+      product_name_en,
+      product_name_kh,
+      product_name_ru,
+      product_img_url,
+      product_category,
+      product_form,
+      quantity,
+      requested_qty,
+      unit,
+      customer_comment,
+      status,
+      estimated_price,
+      actual_cost,
+      created_at
+    ) VALUES (
+      COALESCE(v_item.id, gen_random_uuid()),
+      v_order_id,
+      v_item.product_id,
+      COALESCE(v_item.product_title, 'Товар'),
+      v_item.product_name_en,
+      v_item.product_name_kh,
+      v_item.product_name_ru,
+      v_item.product_img_url,
+      v_item.product_category,
+      v_item.product_form,
+      COALESCE(v_item.requested_qty, v_item.quantity, 1.00),
+      COALESCE(v_item.requested_qty, v_item.quantity, 1.00),
+      COALESCE(v_item.unit, 'кг'),
+      v_item.customer_comment,
+      'pending',
+      COALESCE(v_item.estimated_price, 0.00),
+      0.00,
+      now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END LOOP;
+
+  -- 7. Формирование возвращаемого JSON-результата
+  SELECT jsonb_build_object(
+    'success', true,
+    'order_id', v_order_id,
+    'order_number', v_order_number,
+    'delivery_fee', v_delivery_fee,
+    'grand_total', v_delivery_fee,
+    'status', 'pending',
+    'created_at', now()
+  ) INTO v_result;
+
+  RETURN v_result;
+END;
+$$;
+
+-- Выдача прав на вызов функции авторизованным покупателям
+GRANT EXECUTE ON FUNCTION public.create_order TO authenticated;
 ```
 
 ---

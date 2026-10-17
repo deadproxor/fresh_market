@@ -56,14 +56,18 @@ class ShopApp {
     this.cart = this.loadCart();
     this.currentUser = null;
     this.userProfile = null;
+    this.initialCartSynced = false;
     this.cloudCartDebounceTimer = null;
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
     this.shopLayout = localStorage.getItem('freshmarket_shop_layout') || 'grid-2';
 
+    // 0. Synchronous fast recovery of cached customer session and profile
+    this.initCachedUser();
+
     this.initSplashScreen();
-    this.initSupabase();
     this.initDomElements();
+    this.initSupabase();
     this.initEventListeners();
     this.switchView('catalog');
     this.initOnboarding();
@@ -71,6 +75,22 @@ class ShopApp {
     this.updateCartUi();
     this.updateHeaderUi();
     this.initServiceWorker();
+  }
+
+  initCachedUser() {
+    try {
+      const rawAuth = localStorage.getItem('freshmarket_customer_auth');
+      if (rawAuth) {
+        const parsed = JSON.parse(rawAuth);
+        if (parsed && parsed.user) {
+          this.currentUser = parsed.user;
+        }
+      }
+      const rawProfile = localStorage.getItem('freshmarket_user_profile');
+      if (rawProfile) {
+        this.userProfile = JSON.parse(rawProfile);
+      }
+    } catch (_) {}
   }
 
   getKhrRate() {
@@ -116,6 +136,11 @@ class ShopApp {
             autoRefreshToken: true
           }
         });
+
+        // 1. Explicit immediate session check (handles page reload & cached tokens)
+        this.checkInitialSession();
+
+        // 2. Real-time auth state changes (login, logout, token refresh)
         this.sb.auth.onAuthStateChange(async (event, session) => {
           this.currentUser = session?.user || null;
           this.updateUserAvatar();
@@ -123,6 +148,8 @@ class ShopApp {
             await this.loadUserProfileAndSyncCart();
           } else {
             this.userProfile = null;
+            localStorage.removeItem('freshmarket_user_profile');
+            this.updateUserAvatar();
           }
           if (this.currentView === 'profile') {
             this.renderProfileView();
@@ -134,6 +161,28 @@ class ShopApp {
       } catch (err) {
         console.warn('[FreshMarket Shop] Supabase client init error:', err);
       }
+    }
+  }
+
+  async checkInitialSession() {
+    if (!this.sb) return;
+    try {
+      const { data: { session }, error } = await this.sb.auth.getSession();
+      if (!error && session?.user) {
+        this.currentUser = session.user;
+        this.updateUserAvatar();
+        await this.loadUserProfileAndSyncCart();
+      } else if (!session) {
+        // If Supabase confirms no active session, clear guest cache
+        if (this.currentUser) {
+          this.currentUser = null;
+          this.userProfile = null;
+          localStorage.removeItem('freshmarket_user_profile');
+          this.updateUserAvatar();
+        }
+      }
+    } catch (err) {
+      console.warn('[FreshMarket Shop] Initial session check error:', err);
     }
   }
 
@@ -152,6 +201,7 @@ class ShopApp {
 
       if (error) {
         console.warn('[FreshMarket Shop] Error fetching profile:', error);
+        this.updateUserAvatar();
         return;
       }
 
@@ -173,10 +223,13 @@ class ShopApp {
         };
         await this.sb.from('profiles').upsert(newProfile);
         this.userProfile = newProfile;
+        localStorage.setItem('freshmarket_user_profile', JSON.stringify(newProfile));
+        this.updateUserAvatar();
         return;
       }
 
       this.userProfile = profile;
+      localStorage.setItem('freshmarket_user_profile', JSON.stringify(profile));
 
       // 1. Sync contacts to localStorage
       if (profile.messenger) {
@@ -217,25 +270,43 @@ class ShopApp {
         if (radio) radio.checked = true;
       }
 
-      // 3. Cross-device Cart Synchronization & Merging
+      // 3. Cross-device Cart Synchronization with persistent user binding
       const cloudCart = (profile.cart && typeof profile.cart === 'object' && !Array.isArray(profile.cart))
         ? profile.cart
         : {};
 
       const cloudKeys = Object.keys(cloudCart);
       const localKeys = Object.keys(this.cart || {});
+      const syncedUserKey = 'freshmarket_cart_synced_user';
+      const lastSyncedUser = localStorage.getItem(syncedUserKey);
+      const hasLocalCartActivity = localStorage.getItem('freshmarket_cart_updated_at') !== null;
 
-      if (cloudKeys.length > 0 || localKeys.length > 0) {
-        const mergedCart = { ...cloudCart, ...this.cart };
-        this.cart = mergedCart;
-        localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
-        this.updateCartUi();
-        this.renderProducts();
-
-        const needsCloudPush = localKeys.some((k) => !cloudCart[k]);
-        if (needsCloudPush) {
-          this.syncCartToCloud();
+      if (lastSyncedUser !== this.currentUser.id) {
+        // Initial login on a fresh device / switch of accounts
+        if (localKeys.length === 0 && cloudKeys.length > 0 && !hasLocalCartActivity) {
+          // Empty local cart on fresh device with no prior edits: restore saved items from cloud profile
+          this.cart = cloudCart;
+          localStorage.setItem('freshmarket_cart', JSON.stringify(cloudCart));
+          this.updateCartUi();
+          this.renderProducts();
+        } else if (localKeys.length > 0 && cloudKeys.length > 0) {
+          // Pre-login items merged with cloud cart once on initial login
+          const mergedCart = { ...cloudCart, ...this.cart };
+          this.cart = mergedCart;
+          localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
+          this.updateCartUi();
+          this.renderProducts();
+          this.syncCartToCloud(true);
+        } else if (localKeys.length > 0 && cloudKeys.length === 0) {
+          // Local items exist, cloud is empty: push local cart to cloud
+          this.syncCartToCloud(true);
         }
+        localStorage.setItem(syncedUserKey, this.currentUser.id);
+      } else {
+        // User was already active on this device:
+        // Local cart is the authoritative truth! Do NOT resurrect deleted items from cloud.
+        // Instead, ensure cloud profile is updated with current local cart:
+        this.syncCartToCloud(false);
       }
 
       this.updateUserAvatar();
@@ -259,21 +330,48 @@ class ShopApp {
     }
   }
 
-  syncCartToCloud() {
+  syncCartToCloud(immediate = false) {
     if (!this.sb || !this.currentUser) return;
     if (this.cloudCartDebounceTimer) {
       clearTimeout(this.cloudCartDebounceTimer);
+      this.cloudCartDebounceTimer = null;
     }
-    this.cloudCartDebounceTimer = setTimeout(async () => {
+
+    const doSync = async () => {
       try {
-        await this.sb.from('profiles').update({
-          cart: this.cart || {},
-          updated_at: new Date().toISOString()
-        }).eq('id', this.currentUser.id);
+        const cartPayload = (this.cart && typeof this.cart === 'object') ? this.cart : {};
+        // 1. Try direct update first
+        const { error: updateErr } = await this.sb
+          .from('profiles')
+          .update({
+            cart: cartPayload,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', this.currentUser.id);
+
+        if (updateErr) {
+          // 2. If update failed (e.g. profile row does not exist yet), try upsert
+          const { error: upsertErr } = await this.sb
+            .from('profiles')
+            .upsert({
+              id: this.currentUser.id,
+              cart: cartPayload,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          if (upsertErr) {
+            console.warn('[FreshMarket Shop] Failed to sync cart to cloud:', upsertErr);
+          }
+        }
       } catch (err) {
-        console.warn('[FreshMarket Shop] Failed to sync cart to cloud:', err);
+        console.warn('[FreshMarket Shop] Error syncing cart to cloud:', err);
       }
-    }, 400);
+    };
+
+    if (immediate) {
+      doSync();
+    } else {
+      this.cloudCartDebounceTimer = setTimeout(doSync, 200);
+    }
   }
 
 
@@ -383,6 +481,8 @@ class ShopApp {
 
     if (this.btnShopHeaderLogout) {
       this.btnShopHeaderLogout.addEventListener('click', async () => {
+        localStorage.removeItem('freshmarket_cart_synced_user');
+        localStorage.removeItem('freshmarket_user_profile');
         if (this.sb) await this.sb.auth.signOut();
         this.currentUser = null;
         this.userProfile = null;
@@ -458,11 +558,18 @@ class ShopApp {
       }
     });
 
-    // Reactive KHR Currency Rate Change listener
+    // Reactive Storage Change listener (Cross-tab synchronization)
     window.addEventListener('storage', (e) => {
       if (e.key === 'freshmarket_khr_rate') {
         this.khrRate = this.getKhrRate();
         this.renderProducts();
+      } else if (e.key === 'freshmarket_cart') {
+        this.cart = this.loadCart();
+        this.updateCartUi();
+        this.renderProducts();
+        if (this.currentView === 'cart') {
+          this.renderCartModalList();
+        }
       }
     });
     window.addEventListener('freshmarket:ratechange', (e) => {
@@ -1489,11 +1596,12 @@ class ShopApp {
     }
   }
 
-  saveCart() {
+  saveCart(immediate = false) {
     localStorage.setItem('freshmarket_cart', JSON.stringify(this.cart));
+    localStorage.setItem('freshmarket_cart_updated_at', String(Date.now()));
     this.updateCartUi();
     if (this.currentUser) {
-      this.syncCartToCloud();
+      this.syncCartToCloud(immediate);
     }
   }
 
@@ -1542,20 +1650,22 @@ class ShopApp {
       const unit = match[2] || (window.i18n ? window.i18n.t('common.weight_kg') : 'кг');
       if (val <= 0) {
         delete this.cart[productId];
+        this.saveCart(true);
       } else {
         this.cart[productId].qty = `${val} ${unit}`;
+        this.saveCart(false);
       }
     } else {
       delete this.cart[productId];
+      this.saveCart(true);
     }
-    this.saveCart();
     this.renderProducts();
     this.renderCartModalList();
   }
 
   removeFromCart(productId, shouldReRender = true) {
     delete this.cart[productId];
-    this.saveCart();
+    this.saveCart(true);
     if (shouldReRender) {
       this.renderProducts();
     }
@@ -1711,8 +1821,11 @@ class ShopApp {
 
     this.cartItemsList.querySelectorAll('.cart-item-remove-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.dataset.id;
-        this.removeFromCart(id);
+        e.stopPropagation();
+        const id = btn.dataset.id || e.currentTarget?.dataset.id || e.target?.dataset.id;
+        if (id) {
+          this.removeFromCart(id);
+        }
       });
     });
   }
@@ -2156,17 +2269,43 @@ class ShopApp {
 
     let supabaseSuccess = false;
     let syncErrorMsg = null;
+    let finalOrderNumber = orderNumber;
 
     try {
-      // 1. Send to Supabase if connected
+      // 1. Send to Supabase atomically via RPC create_order
       if (this.sb) {
-        const { error: orderErr } = await this.sb.from('orders').insert([orderPayload]);
-        if (orderErr) throw orderErr;
+        const { data: rpcData, error: rpcErr } = await this.sb.rpc('create_order', {
+          p_order_id: orderId,
+          p_customer_name: customerName,
+          p_customer_phone: customerPhone,
+          p_customer_messenger: customerMessenger,
+          p_delivery_address: deliveryAddress,
+          p_delivery_zone: deliveryZoneId,
+          p_customer_comment: customerComment,
+          p_replacement_policy: replacementPolicy,
+          p_target_delivery_date: targetDate,
+          p_items: orderItemsPayload
+        });
 
-        const { error: itemsErr } = await this.sb.from('order_items').insert(orderItemsPayload);
-        if (itemsErr) throw itemsErr;
+        if (!rpcErr && rpcData?.success) {
+          supabaseSuccess = true;
+          if (rpcData.order_number) {
+            finalOrderNumber = rpcData.order_number;
+            orderPayload.order_number = rpcData.order_number;
+          }
+        } else if (rpcErr && (rpcErr.code === 'PGRST202' || rpcErr.message?.includes('function public.create_order') || rpcErr.code === '42883')) {
+          // Graceful fallback to direct 2-step insert if RPC migration not yet applied in Supabase
+          console.warn('[FreshMarket Shop] RPC create_order unavailable, falling back to direct table inserts:', rpcErr);
+          const { error: orderErr } = await this.sb.from('orders').insert([orderPayload]);
+          if (orderErr) throw orderErr;
 
-        supabaseSuccess = true;
+          const { error: itemsErr } = await this.sb.from('order_items').insert(orderItemsPayload);
+          if (itemsErr) throw itemsErr;
+
+          supabaseSuccess = true;
+        } else {
+          throw rpcErr || new Error('RPC create_order failed');
+        }
       } else {
         syncErrorMsg = 'Нет подключения к базе данных';
       }
@@ -2178,6 +2317,7 @@ class ShopApp {
     // 2. Save locally in client history with synchronization status
     this.saveOrderLocally({
       ...orderPayload,
+      order_number: finalOrderNumber,
       items: orderItemsPayload,
       sync_status: supabaseSuccess ? 'synced' : 'pending_sync',
       sync_error: syncErrorMsg
@@ -2191,13 +2331,13 @@ class ShopApp {
 
     if (supabaseSuccess) {
       this.showToast(
-        window.i18n ? `${window.i18n.t('toasts.order_sent')} (${orderNumber})` : `🎉 Заказ ${orderNumber} успешно отправлен закупщику!`,
+        window.i18n ? `${window.i18n.t('toasts.order_sent')} (${finalOrderNumber})` : `🎉 Заказ ${finalOrderNumber} успешно отправлен закупщику!`,
         'success',
         4000
       );
     } else {
       this.showToast(
-        `⚠️ Заказ ${orderNumber} сохранен локально, но не передан в базу: ${syncErrorMsg}`,
+        `⚠️ Заказ ${finalOrderNumber} сохранен локально, но не передан в базу: ${syncErrorMsg}`,
         'warning',
         7000
       );
@@ -2283,11 +2423,43 @@ class ShopApp {
       for (const order of pendingOrders) {
         const { items, sync_status, sync_error, ...orderPayload } = order;
         orderPayload.user_id = this.currentUser.id;
-        const { error: orderErr } = await this.sb.from('orders').upsert([orderPayload]);
-        if (!orderErr) {
-          if (Array.isArray(items) && items.length > 0) {
-            await this.sb.from('order_items').upsert(items);
+
+        let synced = false;
+        try {
+          // Attempt atomic RPC sync first
+          const { data: rpcData, error: rpcErr } = await this.sb.rpc('create_order', {
+            p_order_id: order.id,
+            p_customer_name: order.customer_name,
+            p_customer_phone: order.customer_phone,
+            p_customer_messenger: order.customer_messenger || 'telegram',
+            p_delivery_address: order.delivery_address,
+            p_delivery_zone: order.delivery_zone || 'zone_1',
+            p_customer_comment: order.customer_comment || order.customer_notes || '',
+            p_replacement_policy: order.replacement_policy || 'call_to_agree',
+            p_target_delivery_date: order.target_delivery_date || null,
+            p_items: items || []
+          });
+
+          if (!rpcErr && rpcData?.success) {
+            synced = true;
+            if (rpcData.order_number) {
+              order.order_number = rpcData.order_number;
+            }
+          } else {
+            // Fallback to direct upsert if RPC is not deployed yet
+            const { error: orderErr } = await this.sb.from('orders').upsert([orderPayload]);
+            if (!orderErr) {
+              if (Array.isArray(items) && items.length > 0) {
+                await this.sb.from('order_items').upsert(items);
+              }
+              synced = true;
+            }
           }
+        } catch (syncItemErr) {
+          console.warn('[FreshMarket Shop] Resync item error:', syncItemErr);
+        }
+
+        if (synced) {
           order.sync_status = 'synced';
           delete order.sync_error;
           hasUpdates = true;
@@ -2777,6 +2949,8 @@ class ShopApp {
 
     // Logout click handler
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
+      localStorage.removeItem('freshmarket_cart_synced_user');
+      localStorage.removeItem('freshmarket_user_profile');
       if (this.sb) await this.sb.auth.signOut();
       this.currentUser = null;
       this.userProfile = null;
@@ -2833,11 +3007,15 @@ class ShopApp {
       if (isAuth) {
         const avatarUrl = this.userProfile?.avatar_url || this.currentUser?.user_metadata?.avatar_url || this.currentUser?.user_metadata?.picture || '';
         const userName = this.userProfile?.full_name || this.currentUser?.user_metadata?.full_name || this.currentUser?.email || '';
+        const initial = userName ? userName.charAt(0).toUpperCase() : '👤';
+
         if (avatarUrl) {
-          this.headerAvatarBtn.innerHTML = `<img src="${this.sanitizeUrl(avatarUrl)}" alt="${this.escapeHtml(userName)}" />`;
+          this.headerAvatarBtn.innerHTML = `
+            <img src="${this.sanitizeUrl(avatarUrl)}" alt="${this.escapeHtml(userName)}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" />
+            <span style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${this.escapeHtml(initial)}</span>
+          `;
         } else {
-          const initial = userName ? userName.charAt(0).toUpperCase() : '👤';
-          this.headerAvatarBtn.innerHTML = `<span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${this.escapeHtml(initial)}</span>`;
+          this.headerAvatarBtn.innerHTML = `<span style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${this.escapeHtml(initial)}</span>`;
         }
       } else {
         // Guest: clean neutral silhouette
