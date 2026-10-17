@@ -6,9 +6,6 @@
 const SHOP_VERSION = '1.4.0';
 window.SHOP_VERSION = SHOP_VERSION;
 
-const DEFAULT_SUPABASE_URL = 'https://qifazsptdgcskrchfocc.supabase.co';
-const DEFAULT_SUPABASE_KEY = 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
-
 const FAB_ICONS = {
   cart: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
   close: `<svg class="fab-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
@@ -105,8 +102,10 @@ class ShopApp {
   // 1. Supabase Initialization
   // ------------------------------------------------------------------------
   initSupabase() {
-    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || DEFAULT_SUPABASE_URL;
-    const sbKey = localStorage.getItem('freshmarket_supabase_key') || DEFAULT_SUPABASE_KEY;
+    const fallbackUrl = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
+    const fallbackKey = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
+    const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
     if (sbUrl && sbKey && window.supabase) {
       try {
         this.sb = window.supabase.createClient(sbUrl, sbKey, {
@@ -1229,7 +1228,7 @@ class ShopApp {
         <div class="card-slider-viewport">
           <div class="card-photo-container" data-id="${item.id}" title="${inCart ? editOrderTitle : addToCartTitle}">
             ${item.img_url ? `
-              <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
+              <img src="${this.sanitizeUrl(item.img_url)}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
             ` : `
               <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
                 ${catIcon}
@@ -1313,7 +1312,7 @@ class ShopApp {
 
     if (this.sheetProductMedia) {
       if (product.img_url) {
-        this.sheetProductMedia.innerHTML = `<img src="${product.img_url}" alt="${this.escapeHtml(primaryName)}" />`;
+        this.sheetProductMedia.innerHTML = `<img src="${this.sanitizeUrl(product.img_url)}" alt="${this.escapeHtml(primaryName)}" />`;
       } else {
         this.sheetProductMedia.innerHTML = catIcon;
       }
@@ -2379,7 +2378,7 @@ class ShopApp {
               <div class="order-item-mini">
                 <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
                 ${item.receipt_url ? `
-                  <a href="${this.escapeHtml(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
+                  <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
                 ` : ''}
               </div>
             `;
@@ -2512,7 +2511,7 @@ class ShopApp {
             ${isAuthenticated ? `
               <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0;">
                 <div style="font-size: 28px; width: 44px; height: 44px; border-radius: 50%; background: var(--bg-main, #f5f5f7); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-subtle); overflow: hidden; flex-shrink: 0;">
-                  ${userAvatarUrl ? `<img src="${userAvatarUrl}" alt="${this.escapeHtml(userName)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : '👤'}
+                  ${userAvatarUrl ? `<img src="${this.sanitizeUrl(userAvatarUrl)}" alt="${this.escapeHtml(userName)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : '👤'}
                 </div>
                 <div style="overflow: hidden;">
                   <div style="font-weight: 700; font-size: 14.5px; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${this.escapeHtml(userName)}</div>
@@ -2835,7 +2834,7 @@ class ShopApp {
         const avatarUrl = this.userProfile?.avatar_url || this.currentUser?.user_metadata?.avatar_url || this.currentUser?.user_metadata?.picture || '';
         const userName = this.userProfile?.full_name || this.currentUser?.user_metadata?.full_name || this.currentUser?.email || '';
         if (avatarUrl) {
-          this.headerAvatarBtn.innerHTML = `<img src="${avatarUrl}" alt="${this.escapeHtml(userName)}" />`;
+          this.headerAvatarBtn.innerHTML = `<img src="${this.sanitizeUrl(avatarUrl)}" alt="${this.escapeHtml(userName)}" />`;
         } else {
           const initial = userName ? userName.charAt(0).toUpperCase() : '👤';
           this.headerAvatarBtn.innerHTML = `<span style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);">${this.escapeHtml(initial)}</span>`;
@@ -2989,6 +2988,18 @@ class ShopApp {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  sanitizeUrl(url) {
+    if (typeof window.sanitizeUrl === 'function') {
+      return window.sanitizeUrl(url);
+    }
+    if (!url || typeof url !== 'string') return '';
+    const clean = url.trim();
+    if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
+      return clean.replace(/"/g, '&quot;');
+    }
+    return '';
   }
 
   declension(number, titles) {

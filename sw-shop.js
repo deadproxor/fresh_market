@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.28';
+const CACHE_NAME = 'freshmarket-shop-v1.5.29';
 const STATIC_ASSETS = [
   './shop.html',
   './manifest-shop.json',
@@ -30,9 +30,13 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW-Shop] Pre-cache warning:', err);
-      });
+      return Promise.all(
+        STATIC_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => {
+            console.warn('[SW-Shop] Pre-cache item failed:', asset, err);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();

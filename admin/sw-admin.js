@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline market resilience
  */
 
-const CACHE_NAME = 'freshmarket-admin-v1.5.14';
+const CACHE_NAME = 'freshmarket-admin-v1.5.16';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
@@ -24,9 +24,13 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW-Admin] Pre-cache warning:', err);
-      });
+      return Promise.all(
+        STATIC_ASSETS.map((asset) =>
+          cache.add(asset).catch((err) => {
+            console.warn('[SW-Admin] Pre-cache item failed:', asset, err);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();

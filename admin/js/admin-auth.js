@@ -3,8 +3,8 @@
  * Architecture: Pure Vanilla JS + Supabase Auth
  */
 
-const DEFAULT_SUPABASE_URL = 'https://qifazsptdgcskrchfocc.supabase.co';
-const DEFAULT_SUPABASE_KEY = 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
+window.DEFAULT_SUPABASE_URL = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
+window.DEFAULT_SUPABASE_KEY = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
 
 class AdminAuth {
   constructor() {
@@ -32,8 +32,8 @@ class AdminAuth {
   }
 
   initSupabase() {
-    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || DEFAULT_SUPABASE_URL;
-    const sbKey = localStorage.getItem('freshmarket_supabase_key') || DEFAULT_SUPABASE_KEY;
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || window.DEFAULT_SUPABASE_URL;
+    const sbKey = localStorage.getItem('freshmarket_supabase_key') || window.DEFAULT_SUPABASE_KEY;
     if (sbUrl && sbKey && window.supabase) {
       try {
         this.sb = window.supabase.createClient(sbUrl, sbKey, {

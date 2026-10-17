@@ -579,10 +579,20 @@ class SupabaseAdapter {
   }
 }
 
+function isValidSupabaseUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const clean = url.trim();
+  if (/^https:\/\/[a-z0-9_-]+\.supabase\.co(?:\/.*)?$/i.test(clean)) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?(?:\/.*)?$/i.test(clean)) return true;
+  return false;
+}
+
 function getActiveStorage() {
+  const fallbackUrl = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
+  const fallbackKey = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
   const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
-  const sbUrl = localStorage.getItem('freshmarket_supabase_url');
-  const sbKey = localStorage.getItem('freshmarket_supabase_key');
+  const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
+  const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
 
   if (provider === 'supabase' && sbUrl && sbKey) {
     return new SupabaseAdapter(sbUrl, sbKey);
@@ -1728,6 +1738,11 @@ class App {
       return;
     }
 
+    if (supabaseUrl && !isValidSupabaseUrl(supabaseUrl)) {
+      this.showToast('⚠️ URL Supabase должен начинаться с https:// и оканчиваться на .supabase.co');
+      return;
+    }
+
     localStorage.setItem('freshmarket_storage_provider', provider);
     localStorage.setItem('freshmarket_supabase_url', supabaseUrl);
     localStorage.setItem('freshmarket_supabase_key', supabaseKey);
@@ -2002,7 +2017,7 @@ class App {
           preset: (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
           folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
           apiKey: (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
-          apiSecret: (this.settingCloudinaryApiSecret?.value || localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim()
+          apiSecret: '' // Секрет исключен из открытого экспорта во избежание утечки
         }
       }
     };
@@ -2119,8 +2134,14 @@ class App {
         if (this.providerSupabase) this.providerSupabase.checked = (s.supabase.provider === 'supabase');
       }
       if (s.supabase.url !== undefined) {
-        localStorage.setItem('freshmarket_supabase_url', s.supabase.url || '');
-        if (this.settingSupabaseUrl) this.settingSupabaseUrl.value = s.supabase.url || '';
+        const importedUrl = (s.supabase.url || '').trim();
+        if (importedUrl && !isValidSupabaseUrl(importedUrl)) {
+          console.warn('[Admin] Ignored untrusted Supabase URL from import:', importedUrl);
+          this.showToast('⚠️ Пропущен некорректный URL Supabase из импорта (*.supabase.co)');
+        } else {
+          localStorage.setItem('freshmarket_supabase_url', importedUrl);
+          if (this.settingSupabaseUrl) this.settingSupabaseUrl.value = importedUrl;
+        }
       }
       if (s.supabase.anonKey !== undefined) {
         localStorage.setItem('freshmarket_supabase_key', s.supabase.anonKey || '');
@@ -3075,7 +3096,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           ${item.name_kh ? `<div class="recent-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
           <div class="recent-name-ru">${this.escapeHtml(item.name_ru)} • <span class="recent-cat">${this.escapeHtml(item.category)}</span></div>
         </div>
-        ${item.img_url ? `<img src="${item.img_url}" class="recent-img" alt="${this.escapeHtml(item.name_en)}" />` : ''}
+        ${item.img_url ? `<img src="${sanitizeUrl(item.img_url)}" class="recent-img" alt="${this.escapeHtml(item.name_en)}" />` : ''}
       `;
       div.addEventListener('click', () => {
         this.switchView('viewList');
@@ -3185,7 +3206,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
             ${item.img_url ? `
               <div class="card-photo-container">
-                <img src="${item.img_url}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
+                <img src="${sanitizeUrl(item.img_url)}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
                 ${this.renderPriceBadge(item.price, item.unit)}
               </div>
             ` : `
@@ -3412,7 +3433,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
               <span class="picker-subtext">ИИ автоматически определит продукт и заполнит поля</span>
             </div>
             <div class="image-preview-container" id="editImagePreviewContainer" style="display: ${this.editModalImageBase64 ? 'block' : 'none'};">
-              <img id="editImagePreview" src="${this.editModalImageBase64}" alt="Превью" />
+              <img id="editImagePreview" src="${sanitizeUrl(this.editModalImageBase64)}" alt="Превью" />
               <div class="ai-scan-overlay" id="editAiScanOverlay" style="display: none;">
                 <div class="ai-scan-line"></div>
                 <div class="ai-scan-status">
