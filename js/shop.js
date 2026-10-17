@@ -55,7 +55,7 @@ class ShopApp {
     this.products = [];
     this.selectedCategory = 'all';
     this.searchQuery = '';
-    this.activeHomeTab = 'categories';
+    this.activeHomeTab = localStorage.getItem('freshmarket_home_tab') || 'categories';
     this.cart = this.loadCart();
     this.currentUser = null;
     this.userProfile = null;
@@ -165,6 +165,10 @@ class ShopApp {
           messenger: localStorage.getItem('freshmarket_customer_messenger') || 'telegram',
           phone: localStorage.getItem('freshmarket_customer_phone') || '',
           address: localStorage.getItem('freshmarket_customer_address') || '',
+          preferred_lang: window.i18n?.currentLang || 'ru',
+          onboarding_completed: localStorage.getItem('freshmarket_hide_onboarding') === 'true',
+          shop_layout: this.shopLayout || 'grid-2',
+          default_replacement_policy: localStorage.getItem('freshmarket_replacement_policy') || 'call_to_agree',
           cart: this.cart || {},
           updated_at: new Date().toISOString()
         };
@@ -186,7 +190,35 @@ class ShopApp {
         localStorage.setItem('freshmarket_customer_address', profile.address);
       }
 
-      // 2. Cross-device Cart Synchronization & Merging
+      // 2. Cross-device Preferences Synchronization
+      // A. Preferred Language
+      if (profile.preferred_lang && window.i18n && window.i18n.currentLang !== profile.preferred_lang) {
+        window.i18n.setLanguage(profile.preferred_lang);
+      }
+
+      // B. Onboarding Completed State
+      if (profile.onboarding_completed) {
+        localStorage.setItem('freshmarket_hide_onboarding', 'true');
+        if (this.onboardingOverlay && this.onboardingOverlay.style.display !== 'none') {
+          this.closeOnboarding();
+        }
+      }
+
+      // C. Shop Layout (grid-1 / grid-2)
+      if (profile.shop_layout && (profile.shop_layout === 'grid-1' || profile.shop_layout === 'grid-2')) {
+        this.shopLayout = profile.shop_layout;
+        localStorage.setItem('freshmarket_shop_layout', profile.shop_layout);
+        this.applyShopLayout();
+      }
+
+      // D. Default Replacement Policy
+      if (profile.default_replacement_policy) {
+        localStorage.setItem('freshmarket_replacement_policy', profile.default_replacement_policy);
+        const radio = document.querySelector(`input[name="replacementPolicy"][value="${profile.default_replacement_policy}"]`);
+        if (radio) radio.checked = true;
+      }
+
+      // 3. Cross-device Cart Synchronization & Merging
       const cloudCart = (profile.cart && typeof profile.cart === 'object' && !Array.isArray(profile.cart))
         ? profile.cart
         : {};
@@ -210,6 +242,21 @@ class ShopApp {
       this.updateUserAvatar();
     } catch (err) {
       console.warn('[FreshMarket Shop] Error syncing profile & cart:', err);
+    }
+  }
+
+  async updateProfileField(fields) {
+    if (!this.sb || !this.currentUser) return;
+    try {
+      await this.sb.from('profiles').update({
+        ...fields,
+        updated_at: new Date().toISOString()
+      }).eq('id', this.currentUser.id);
+      if (this.userProfile) {
+        Object.assign(this.userProfile, fields);
+      }
+    } catch (err) {
+      console.warn('[FreshMarket Shop] Error updating profile fields:', err);
     }
   }
 
@@ -256,6 +303,7 @@ class ShopApp {
     this.shopProductsGrid = document.getElementById('shopProductsGrid');
     this.shopProductsCount = document.getElementById('shopProductsCount');
     this.applyShopLayout();
+    this.setHomeTab(this.activeHomeTab, false);
 
     // Cart Badge in Navigation
     this.navCartBadge = document.getElementById('navCartBadge');
@@ -405,6 +453,9 @@ class ShopApp {
       }
       if (window.i18n) {
         this.showToast(window.i18n.t('toasts.lang_changed'), 'info', 2000);
+        if (this.sb && this.currentUser) {
+          this.updateProfileField({ preferred_lang: window.i18n.currentLang });
+        }
       }
     });
 
@@ -486,6 +537,18 @@ class ShopApp {
         e.preventDefault();
         this.handleCheckoutSubmit();
       });
+
+      this.checkoutForm.querySelectorAll('input[name="replacementPolicy"]').forEach((r) => {
+        r.addEventListener('change', (e) => {
+          const val = e.target.value;
+          localStorage.setItem('freshmarket_replacement_policy', val);
+          if (this.sb && this.currentUser) {
+            this.updateProfileField({ default_replacement_policy: val });
+          }
+        });
+      });
+
+      this.setupDeliveryLocationHandlers();
     }
 
     // Home Screen Segmented Tabs
@@ -499,11 +562,15 @@ class ShopApp {
     // Bottom Navigation (Full View Switching)
     if (this.navCatalog) {
       this.navCatalog.addEventListener('click', () => {
-        this.switchView('catalog');
-        this.setHomeTab('categories');
-        this.selectedCategory = 'all';
-        this.renderCategories();
-        this.renderProducts();
+        if (this.currentView === 'catalog') {
+          this.setHomeTab('categories');
+          this.selectedCategory = 'all';
+          this.renderCategories();
+          this.renderProducts();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          this.switchView('catalog');
+        }
       });
     }
     if (this.navCart) {
@@ -597,8 +664,15 @@ class ShopApp {
     }
   }
 
-  setHomeTab(tabName) {
+  setHomeTab(tabName, save = true) {
     this.activeHomeTab = tabName;
+    if (save) {
+      try {
+        localStorage.setItem('freshmarket_home_tab', tabName);
+      } catch (e) {
+        console.warn('Could not save home tab to localStorage:', e);
+      }
+    }
     if (this.tabBtnCategories) {
       this.tabBtnCategories.classList.toggle('active', tabName === 'categories');
     }
@@ -723,6 +797,9 @@ class ShopApp {
   finishOnboarding() {
     if (this.chkDontShowOnboarding && this.chkDontShowOnboarding.checked) {
       localStorage.setItem('freshmarket_hide_onboarding', 'true');
+      if (this.sb && this.currentUser) {
+        this.updateProfileField({ onboarding_completed: true });
+      }
     }
     if (this.onboardingOverlay) {
       this.onboardingOverlay.style.display = 'none';
@@ -1659,6 +1736,305 @@ class ShopApp {
       }
     }
     if (addressInput && !addressInput.value) addressInput.value = address;
+
+    this.renderRecentDeliveryAddresses();
+    this.initCheckoutMiniMap();
+
+    const savedPolicy = this.userProfile?.default_replacement_policy || localStorage.getItem('freshmarket_replacement_policy');
+    if (savedPolicy) {
+      const radio = document.querySelector(`input[name="replacementPolicy"][value="${savedPolicy}"]`);
+      if (radio) radio.checked = true;
+    }
+  }
+
+  initCheckoutMiniMap() {
+    const mapContainer = document.getElementById('checkoutMiniMap');
+    if (!mapContainer || typeof L === 'undefined') return;
+
+    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+
+    if (!this.checkoutMap) {
+      this.checkoutMap = L.map('checkoutMiniMap', {
+        center: [marketCoords.lat, marketCoords.lng],
+        zoom: 14.2,
+        zoomControl: false,
+        attributionControl: false
+      });
+
+      // OpenStreetMap HOT (Humanitarian): high contrast roads, buildings, and landmarks without API key
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        subdomains: 'abc',
+        maxZoom: 19
+      }).addTo(this.checkoutMap);
+
+      // Market Hub Marker (Icon only, no text label)
+      const hubIcon = L.divIcon({
+        className: 'checkout-hub-pin',
+        html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.checkoutMap);
+
+      // Concentric Delivery Circles: Zone 3 (6km), Zone 2 (3km), Zone 1 (1km)
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 6000,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.04,
+        weight: 1,
+        dashArray: '3, 6'
+      }).addTo(this.checkoutMap);
+
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 3000,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.08,
+        weight: 1.2
+      }).addTo(this.checkoutMap);
+
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 1000,
+        color: '#059669',
+        fillColor: '#10b981',
+        fillOpacity: 0.16,
+        weight: 1.5
+      }).addTo(this.checkoutMap);
+
+      // Draggable Customer Marker
+      const pinIcon = L.divIcon({
+        className: 'checkout-customer-pin',
+        html: '<span>📍</span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 26]
+      });
+
+      this.checkoutCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
+        icon: pinIcon,
+        draggable: true
+      }).addTo(this.checkoutMap);
+
+      // Marker drag event
+      this.checkoutCustomerMarker.on('dragend', async (e) => {
+        const pos = e.target.getLatLng();
+        await this.applyLocationToCheckout(pos.lat, pos.lng, false);
+      });
+
+      // Map click event
+      this.checkoutMap.on('click', async (e) => {
+        const pos = e.latlng;
+        this.checkoutCustomerMarker.setLatLng(pos);
+        await this.applyLocationToCheckout(pos.lat, pos.lng, false);
+      });
+    }
+
+    setTimeout(() => {
+      if (this.checkoutMap) {
+        this.checkoutMap.invalidateSize();
+        const addressInput = document.getElementById('deliveryAddress');
+        const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
+        if (coords) {
+          this.applyLocationToCheckout(coords.lat, coords.lng, true);
+        } else {
+          this.checkoutMap.setView([marketCoords.lat, marketCoords.lng], 13);
+        }
+      }
+    }, 200);
+  }
+
+  updateDeliveryMapBadge(zoneInfo, roadKm, durationMin) {
+    const badgeText = document.getElementById('deliveryMapStatusText');
+    if (!badgeText) return;
+    const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+    const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
+    const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
+
+    let infoStr = '';
+    if (roadKm !== undefined) {
+      infoStr = ` • ${roadKm} км ${byRoadText}`;
+      if (durationMin !== undefined) {
+        infoStr += ` (~${durationMin} ${minText})`;
+      }
+    }
+    badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+  }
+
+  async applyLocationToCheckout(lat, lng, panMap = true) {
+    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+
+    if (this.checkoutCustomerMarker) {
+      this.checkoutCustomerMarker.setLatLng([lat, lng]);
+    }
+    if (panMap && this.checkoutMap) {
+      this.checkoutMap.setView([lat, lng], 14, { animate: true });
+    }
+
+    // Calculate real road distance and geometry via OSRM
+    let routeInfo = null;
+    if (typeof window.calculateRoadDistanceAndRoute === 'function') {
+      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, lat, lng);
+    } else {
+      const dist = calculateDistanceKm(lat, lng, marketCoords.lat, marketCoords.lng);
+      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [lat, lng]] };
+    }
+
+    // Determine delivery zone & fee based on road distance
+    const zoneInfo = getDeliveryZoneByDistance(routeInfo.roadDistanceKm);
+
+    this.currentDeliveryZone = zoneInfo.zoneId;
+    this.currentDeliveryFee = zoneInfo.fee;
+    this.currentDeliveryDistance = routeInfo.roadDistanceKm;
+
+    // Draw route polyline on Leaflet map
+    if (this.checkoutMap && routeInfo.coordinates && routeInfo.coordinates.length > 0) {
+      if (this.checkoutRoutePolyline) {
+        this.checkoutMap.removeLayer(this.checkoutRoutePolyline);
+        this.checkoutRoutePolyline = null;
+      }
+      this.checkoutRoutePolyline = L.polyline(routeInfo.coordinates, {
+        color: '#10b981',
+        weight: 4,
+        opacity: 0.85,
+        lineJoin: 'round',
+        lineCap: 'round'
+      }).addTo(this.checkoutMap);
+
+      if (panMap) {
+        this.checkoutMap.fitBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
+          padding: [24, 24],
+          maxZoom: 15.5
+        });
+      }
+    }
+
+    this.updateDeliveryMapBadge(zoneInfo, routeInfo.roadDistanceKm, routeInfo.durationMin);
+
+    const mapUrl = `https://maps.google.com/?q=${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+    const addressInput = document.getElementById('deliveryAddress');
+    if (!addressInput) return;
+
+    let placeName = '';
+    if (typeof window.reverseGeocodeCoords === 'function') {
+      placeName = await window.reverseGeocodeCoords(lat, lng);
+    }
+
+    if (placeName) {
+      addressInput.value = `${placeName} (${mapUrl})`;
+    } else {
+      addressInput.value = mapUrl;
+    }
+  }
+
+  setupDeliveryLocationHandlers() {
+    const btnGetLocation = document.getElementById('btnGetLocation');
+    const addressInput = document.getElementById('deliveryAddress');
+    if (!btnGetLocation || !addressInput) return;
+
+    btnGetLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        this.showToast(window.i18n ? window.i18n.t('toasts.location_error') : 'Геолокация не поддерживается вашим браузером');
+        return;
+      }
+
+      btnGetLocation.disabled = true;
+      btnGetLocation.style.opacity = '0.5';
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          btnGetLocation.disabled = false;
+          btnGetLocation.style.opacity = '1';
+
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          await this.applyLocationToCheckout(lat, lng, true);
+
+          this.showToast(window.i18n ? window.i18n.t('toasts.location_detected') : '📍 Местоположение определено');
+        },
+        (error) => {
+          btnGetLocation.disabled = false;
+          btnGetLocation.style.opacity = '1';
+          console.warn('Geolocation error:', error);
+          this.showToast(window.i18n ? window.i18n.t('toasts.location_error') : 'Не удалось определить координаты. Укажите адрес вручную');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    addressInput.addEventListener('input', (e) => {
+      if (e.isTrusted === false) return;
+      const val = addressInput.value.trim();
+      const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(val) : null;
+      if (coords) {
+        this.applyLocationToCheckout(coords.lat, coords.lng, true);
+      }
+    });
+  }
+
+  saveRecentDeliveryAddress(address) {
+    if (!address || typeof address !== 'string') return;
+    const cleanAddr = address.trim();
+    if (!cleanAddr) return;
+
+    try {
+      let recents = JSON.parse(localStorage.getItem('freshmarket_recent_addresses') || '[]');
+      if (!Array.isArray(recents)) recents = [];
+      recents = recents.filter(a => a.toLowerCase() !== cleanAddr.toLowerCase());
+      recents.unshift(cleanAddr);
+      recents = recents.slice(0, 3);
+      localStorage.setItem('freshmarket_recent_addresses', JSON.stringify(recents));
+    } catch (e) {
+      console.warn('Failed to save recent delivery address', e);
+    }
+  }
+
+  renderRecentDeliveryAddresses() {
+    const container = document.getElementById('recentLocationsContainer');
+    const list = document.getElementById('recentLocationsList');
+    if (!container || !list) return;
+
+    try {
+      let recents = JSON.parse(localStorage.getItem('freshmarket_recent_addresses') || '[]');
+      if (!Array.isArray(recents)) recents = [];
+
+      const savedAddr = localStorage.getItem('freshmarket_customer_address') || this.userProfile?.default_delivery_address;
+      if (recents.length === 0 && savedAddr && savedAddr.trim()) {
+        recents = [savedAddr.trim()];
+        localStorage.setItem('freshmarket_recent_addresses', JSON.stringify(recents));
+      }
+
+      if (recents.length === 0) {
+        container.style.display = 'none';
+        list.innerHTML = '';
+        return;
+      }
+
+      container.style.display = 'block';
+      list.innerHTML = recents.map((addr, idx) => {
+        const displayLabel = addr.length > 32 ? addr.slice(0, 30) + '…' : addr;
+        const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(addr) : addr;
+        const safeLabel = typeof escapeHtml === 'function' ? escapeHtml(displayLabel) : displayLabel;
+        return `<button type="button" class="recent-location-chip" data-idx="${idx}" title="${safeTitle}">
+          <span class="chip-text">${safeLabel}</span>
+        </button>`;
+      }).join('');
+
+      list.querySelectorAll('.recent-location-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          const chosen = recents[idx];
+          const addressInput = document.getElementById('deliveryAddress');
+          if (addressInput && chosen) {
+            addressInput.value = chosen;
+            addressInput.dispatchEvent(new Event('input'));
+          }
+        });
+      });
+    } catch (e) {
+      console.warn('Failed to render recent delivery addresses', e);
+      container.style.display = 'none';
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -1687,6 +2063,11 @@ class ShopApp {
     const customerComment = commentInput?.value.trim() || '';
     const replacementPolicy = replacementRadio?.value || 'call_to_agree';
 
+    localStorage.setItem('freshmarket_replacement_policy', replacementPolicy);
+    if (this.sb && this.currentUser) {
+      this.updateProfileField({ default_replacement_policy: replacementPolicy });
+    }
+
     if (!deliveryAddress) {
       this.showToast(window.i18n ? window.i18n.t('toasts.address_required') : '⚠️ Пожалуйста, укажите адрес или ориентир доставки');
       if (addressInput) addressInput.focus();
@@ -1699,8 +2080,22 @@ class ShopApp {
       return;
     }
 
-    // Save profile address locally
+    // Save profile address locally and in recents
     localStorage.setItem('freshmarket_customer_address', deliveryAddress);
+    this.saveRecentDeliveryAddress(deliveryAddress);
+
+    // Determine delivery zone & fee automatically (using road distance if available)
+    let deliveryZoneId = this.currentDeliveryZone || 'zone_1';
+    let deliveryFee = this.currentDeliveryFee || 1.00;
+
+    const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(deliveryAddress) : null;
+    if (coords && !this.currentDeliveryZone && typeof calculateDistanceKm === 'function' && typeof getDeliveryZoneByDistance === 'function') {
+      const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+      const dist = calculateDistanceKm(coords.lat, coords.lng, marketCoords.lat, marketCoords.lng);
+      const zoneInfo = getDeliveryZoneByDistance(dist * 1.25);
+      deliveryZoneId = zoneInfo.zoneId;
+      deliveryFee = zoneInfo.fee;
+    }
 
     const orderNumber = generateOrderNumber();
     const orderId = generateUUID();
@@ -1718,35 +2113,50 @@ class ShopApp {
       customer_messenger: customerMessenger,
       customer_phone: customerPhone,
       delivery_address: deliveryAddress,
+      delivery_zone: deliveryZoneId,
+      customer_notes: customerComment,
       customer_comment: customerComment,
       target_delivery_date: targetDate,
       replacement_policy: replacementPolicy,
-      status: 'new',
+      replace_rule: replacementPolicy,
+      status: 'pending',
       payment_status: 'pending',
       payment_method: 'cash',
+      estimated_total: 0.00,
       market_items_total: 0.00,
+      actual_market_total: 0.00,
       service_fee: 0.00,
-      delivery_fee: 1.00,
-      grand_total: 1.00,
+      delivery_fee: deliveryFee,
+      grand_total: deliveryFee,
       created_at: new Date().toISOString()
     };
 
-    const orderItemsPayload = items.map(({ product, qty, comment }) => ({
-      id: generateUUID(),
-      order_id: orderId,
-      product_id: product.id,
-      product_name_en: product.name_en,
-      product_name_kh: product.name_kh || '',
-      product_name_ru: product.name_ru || '',
-      product_img_url: product.img_url || '',
-      product_category: product.category || '',
-      product_form: product.form || '',
-      requested_qty: qty,
-      customer_comment: comment || '',
-      status: 'pending',
-      actual_cost: 0.00,
-      created_at: new Date().toISOString()
-    }));
+    const orderItemsPayload = items.map(({ product, qty, comment }) => {
+      const title = product.name_ru || product.name_en || 'Товар';
+      return {
+        id: generateUUID(),
+        order_id: orderId,
+        product_id: product.id || null,
+        product_title: title,
+        product_name_en: product.name_en || '',
+        product_name_kh: product.name_kh || '',
+        product_name_ru: product.name_ru || '',
+        product_img_url: product.img_url || '',
+        product_category: product.category || '',
+        product_form: product.form || '',
+        quantity: qty,
+        requested_qty: qty,
+        unit: product.unit || 'кг',
+        customer_comment: comment || '',
+        status: 'pending',
+        estimated_price: Number(product.price) || 0.00,
+        actual_cost: 0.00,
+        created_at: new Date().toISOString()
+      };
+    });
+
+    let supabaseSuccess = false;
+    let syncErrorMsg = null;
 
     try {
       // 1. Send to Supabase if connected
@@ -1756,36 +2166,44 @@ class ShopApp {
 
         const { error: itemsErr } = await this.sb.from('order_items').insert(orderItemsPayload);
         if (itemsErr) throw itemsErr;
+
+        supabaseSuccess = true;
+      } else {
+        syncErrorMsg = 'Нет подключения к базе данных';
       }
-
-      // 2. Save locally in client history
-      this.saveOrderLocally({
-        ...orderPayload,
-        items: orderItemsPayload
-      });
-
-      // Clear cart
-      this.cart = {};
-      this.saveCart();
-      this.renderProducts();
-      this.closeCartModal();
-
-      this.showToast(window.i18n ? `${window.i18n.t('toasts.order_sent')} (${orderNumber})` : `🎉 Заказ ${orderNumber} успешно оформлен на утренний закуп!`);
-      this.openOrdersModal();
     } catch (err) {
-      console.error('[FreshMarket Shop] Checkout error:', err);
-      // Fallback: save locally even if offline
-      this.saveOrderLocally({
-        ...orderPayload,
-        items: orderItemsPayload
-      });
-      this.cart = {};
-      this.saveCart();
-      this.renderProducts();
-      this.closeCartModal();
-      this.showToast(window.i18n ? `${window.i18n.t('toasts.order_saved')}: ${orderNumber}` : `Заказ сохранен: ${orderNumber}`);
-      this.openOrdersModal();
+      console.error('[FreshMarket Shop] Checkout Supabase error:', err);
+      syncErrorMsg = err?.message || 'Сбой соединения с базой';
     }
+
+    // 2. Save locally in client history with synchronization status
+    this.saveOrderLocally({
+      ...orderPayload,
+      items: orderItemsPayload,
+      sync_status: supabaseSuccess ? 'synced' : 'pending_sync',
+      sync_error: syncErrorMsg
+    });
+
+    // Clear cart & refresh catalog cards
+    this.cart = {};
+    this.saveCart();
+    this.renderProducts();
+    this.closeCartModal();
+
+    if (supabaseSuccess) {
+      this.showToast(
+        window.i18n ? `${window.i18n.t('toasts.order_sent')} (${orderNumber})` : `🎉 Заказ ${orderNumber} успешно отправлен закупщику!`,
+        'success',
+        4000
+      );
+    } else {
+      this.showToast(
+        `⚠️ Заказ ${orderNumber} сохранен локально, но не передан в базу: ${syncErrorMsg}`,
+        'warning',
+        7000
+      );
+    }
+    this.openOrdersModal();
   }
 
   saveOrderLocally(order) {
@@ -1820,24 +2238,22 @@ class ShopApp {
       </div>
     `;
 
+    // 1. Sync any locally pending orders first if online and authenticated
+    if (this.sb && this.currentUser) {
+      await this.syncPendingOrders();
+    }
+
     let orders = [];
 
-    // Try fetch from Supabase
-    if (this.sb) {
+    // 2. Fetch authenticated user's orders from Supabase
+    if (this.sb && this.currentUser) {
       try {
-        let query = this.sb
+        const { data, error } = await this.sb
           .from('orders')
           .select('*, order_items(*)')
+          .eq('user_id', this.currentUser.id)
           .order('created_at', { ascending: false });
 
-        if (this.currentUser) {
-          query = query.eq('user_id', this.currentUser.id);
-        } else {
-          const phone = localStorage.getItem('freshmarket_customer_phone');
-          if (phone) query = query.eq('customer_phone', phone);
-        }
-
-        const { data, error } = await query;
         if (!error && data && data.length > 0) {
           orders = data.map((o) => ({
             ...o,
@@ -1849,12 +2265,41 @@ class ShopApp {
       }
     }
 
-    // Fallback to local storage history
+    // 3. Fallback or merge with local storage history
     if (orders.length === 0) {
       orders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
     }
 
     this.renderOrdersList(orders);
+  }
+
+  async syncPendingOrders() {
+    if (!this.sb || !this.currentUser) return;
+    try {
+      const localOrders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
+      const pendingOrders = localOrders.filter(o => o.sync_status === 'pending_sync');
+      if (pendingOrders.length === 0) return;
+
+      let hasUpdates = false;
+      for (const order of pendingOrders) {
+        const { items, sync_status, sync_error, ...orderPayload } = order;
+        orderPayload.user_id = this.currentUser.id;
+        const { error: orderErr } = await this.sb.from('orders').upsert([orderPayload]);
+        if (!orderErr) {
+          if (Array.isArray(items) && items.length > 0) {
+            await this.sb.from('order_items').upsert(items);
+          }
+          order.sync_status = 'synced';
+          delete order.sync_error;
+          hasUpdates = true;
+        }
+      }
+      if (hasUpdates) {
+        localStorage.setItem('freshmarket_my_orders', JSON.stringify(localOrders));
+      }
+    } catch (e) {
+      console.warn('Sync pending orders error:', e);
+    }
   }
 
   renderOrdersList(orders) {
@@ -1879,7 +2324,9 @@ class ShopApp {
     }
 
     const statusMap = {
+      pending: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
       new: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
+      shopping: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
       purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
       delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : '🛵 Передан курьеру', class: 'status-delivering' },
       completed: { label: window.i18n ? window.i18n.t('orders.status_completed') : '✅ Доставлен и оплачен', class: 'status-completed' },
@@ -1912,20 +2359,31 @@ class ShopApp {
             <div>
               <div class="order-card-number">${this.escapeHtml(order.order_number)}</div>
               <div class="order-card-date">${dateStr} • ${deliveryPrefix} ${order.target_delivery_date || tomorrowLabel}</div>
+              <div class="order-replacement-policy-tag" style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">
+                ${this.formatReplacementPolicy(order.replacement_policy || order.replace_rule)}
+              </div>
             </div>
-            <span class="order-status-pill ${st.class}">${st.label}</span>
+            <div style="text-align: right;">
+              <span class="order-status-pill ${st.class}">${st.label}</span>
+              ${order.sync_status === 'pending_sync' ? '<div style="font-size: 11px; color: #d97706; margin-top: 4px; font-weight: 600;">⏳ Ожидает связи с базой</div>' : ''}
+            </div>
           </div>
 
           <!-- Items preview -->
           <div class="order-card-items">
-            ${items.map((item) => `
+            ${items.map((item) => {
+              const itemTitle = item.product_title || item.product_name_ru || item.product_name_en || 'Товар';
+              const itemQty = item.quantity || item.requested_qty || 1;
+              const itemUnit = item.unit || 'кг';
+              return `
               <div class="order-item-mini">
-                <span class="order-item-mini-name">${this.escapeHtml(item.product_name_en)} (${this.escapeHtml(item.requested_qty)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
+                <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
                 ${item.receipt_url ? `
-                  <a href="${item.receipt_url}" target="_blank" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
+                  <a href="${this.escapeHtml(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
                 ` : ''}
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
 
           <!-- Totals Calculation -->
@@ -1941,6 +2399,17 @@ class ShopApp {
         </div>
       `;
     }).join('');
+  }
+
+  formatReplacementPolicy(policy) {
+    const t = (k, fallback) => (window.i18n ? window.i18n.t(k) : fallback);
+    if (policy === 'picker_choice') {
+      return `🔄 ${t('cart.sub_picker_title', 'На усмотрение закупщика')}`;
+    }
+    if (policy === 'do_not_replace') {
+      return `❌ ${t('cart.sub_remove_title', 'Не заменять')}`;
+    }
+    return `📞 ${t('cart.sub_call_title', 'Позвонить / написать')}`;
   }
 
   // ------------------------------------------------------------------------
@@ -2290,6 +2759,9 @@ class ShopApp {
         this.shopLayout = e.currentTarget.dataset.layout;
         localStorage.setItem('freshmarket_shop_layout', this.shopLayout);
         this.applyShopLayout();
+        if (this.sb && this.currentUser) {
+          this.updateProfileField({ shop_layout: this.shopLayout });
+        }
         this.showToast(window.i18n ? window.i18n.t('toasts.settings_saved') : '✅ Настройки сохранены', 'info', 2000);
       });
     });

@@ -1105,6 +1105,52 @@
               </label>
             </div>
           </div>
+
+          <!-- Delivery Address with Location Picker, Mini-Map & Recent Locations -->
+          <div class="component-box" style="grid-column: 1 / -1;">
+            <div class="component-box-header">
+              <span class="component-box-title">Поле адреса с геолокацией в инпуте, мини-картой и недавними точками (Checkout)</span>
+              <span class="component-box-class">.input-action-wrapper & .delivery-mini-map-wrap</span>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="field-label" style="margin-bottom: 6px;">Адрес доставки *</label>
+              <div class="input-action-wrapper">
+                <input type="text" class="text-input" value="Street 735, Villa 3B (https://maps.google.com/?q=10.6120,104.1780)" placeholder="Улица, дом или ссылка на карту" />
+                <button type="button" class="input-trailing-btn" title="Моё местоположение" onclick="showToastDemo('📍 Местоположение определено')">
+                  📍
+                </button>
+              </div>
+
+              <!-- Mini-Map Interactive Delivery Radius Preview -->
+              <div class="delivery-mini-map-wrap" style="margin-top: 10px;">
+                <div style="height: 140px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05)); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; border-bottom: 1px solid var(--border-subtle);">
+                  <span style="font-size: 28px;">📍</span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-primary);">Интерактивная карта Leaflet (1 км / 3 км / 6 км)</span>
+                </div>
+                <div class="delivery-map-status-bar">
+                  <span class="delivery-map-status-badge">
+                    <span>📍</span> <span>Зона 1: Центр ($1.00) • 0.4 км</span>
+                  </span>
+                  <span class="delivery-map-status-hint">Перетащите метку 📍 для выбора точки</span>
+                </div>
+              </div>
+
+              <div class="recent-locations-container">
+                <div class="recent-locations-header">Недавние адреса:</div>
+                <div class="recent-locations-list">
+                  <button type="button" class="recent-location-chip" onclick="showToastDemo('Выбран недавний адрес 1')">
+                    <span class="chip-text">Отель Riverside, комната 14</span>
+                  </button>
+                  <button type="button" class="recent-location-chip" onclick="showToastDemo('Выбран недавний адрес 2')">
+                    <span class="chip-text">Street 735, Villa 3B</span>
+                  </button>
+                  <button type="button" class="recent-location-chip" onclick="showToastDemo('Выбран недавний адрес 3')">
+                    <span class="chip-text">https://maps.google.com/?q=10.6120,104.1780</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

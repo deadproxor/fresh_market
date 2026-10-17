@@ -168,8 +168,8 @@
                 <button type="button" class="calc-zone-btn" data-zone="2" data-fee="2.00">
                   Zone 2 ($2)
                 </button>
-                <button type="button" class="calc-zone-btn" data-zone="3" data-fee="3.00">
-                  Zone 3 ($3)
+                <button type="button" class="calc-zone-btn" data-zone="3" data-fee="3.50">
+                  Zone 3 ($3.50)
                 </button>
               </div>
 
@@ -322,13 +322,13 @@
               <div class="zone-interactive-row active" data-zone="1" tabindex="0" role="tab" aria-selected="true">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$1.00</span>
-                  <span class="zir-radius">0 – 3 km</span>
+                  <span class="zir-radius">0 – 1 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
                     <span class="zir-name">Zone 1: Center</span>
                   </div>
-                  <div class="zir-desc">Town center, central market streets, and nearby inner neighborhoods.</div>
+                  <div class="zir-desc">Town center and immediate central neighborhoods (up to 1 km).</div>
                 </div>
               </div>
 
@@ -336,27 +336,27 @@
               <div class="zone-interactive-row" data-zone="2" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$2.00</span>
-                  <span class="zir-radius">3 – 6 km</span>
+                  <span class="zir-radius">1 – 3 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
                     <span class="zir-name">Zone 2: Mid Districts</span>
                   </div>
-                  <div class="zir-desc">Residential quarters, riverside villas, and outer urban streets.</div>
+                  <div class="zir-desc">Inner residential areas and adjacent city districts (1 to 3 km).</div>
                 </div>
               </div>
 
               <!-- Card 4: Zone 3 -->
               <div class="zone-interactive-row" data-zone="3" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
-                  <span class="zir-rate">$3.00</span>
-                  <span class="zir-radius">6 – 10 km</span>
+                  <span class="zir-rate">$3.50</span>
+                  <span class="zir-radius">3 – 6 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
                     <span class="zir-name">Zone 3: Outskirts</span>
                   </div>
-                  <div class="zir-desc">Perimeter areas, outer road boundaries, and surrounding rural fringes.</div>
+                  <div class="zir-desc">Outer residential areas, villas, and perimeter districts (3 to 6 km).</div>
                 </div>
               </div>
 
@@ -625,7 +625,7 @@
         const visualPane = document.querySelector('.map-visual-pane');
         const mapEl = document.getElementById('liveLeafletMap');
         const mapWrapper = document.querySelector('.unified-map-wrapper');
-        const zoom = (typeof customZoom === 'number') ? customZoom : (window.innerWidth > 1080 ? 12.3 : 11.5);
+        const zoom = (typeof customZoom === 'number') ? customZoom : (window.innerWidth > 1080 ? 13.0 : 11.5);
 
         if (!visualPane || !mapEl || !liveMap || window.innerWidth <= 1080) {
           return { center: HUB_COORDS, zoom: zoom };
@@ -678,10 +678,10 @@
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
         }).addTo(liveMap);
 
-        // Concentric delivery zones (3000m, 6000m, 10000m)
+        // Concentric delivery zones (1000m, 3000m, 6000m)
         zoneCircles = {
           3: L.circle(HUB_COORDS, {
-            radius: 10000,
+            radius: 6000,
             color: '#059669',
             dashArray: '6, 6',
             weight: 1.5,
@@ -689,7 +689,7 @@
             fillOpacity: 0.03
           }).addTo(liveMap),
           2: L.circle(HUB_COORDS, {
-            radius: 6000,
+            radius: 3000,
             color: '#059669',
             dashArray: '5, 5',
             weight: 1.5,
@@ -697,7 +697,7 @@
             fillOpacity: 0.07
           }).addTo(liveMap),
           1: L.circle(HUB_COORDS, {
-            radius: 3000,
+            radius: 1000,
             color: '#059669',
             weight: 2,
             fillColor: '#059669',

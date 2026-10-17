@@ -7,45 +7,49 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.9';
 window.APP_VERSION = APP_VERSION;
 
-// Safe URL sanitizer for image URLs to prevent XSS
-function sanitizeUrl(url) {
-  if (!url || typeof url !== 'string') return '';
-  const clean = url.trim();
-  if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
-    return clean.replace(/"/g, '&quot;');
-  }
-  return '';
+// Defensive fallbacks for sanitizeUrl and generateUUID (provided by js/shared/utils.js)
+if (typeof sanitizeUrl !== 'function') {
+  window.sanitizeUrl = function (url) {
+    if (!url || typeof url !== 'string') return '';
+    const clean = url.trim();
+    if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
+      return clean.replace(/"/g, '&quot;');
+    }
+    return '';
+  };
 }
 
-// Safe UUID v4 generator for Supabase & LocalStorage
-function generateUUID() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    try {
-      return crypto.randomUUID();
-    } catch (e) {}
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+if (typeof generateUUID !== 'function') {
+  window.generateUUID = function () {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      try { return crypto.randomUUID(); } catch (e) {}
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
 }
 
-const CATEGORIES = [
-  { id: 'vegetables', name: 'Овощи', icon: '🥦' },
-  { id: 'roots_tubers', name: 'Корнеплоды', icon: '🥔' },
-  { id: 'fruits', name: 'Фрукты', icon: '🥭' },
-  { id: 'herbs', name: 'Зелень и травы', icon: '🌿' },
-  { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚' },
-  { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟' },
-  { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
-  { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
-  { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
-  { id: 'other', name: 'Другое', icon: '📦' }
-];
+// Shared product categories from categories.js (excluding 'all' used only for storefront filtering)
+const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESHMARKET_CATEGORIES.length > 0)
+  ? window.FRESHMARKET_CATEGORIES.filter(c => c.id !== 'all')
+  : [
+    { id: 'vegetables', name: 'Овощи', icon: '🥦' },
+    { id: 'roots_tubers', name: 'Корнеплоды', icon: '🥔' },
+    { id: 'fruits', name: 'Фрукты', icon: '🥭' },
+    { id: 'herbs', name: 'Зелень и травы', icon: '🌿' },
+    { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚' },
+    { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟' },
+    { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
+    { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
+    { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
+    { id: 'other', name: 'Другое', icon: '📦' }
+  ];
 
 const FORMS = (window.FRESHMARKET_FORMS ? [...window.FRESHMARKET_FORMS] : [
   { id: 'whole', label: 'Целый' },

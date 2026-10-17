@@ -3,13 +3,15 @@
  * Strategy: Network-First with Cache Fallback for offline market resilience
  */
 
-const CACHE_NAME = 'freshmarket-admin-v1.5.9';
+const CACHE_NAME = 'freshmarket-admin-v1.5.14';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
-  './css/admin.css',
+  '../css/admin.css',
   '../css/components.css',
   '../css/products.css',
+  '../js/shared/utils.js',
+  '../js/shared/categories.js',
   '../js/shared/forms.js',
   './js/admin-auth.js',
   './js/admin-catalog.js',
@@ -46,6 +48,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) return;
+
+  const url = new URL(event.request.url);
+  // Only handle admin scope requests
+  if (!url.pathname.includes('/admin')) return;
 
   event.respondWith(
     fetch(event.request)

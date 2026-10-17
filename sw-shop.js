@@ -3,12 +3,13 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.18';
+const CACHE_NAME = 'freshmarket-shop-v1.5.28';
 const STATIC_ASSETS = [
   './shop.html',
   './manifest-shop.json',
   './css/components.css',
   './css/shop.css',
+  './js/shared/utils.js',
   './js/shared/forms.js',
   './js/shared/i18n.js',
   './js/shop.js',
@@ -55,6 +56,13 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests within http/https
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) return;
 
+  const url = new URL(event.request.url);
+
+  // STRICT ISOLATION: Never intercept admin or workbench requests!
+  if (url.pathname.includes('/admin') || url.pathname.includes('components.html')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
@@ -72,7 +80,9 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (event.request.mode === 'navigate') {
-            return caches.match('./shop.html');
+            if (url.pathname === '/' || url.pathname.endsWith('/shop.html') || url.pathname.endsWith('/index.html')) {
+              return caches.match('./shop.html');
+            }
           }
         });
       })

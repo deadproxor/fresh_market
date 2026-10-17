@@ -53,11 +53,12 @@ class AdminAuth {
 
   isAdminUser(user) {
     if (!user) return false;
-    const role = user.app_metadata?.role || user.user_metadata?.role;
+    // Строгая проверка серверной роли (app_metadata не может быть изменена клиентом)
+    const role = user.app_metadata?.role;
     if (role === 'admin' || role === 'buyer') return true;
+    // Обратная совместимость для владельца проекта на период перехода на роли
     const email = (user.email || '').toLowerCase().trim();
-    const adminEmails = ['admin@freshmarket.com', 'deadproxor@gmail.com'];
-    if (adminEmails.includes(email)) return true;
+    if (email === 'deadproxor@gmail.com') return true;
     return false;
   }
 
@@ -307,34 +308,75 @@ class AdminAuth {
         return;
       }
 
-      listEl.innerHTML = data.map(order => `
+      listEl.innerHTML = data.map(order => {
+        const safeNum = this.escapeHtml(order.order_number || 'FM-ЗАКАЗ');
+        const rawStatus = order.status || 'pending';
+        const safeStatus = this.escapeHtml(rawStatus);
+        const statusLabel = this.escapeHtml(this.formatStatus(rawStatus));
+        const safeName = this.escapeHtml(order.customer_name || 'Клиент');
+        const safePhone = this.escapeHtml(order.customer_phone || 'нет тел.');
+        const safeMessenger = order.customer_messenger ? ` • 💬 ${this.escapeHtml(order.customer_messenger)}` : '';
+        const safeZone = this.escapeHtml(this.formatZone(order.delivery_zone));
+        const feeNum = Number(order.delivery_fee || 1).toFixed(2);
+        const safeAddress = this.escapeHtml(order.delivery_address || '—');
+        const notes = order.customer_notes || order.customer_comment || '';
+        const safeNotes = notes ? `<div>💬 Комментарий: <i>${this.escapeHtml(notes)}</i></div>` : '';
+        const safePolicy = this.escapeHtml(this.formatReplacementPolicy(order.replacement_policy || order.replace_rule));
+        const deliveryDateStr = order.target_delivery_date ? ` • 📅 ${this.escapeHtml(order.target_delivery_date)}` : '';
+        const createdTimeStr = order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+        return `
         <div class="order-admin-card">
           <div class="order-admin-header">
-            <span class="order-admin-num">${order.order_number || 'FM-ЗАКАЗ'}</span>
-            <span class="status-badge status-${order.status || 'pending'}">${this.formatStatus(order.status)}</span>
+            <span class="order-admin-num">${safeNum}</span>
+            <span class="status-badge status-${safeStatus}">${statusLabel}</span>
           </div>
           <div class="order-admin-meta">
-            <div>👤 <b>${order.customer_name || 'Клиент'}</b> (${order.customer_phone || 'нет тел.'})</div>
-            <div>📍 Зона доставки: <b>${this.formatZone(order.delivery_zone)}</b> ($${Number(order.delivery_fee || 1).toFixed(2)})</div>
-            <div>🛒 Адрес: ${order.delivery_address || '—'}</div>
-            ${order.customer_notes ? `<div>💬 Комментарий: <i>${order.customer_notes}</i></div>` : ''}
-            <div>🕒 Создан: ${new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div>👤 <b>${safeName}</b> (${safePhone}${safeMessenger})</div>
+            <div>📍 Зона доставки: <b>${safeZone}</b> ($${feeNum})</div>
+            <div>🛒 Адрес: ${safeAddress}</div>
+            ${safeNotes}
+            <div>🔄 Замена: <b>${safePolicy}</b></div>
+            <div>🕒 Создан: ${createdTimeStr}${deliveryDateStr}</div>
           </div>
           <div class="order-admin-actions">
             <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Детализация и сборка заказа на рынке будут доступны в следующей фазе')">🔍 Позиции</button>
             <button type="button" class="btn btn-primary btn-sm" onclick="alert('Ввод суммы чека и смена статуса будут доступны в следующей фазе')">📝 Ввести чек</button>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
     } catch (err) {
       console.warn('[AdminAuth] Orders load error:', err);
       listEl.innerHTML = `<div class="empty-desc">Не удалось загрузить заказы</div>`;
     }
   }
 
+  escapeHtml(str) {
+    if (typeof window.escapeHtml === 'function') return window.escapeHtml(str);
+    if (!str && str !== 0) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  formatReplacementPolicy(policy) {
+    const map = {
+      call_to_agree: '📞 Согласовать звонком/сообщением',
+      call: '📞 Согласовать звонком/сообщением',
+      picker_choice: '🔄 На усмотрение закупщика',
+      do_not_replace: '❌ Не заменять (убрать из чека)'
+    };
+    return map[policy] || '📞 Согласовать звонком';
+  }
+
   formatStatus(status) {
     const map = {
       pending: '⏳ Новая заявка',
+      new: '⏳ Новая заявка',
       shopping: '🛒 Закупка на рынке',
       delivering: '🛵 В доставке',
       completed: '✅ Доставлен',
@@ -345,9 +387,9 @@ class AdminAuth {
 
   formatZone(zone) {
     const map = {
-      zone_1: 'Центр ($1.00)',
-      zone_2: 'Средние районы ($2.00)',
-      zone_3: 'Окраины ($3.00)'
+      zone_1: 'Центр (до 1 км) — $1.00',
+      zone_2: '1–3 км — $2.00',
+      zone_3: '3–6 км — $3.50'
     };
     return map[zone] || zone || 'Зона 1: Центр ($1.00)';
   }

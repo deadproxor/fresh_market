@@ -6,6 +6,21 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>FreshMarket — Панель закупщика (Admin)</title>
+  <script>
+    // Ensure clean PWA boundary: unregister any rogue root shop Service Worker that hijacked /admin/
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var i = 0; i < regs.length; i++) {
+          var r = regs[i];
+          if (r.active && r.active.scriptURL.includes('sw-shop.js')) {
+            r.unregister().then(function() {
+              console.log('[Admin] Cleaned conflicting shop Service Worker registration');
+            });
+          }
+        }
+      });
+    }
+  </script>
 
   <!-- PWA & Mobile settings for Admin Workspace -->
   <link rel="manifest" href="manifest.json" />
@@ -37,7 +52,7 @@
         <span class="splash-icon">🌱</span>
       </div>
       <div class="splash-title">FreshMarket Admin</div>
-      <div class="splash-version" id="splashVersion">v1.4.8</div>
+      <div class="splash-version" id="splashVersion">v1.4.9</div>
     </div>
   </div>
 
@@ -833,9 +848,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Core Scripts -->
+  <script src="../js/shared/utils.js?v=1.4.29"></script>
+  <script src="../js/shared/categories.js?v=1.4.8"></script>
   <script src="../js/shared/forms.js?v=1.4.8"></script>
-  <script src="js/admin-catalog.js?v=1.4.8"></script>
-  <script src="js/admin-auth.js?v=1.4.8"></script>
+  <script src="js/admin-catalog.js?v=1.4.9"></script>
+  <script src="js/admin-auth.js?v=1.4.13"></script>
 </body>
 
 </html>
