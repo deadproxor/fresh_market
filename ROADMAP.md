@@ -1024,6 +1024,10 @@ flowchart TD
   * **Удаление fallback в `shop.js`:** удалены резервные прямые вставки в `handleCheckoutSubmit` и `syncPendingOrders`; заказы при отсутствии сети сохраняются в защищенную очередь `pending_sync`.
   * **Изоляция dev-сервера:** привязка сокета в `dev-server.py` к `127.0.0.1` вместо `0.0.0.0`.
   * **Обновление версий:** `shop.html` (`shop.js?v=1.4.40`), `sw-shop.js` (`freshmarket-shop-v1.5.37`).
+* [x] **Закрепление внешних CDN-зависимостей и целостность ресурсов (Пакет 2 / Аудит v3 §4):**
+  * **Фиксация версии Supabase JS:** закрепление `@supabase/supabase-js@2.45.4` с UMD-бандлом `/dist/umd/supabase.js`.
+  * **Subresource Integrity (SRI) для Supabase:** добавление `integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"` и `crossorigin="anonymous"` в `shop.html` и `admin/index.html`.
+  * **SRI для Leaflet в витрине:** добавление проверенных хэшей `sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=` для `leaflet.css` и `sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=` для `leaflet.js` в `shop.html` (приведено к единому стандарту с `index.html`).
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 
