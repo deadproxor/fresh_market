@@ -168,10 +168,9 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN (
     COALESCE(auth.jwt() -> 'app_metadata' ->> 'role', '') IN ('admin', 'buyer')
-    OR (auth.jwt() ->> 'email') = 'deadproxor@gmail.com'
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public, auth, pg_temp;
 
 -- 2.1. Каталог products: Чтение всем, Запись ТОЛЬКО администратору
 DROP POLICY IF EXISTS "Public read products" ON products;
@@ -256,7 +255,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
-  FOR SELECT TO authenticated USING (auth.uid() = id);
+  FOR SELECT TO authenticated USING (auth.uid() = id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
@@ -266,29 +265,56 @@ DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Admin full access to profiles" ON public.profiles;
+CREATE POLICY "Admin full access to profiles" ON public.profiles
+  FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- Защита от эскалации привилегий: запрет клиентам изменять собственную роль в profiles
+CREATE OR REPLACE FUNCTION public.protect_profile_role()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Если вызывающий пользователь НЕ является администратором, запретить изменение роли:
+  IF NEW.role IS DISTINCT FROM OLD.role AND NOT public.is_admin() THEN
+    NEW.role := OLD.role;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, pg_temp;
+
+DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
+CREATE TRIGGER trg_protect_profile_role
+BEFORE UPDATE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
+
 -- Автоматический триггер: при входе через Google / Facebook / Email
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_assigned_role TEXT;
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, avatar_url)
+  v_assigned_role := COALESCE(NEW.raw_app_meta_data->>'role', 'customer');
+
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, role)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', '')
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', ''),
+    v_assigned_role
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     full_name = CASE WHEN profiles.full_name IS NULL OR profiles.full_name = '' THEN EXCLUDED.full_name ELSE profiles.full_name END,
     avatar_url = CASE WHEN profiles.avatar_url IS NULL OR profiles.avatar_url = '' THEN EXCLUDED.avatar_url ELSE profiles.avatar_url END,
+    role = CASE WHEN EXCLUDED.role IS NOT NULL AND EXCLUDED.role <> 'customer' THEN EXCLUDED.role ELSE profiles.role END,
     updated_at = now();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, pg_temp;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
-  AFTER INSERT OR UPDATE ON auth.users
+  AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================================
@@ -530,21 +556,25 @@ CREATE TABLE IF NOT EXISTS products (
 2. В левом навигационном меню перейдите в раздел **Authentication** → **Users**.
 3. Нажмите зелёную кнопку **Add user** в правом верхнем углу и выберите **Create user**.
 4. В открывшемся модальном окне заполните:
-   * **User Email**: ваш рабочий email администратора.  
-     *(⚠️ Важно: этот email должен в точности совпадать с email, указанным в политиках RLS в разделе 2 данного документа).*
+   * **User Email**: ваш рабочий email администратора.
    * **User Password**: задайте надёжный пароль для входа в панель закупщика.
    * **Auto Confirm User?**: **ОБЯЗАТЕЛЬНО включите эту галочку!**  
      *(Это активирует аккаунт мгновенно, без необходимости переходить по ссылке подтверждения из почты).*
 5. Нажмите **Create user**. Пользователь мгновенно появится в списке с бейджем `Confirmed`.
-6. *(Опционально)* Назначение роли `admin` в метаданных:
-   * Самый надежный и быстрый способ — выполнить разовый SQL-запрос в **SQL Editor** в консоли Supabase:
+6. Назначение роли `admin` или `buyer` в защищенных метаданных:
+   * Самый надежный способ — выполнить разовый SQL-запрос в **SQL Editor** в консоли Supabase:
      ```sql
-     -- 🔑 Назначение роли администратора пользователю:
+     -- 🔑 1. Назначение роли администратора в защищенных app_metadata auth.users:
      UPDATE auth.users 
      SET raw_app_meta_data = raw_app_meta_data || '{"role": "admin"}'::jsonb 
-     WHERE email = 'deadproxor@gmail.com';
+     WHERE email = 'YOUR_ADMIN_EMAIL@DOMAIN.COM';
+
+     -- 🔑 2. Синхронизация роли в публичный профиль:
+     UPDATE public.profiles 
+     SET role = 'admin' 
+     WHERE email = 'YOUR_ADMIN_EMAIL@DOMAIN.COM';
      ```
-   * Либо через интерфейс Dashboard: нажмите на созданного пользователя в списке **Authentication** → **Users**, и в блоке **App Metadata** укажите `{"role": "admin"}` и нажмите **Save**.
+   * Либо через интерфейс Dashboard: нажмите на созданного пользователя в списке **Authentication** → **Users**, и в блоке **App Metadata** укажите `{"role": "admin"}` (или `{"role": "buyer"}`) и нажмите **Save**.
 
 Теперь вы можете открыть `http://localhost:3030/admin/index.html`, ввести этот Email и Пароль и войти в систему. Токен сессии автоматически сохранится в браузере.
 
@@ -623,7 +653,7 @@ CREATE TABLE IF NOT EXISTS products (
 | :--- | :--- | :--- |
 | **Ключ Supabase (`storageKey`)** | `freshmarket_customer_auth` | `freshmarket_admin_auth` |
 | **Тип браузерного хранилища** | `window.localStorage` (долговечная сессия клиента) | `window.sessionStorage` (изоляция во вкладке, безопасность) |
-| **Ролевая проверка (RBAC Gatekeeper)** | Покупатель (OAuth Google/Facebook или гость) | Строгая проверка: `role === 'admin' \|\| 'buyer'` или email в доверенном списке (`deadproxor@gmail.com`) |
+| **Ролевая проверка (RBAC Gatekeeper)** | Покупатель (OAuth Google/Facebook или гость) | Серверная проверка RBAC: `role === 'admin' \|\| role === 'buyer'` в защищённых `app_metadata` |
 | **Защита на уровне базы данных** | RLS (доступ только к своим заказам) | RLS (полный доступ к заказам и редактированию каталога) |
 
 *Преимущества:*

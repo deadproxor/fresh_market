@@ -53,13 +53,9 @@ class AdminAuth {
 
   isAdminUser(user) {
     if (!user) return false;
-    // Строгая проверка серверной роли (app_metadata не может быть изменена клиентом)
+    // Строгая проверка серверной роли (app_metadata защищена Supabase и не может быть изменена клиентом)
     const role = user.app_metadata?.role;
-    if (role === 'admin' || role === 'buyer') return true;
-    // Обратная совместимость для владельца проекта на период перехода на роли
-    const email = (user.email || '').toLowerCase().trim();
-    if (email === 'deadproxor@gmail.com') return true;
-    return false;
+    return role === 'admin' || role === 'buyer';
   }
 
   initEvents() {

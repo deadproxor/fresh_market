@@ -1000,6 +1000,13 @@ flowchart TD
   * Мгновенная синхронная инициализация сессии пользователя (`initCachedUser`) из `localStorage` (`freshmarket_customer_auth` и `freshmarket_user_profile`): устранено мерцание силуэта гостя, аватар отображается сразу на первом кадре.
   * Надежная валидация сессии через явный `sb.auth.getSession()` и безопасный `onerror` fallback для аватара пользователя (переключение на инициал при сетевых сбоях/блокировках внешнего CDN).
   * Обновление версий: `shop.js?v=1.4.36`, `shop.html` (`v=1.4.36`), `sw-shop.js` (`freshmarket-shop-v1.5.33`).
+* [x] **Унификация ролевой модели и защита от эскалации привилегий (Пакет 2 / Аудит v2 §3.1, §4):**
+  * Полное исключение хардкода email-адресов из `public.is_admin()` в Supabase и из `isAdminUser()` в `admin-auth.js`.
+  * Перевод всей системы на 100% серверные роли RBAC (`admin` и `buyer` в защищенных `app_metadata`).
+  * Защита от повышения привилегий в таблице `public.profiles`: внедрение триггера `protect_profile_role()`, блокирующего попытки клиентов изменить свою роль.
+  * Исправление уязвимости search_path injection в функции `handle_new_user()` (`SET search_path = public, auth, pg_temp`) и ограничение триггера только событием `AFTER INSERT`.
+  * Разрешение администраторам просмотра профилей покупателей (`SELECT ... USING (auth.uid() = id OR public.is_admin())`) и полного управления `Admin full access to profiles`.
+  * Обновление версий: `admin/index.html` (`admin-auth.js?v=1.4.15`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.17`).
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 
