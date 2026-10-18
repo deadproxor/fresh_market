@@ -120,7 +120,16 @@ CREATE TABLE IF NOT EXISTS order_items (
 -- выполните этот блок безопасных миграций (добавление недостающих полей):
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS target_delivery_date DATE;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_comment TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_notes TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_zone TEXT DEFAULT 'zone_1';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10, 2) DEFAULT 1.00;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS replace_rule TEXT DEFAULT 'call';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS replacement_policy TEXT DEFAULT 'call_to_agree';
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS market_items_total NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS actual_market_total NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_fee NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS estimated_total NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS grand_total NUMERIC(10, 2) DEFAULT 0;
 
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_name_en TEXT;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_name_kh TEXT;
@@ -128,9 +137,10 @@ ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_name_ru TEXT;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_img_url TEXT;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_category TEXT;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_form TEXT;
-ALTER TABLE order_items ADD COLUMN IF NOT EXISTS requested_qty NUMERIC(10, 2) DEFAULT 1;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS requested_qty NUMERIC(10, 3) DEFAULT 1;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS customer_comment TEXT;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS actual_cost NUMERIC(10, 2) DEFAULT 0;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS estimated_price NUMERIC(10, 2) DEFAULT 0;
 ALTER TABLE order_items ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
 
 -- Триггер автоматической нумерации заказов: FM-YYMMDD-NNN
@@ -173,6 +183,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public, auth, pg_temp;
 
 -- 2.1. Каталог products: Чтение всем, Запись ТОЛЬКО администратору
+DROP POLICY IF EXISTS "Allow public read-only access" ON public.products;
+DROP POLICY IF EXISTS "Allow all for admin" ON public.products;
+DROP POLICY IF EXISTS "Allow authenticated read-only access" ON public.products;
 DROP POLICY IF EXISTS "Public read products" ON products;
 DROP POLICY IF EXISTS "Admin write products" ON products;
 
@@ -184,14 +197,14 @@ FOR ALL TO authenticated
 USING (public.is_admin())
 WITH CHECK (public.is_admin());
 
--- 2.2. Заказы orders: Клиенты создают и видят свои, Админ видит и меняет все
+-- 2.2. Заказы orders: Создание ТОЛЬКО через RPC create_order; клиенты видят свои заказы, админ видит и меняет все
+-- Прямой INSERT в orders закрыт (Шаг 1б, Аудит v3 §3.3)
+DROP POLICY IF EXISTS "Allow individual read access" ON public.orders;
+DROP POLICY IF EXISTS "Allow individual insert access" ON public.orders;
+DROP POLICY IF EXISTS "Allow admin all access" ON public.orders;
 DROP POLICY IF EXISTS "Users can create orders" ON orders;
 DROP POLICY IF EXISTS "Users can view own orders" ON orders;
 DROP POLICY IF EXISTS "Admin full access to orders" ON orders;
-
-CREATE POLICY "Users can create orders" ON orders
-FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own orders" ON orders
 FOR SELECT TO authenticated
@@ -202,20 +215,14 @@ FOR ALL TO authenticated
 USING (public.is_admin())
 WITH CHECK (public.is_admin());
 
--- 2.3. Позиции order_items
+-- 2.3. Позиции order_items: Создание ТОЛЬКО через RPC create_order
+-- Прямой INSERT в order_items закрыт (Шаг 1б, Аудит v3 §3.3)
+DROP POLICY IF EXISTS "Allow individual read access" ON public.order_items;
+DROP POLICY IF EXISTS "Allow individual insert access" ON public.order_items;
+DROP POLICY IF EXISTS "Allow admin all access" ON public.order_items;
 DROP POLICY IF EXISTS "Users can insert order items" ON order_items;
 DROP POLICY IF EXISTS "Users and admin can view order items" ON order_items;
 DROP POLICY IF EXISTS "Admin can manage order items" ON order_items;
-
-CREATE POLICY "Users can insert order items" ON order_items
-FOR INSERT TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM orders
-    WHERE orders.id = order_items.order_id
-      AND orders.user_id = auth.uid()
-  )
-);
 
 CREATE POLICY "Users and admin can view order items" ON order_items
 FOR SELECT TO authenticated
@@ -252,6 +259,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow individual read access" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual update access" ON public.profiles;
+DROP POLICY IF EXISTS "Allow individual insert access" ON public.profiles;
 
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
@@ -320,7 +331,8 @@ CREATE TRIGGER on_auth_user_created
 -- ============================================================================
 -- 2.5. ТРАНЗАКЦИОННАЯ RPC-ФУНКЦИЯ ОФОРМЛЕНИЯ ЗАКАЗА (public.create_order)
 -- ============================================================================
--- Решает проблему неатомарности (§3.2 Аудита) и исключает подделку стоимости/статуса
+-- Решает проблему неатомарности (§3.2 Аудита v2, §3.3 Аудита v3)
+-- Включает валидацию лимитов, защиту от Hijacking, гибридную обработку позиций
 CREATE OR REPLACE FUNCTION public.create_order(
   p_order_id UUID DEFAULT NULL,
   p_customer_name TEXT DEFAULT NULL,
@@ -343,8 +355,30 @@ DECLARE
   v_order_id UUID;
   v_order_number TEXT;
   v_delivery_fee NUMERIC(10, 2);
+  v_delivery_zone TEXT;
   v_target_date DATE;
+  v_customer_name TEXT;
+  v_customer_phone TEXT;
+  v_customer_messenger TEXT;
+  v_delivery_address TEXT;
+  v_customer_comment TEXT;
+  v_replacement_policy TEXT;
   v_item RECORD;
+  v_product RECORD;
+  v_item_product_id UUID;
+  v_raw_qty TEXT;
+  v_num_str TEXT;
+  v_qty NUMERIC(10, 3);
+  v_final_title TEXT;
+  v_final_name_en TEXT;
+  v_final_name_kh TEXT;
+  v_final_name_ru TEXT;
+  v_final_img TEXT;
+  v_final_cat TEXT;
+  v_final_form TEXT;
+  v_final_unit TEXT;
+  v_final_comment TEXT;
+  v_final_price NUMERIC(10, 2);
   v_result JSONB;
 BEGIN
   -- 1. Проверка аутентификации пользователя
@@ -353,7 +387,7 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: order creation requires authentication';
   END IF;
 
-  -- 2. Валидация обязательных данных
+  -- 2. Валидация контактов и ограничений
   IF p_customer_phone IS NULL OR trim(p_customer_phone) = '' THEN
     RAISE EXCEPTION 'Customer phone or messenger contact is required';
   END IF;
@@ -362,23 +396,32 @@ BEGIN
     RAISE EXCEPTION 'Order must contain at least one item';
   END IF;
 
-  -- 3. Серверная тарификация доставки по зонам (защита от клиентских манипуляций)
+  IF jsonb_array_length(p_items) > 50 THEN
+    RAISE EXCEPTION 'Order contains too many items (maximum 50)';
+  END IF;
+
+  -- 3. Санитизация и обрезка строк по лимитам
+  v_customer_name := substring(trim(p_customer_name) from 1 for 100);
+  v_customer_phone := substring(trim(p_customer_phone) from 1 for 50);
+  v_customer_messenger := substring(trim(COALESCE(p_customer_messenger, 'telegram')) from 1 for 50);
+  v_delivery_address := substring(trim(p_delivery_address) from 1 for 300);
+  v_customer_comment := substring(trim(p_customer_comment) from 1 for 500);
+  v_replacement_policy := substring(trim(COALESCE(p_replacement_policy, 'call_to_agree')) from 1 for 50);
+
+  -- 4. Серверная тарификация доставки по зонам (белый список)
   CASE p_delivery_zone
-    WHEN 'zone_1' THEN v_delivery_fee := 1.00;
-    WHEN 'zone_2' THEN v_delivery_fee := 2.00;
-    WHEN 'zone_3' THEN v_delivery_fee := 3.50;
-    ELSE v_delivery_fee := 3.50;
+    WHEN 'zone_1' THEN v_delivery_fee := 1.00; v_delivery_zone := 'zone_1';
+    WHEN 'zone_2' THEN v_delivery_fee := 2.00; v_delivery_zone := 'zone_2';
+    WHEN 'zone_3' THEN v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
+    ELSE v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
   END CASE;
 
-  -- 4. Генерация/присвоение идентификаторов
+  -- 5. Генерация/присвоение идентификаторов
   v_order_id := COALESCE(p_order_id, gen_random_uuid());
-  
-  -- Генерация последовательного номера заказа FM-YYMMDD-NNN
   v_order_number := 'FM-' || to_char(CURRENT_DATE, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
   v_target_date := COALESCE(p_target_delivery_date, CURRENT_DATE + INTERVAL '1 day');
 
-  -- 5. Вставка шапки заказа (атомарно в транзакции)
-  -- Если заказ с таким p_order_id уже был вставлен (повторная синхронизация), обновляем контакты
+  -- 6. Вставка шапки заказа (с защитой от Hijacking чужого заказа)
   INSERT INTO public.orders (
     id,
     order_number,
@@ -397,7 +440,6 @@ BEGIN
     replace_rule,
     delivery_zone,
     delivery_fee,
-    service_percent,
     estimated_total,
     market_items_total,
     actual_market_total,
@@ -412,18 +454,17 @@ BEGIN
     'pending',
     'pending',
     'cash',
-    p_customer_name,
-    p_customer_phone,
-    COALESCE(p_customer_messenger, 'telegram'),
-    p_delivery_address,
-    p_customer_comment,
-    p_customer_comment,
+    v_customer_name,
+    v_customer_phone,
+    v_customer_messenger,
+    v_delivery_address,
+    v_customer_comment,
+    v_customer_comment,
     v_target_date,
-    COALESCE(p_replacement_policy, 'call_to_agree'),
-    COALESCE(p_replacement_policy, 'call_to_agree'),
-    p_delivery_zone,
+    v_replacement_policy,
+    v_replacement_policy,
+    v_delivery_zone,
     v_delivery_fee,
-    10.00,
     0.00,
     0.00,
     0.00,
@@ -437,12 +478,17 @@ BEGIN
     delivery_address = EXCLUDED.delivery_address,
     customer_notes = EXCLUDED.customer_notes,
     updated_at = now()
+  WHERE orders.id::text = v_order_id::text AND orders.user_id::text = v_user_id::text
   RETURNING order_number INTO v_order_number;
 
-  -- 6. Вставка всех позиций заказа в той же транзакции
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Access denied: cannot modify an order owned by another user';
+  END IF;
+
+  -- 7. Вставка позиций (универсальный парсинг количества и цен)
   FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS (
     id UUID,
-    product_id UUID,
+    product_id TEXT,
     product_title TEXT,
     product_name_en TEXT,
     product_name_kh TEXT,
@@ -450,13 +496,55 @@ BEGIN
     product_img_url TEXT,
     product_category TEXT,
     product_form TEXT,
-    quantity NUMERIC,
-    requested_qty NUMERIC,
+    quantity TEXT,
+    requested_qty TEXT,
     unit TEXT,
     customer_comment TEXT,
-    estimated_price NUMERIC
+    estimated_price TEXT
   )
   LOOP
+    -- Извлечение числа из "1.5 kg", "2 шт", "1" или 1.5
+    v_raw_qty := trim(COALESCE(v_item.requested_qty, v_item.quantity, '1'));
+    v_num_str := (regexp_match(v_raw_qty, '^([0-9]+(?:\.[0-9]+)?)'))[1];
+    IF v_num_str IS NOT NULL AND v_num_str <> '' THEN
+      v_qty := v_num_str::numeric;
+    ELSE
+      v_qty := 1.00;
+    END IF;
+
+    IF v_qty <= 0 OR v_qty > 500 THEN
+      RAISE EXCEPTION 'Invalid item quantity: % (must be between 0.001 and 500)', v_qty;
+    END IF;
+
+    -- Проверка наличия в таблице products с безопасным приведением ::text
+    IF v_item.product_id IS NOT NULL AND v_item.product_id <> '' THEN
+      SELECT * INTO v_product FROM public.products WHERE products.id::text = v_item.product_id::text;
+      v_item_product_id := v_product.id;
+    ELSE
+      v_product := NULL;
+      v_item_product_id := NULL;
+    END IF;
+
+    -- Метаданные: приоритет БД, иначе безопасный fallback на клиентские данные
+    v_final_title := COALESCE(
+      v_product.name_ru,
+      NULLIF(substring(trim(v_item.product_name_ru) from 1 for 100), ''),
+      NULLIF(substring(trim(v_item.product_title) from 1 for 100), ''),
+      'Товар'
+    );
+    v_final_name_en := COALESCE(v_product.name_en, substring(trim(v_item.product_name_en) from 1 for 100), '');
+    v_final_name_kh := COALESCE(v_product.name_kh, substring(trim(v_item.product_name_kh) from 1 for 100), '');
+    v_final_name_ru := COALESCE(v_product.name_ru, substring(trim(v_item.product_name_ru) from 1 for 100), '');
+    v_final_img := COALESCE(v_product.img_url, substring(trim(v_item.product_img_url) from 1 for 500), '');
+    v_final_cat := COALESCE(v_product.category, substring(trim(v_item.product_category) from 1 for 50), 'other');
+    v_final_form := COALESCE(v_product.form, substring(trim(v_item.product_form) from 1 for 50), 'Целый');
+    v_final_unit := substring(trim(COALESCE(v_item.unit, 'кг')) from 1 for 20);
+    v_final_comment := substring(trim(v_item.customer_comment) from 1 for 300);
+    v_final_price := COALESCE(
+      v_product.price,
+      GREATEST(0.00, LEAST(COALESCE(NULLIF(regexp_replace(v_item.estimated_price, '[^0-9.]', '', 'g'), '')::numeric, 0.00), 9999.99))
+    );
+
     INSERT INTO public.order_items (
       id,
       order_id,
@@ -479,27 +567,27 @@ BEGIN
     ) VALUES (
       COALESCE(v_item.id, gen_random_uuid()),
       v_order_id,
-      v_item.product_id,
-      COALESCE(v_item.product_title, 'Товар'),
-      v_item.product_name_en,
-      v_item.product_name_kh,
-      v_item.product_name_ru,
-      v_item.product_img_url,
-      v_item.product_category,
-      v_item.product_form,
-      COALESCE(v_item.requested_qty, v_item.quantity, 1.00),
-      COALESCE(v_item.requested_qty, v_item.quantity, 1.00),
-      COALESCE(v_item.unit, 'кг'),
-      v_item.customer_comment,
+      v_item_product_id,
+      v_final_title,
+      v_final_name_en,
+      v_final_name_kh,
+      v_final_name_ru,
+      v_final_img,
+      v_final_cat,
+      v_final_form,
+      v_qty,
+      v_qty,
+      v_final_unit,
+      v_final_comment,
       'pending',
-      COALESCE(v_item.estimated_price, 0.00),
+      v_final_price,
       0.00,
       now()
     )
     ON CONFLICT (id) DO NOTHING;
   END LOOP;
 
-  -- 7. Формирование возвращаемого JSON-результата
+  -- 8. Формирование возвращаемого JSON-результата
   SELECT jsonb_build_object(
     'success', true,
     'order_id', v_order_id,
@@ -514,8 +602,9 @@ BEGIN
 END;
 $$;
 
--- Выдача прав на вызов функции авторизованным покупателям
-GRANT EXECUTE ON FUNCTION public.create_order TO authenticated;
+-- Ограничение прав: вызов функции разрешен только авторизованным покупателям
+REVOKE ALL ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB) TO authenticated;
 ```
 
 ---

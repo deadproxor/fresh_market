@@ -30,8 +30,8 @@ class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 def run():
     socketserver.TCPServer.allow_reuse_address = True
-    with http.server.ThreadingHTTPServer(('0.0.0.0', PORT), NoCacheHTTPRequestHandler) as httpd:
-        print(f"🚀 FreshMarket Dev Server (No-Cache) started at http://localhost:{PORT}")
+    with http.server.ThreadingHTTPServer(('127.0.0.1', PORT), NoCacheHTTPRequestHandler) as httpd:
+        print(f"🚀 FreshMarket Dev Server (No-Cache) started at http://127.0.0.1:{PORT}")
         print("⚡ Changes to CSS, JS, and HTML will now be visible immediately upon browser refresh.")
         sys.stdout.flush()
         try:

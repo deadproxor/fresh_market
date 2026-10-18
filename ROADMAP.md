@@ -1007,6 +1007,23 @@ flowchart TD
   * Исправление уязвимости search_path injection в функции `handle_new_user()` (`SET search_path = public, auth, pg_temp`) и ограничение триггера только событием `AFTER INSERT`.
   * Разрешение администраторам просмотра профилей покупателей (`SELECT ... USING (auth.uid() = id OR public.is_admin())`) и полного управления `Admin full access to profiles`.
   * Обновление версий: `admin/index.html` (`admin-auth.js?v=1.4.15`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.17`).
+* [x] **Усиление серверных транзакций и зачистка RLS (Пакет 1, Шаг 1а / Аудит v3 §3.1, §3.3, §4):**
+  * **Защита от Hijacking чужих заказов в `create_order`:** условие `WHERE orders.id = v_order_id AND orders.user_id = v_user_id` при `ON CONFLICT DO UPDATE` с прерыванием транзакции через `IF NOT FOUND THEN RAISE EXCEPTION`.
+  * **Строгая валидация лимитов входных данных:** ограничение длины имени (100), телефона (50), адреса (300), комментария (500) и количества позиций (1..50).
+  * **Валидация количества товара (включая дробные веса):** проверка `qty > 0 AND qty <= 500` с сохранением точных долей (кг/г).
+  * **Гибридное обогащение товаров:** получение проверенных метаданных и цен из таблицы `public.products` при наличии `product_id`, безопасный санитизированный fallback для кастомных товаров без ID.
+  * **Закрытие прав вызова для анонимов:** `REVOKE ALL ... FROM PUBLIC, anon; GRANT EXECUTE ... TO authenticated;`.
+  * **Зачистка устаревших (legacy) политик RLS:** добавление явных `DROP POLICY IF EXISTS "Allow ..."` для `products`, `orders`, `order_items`, `profiles` в `SUPABASE_SETUP.md`.
+* [x] **Кросс-девайс и кросс-браузерная синхронизация корзины (Chrome <-> Safari):**
+  * **Last-Write-Wins по таймстемпам:** сравнение `updated_at` облачного профиля и `freshmarket_cart_updated_at` в `localStorage` вместо блокировки загрузки облачной корзины для ранее активных устройств.
+  * **Реактивные слушатели активности:** автоматическая догрузка актуальной корзины при переключении вкладки или окна (`visibilitychange`, `window.focus`).
+  * **Supabase Realtime:** подписка на канал `cart-sync-{userId}` (`postgres_changes` на `public.profiles`) для мгновенного обновления состава корзины и бейджей без перезагрузки страницы.
+  * **Обновление версий:** `shop.html` (`shop.js?v=1.4.39`), `sw-shop.js` (`freshmarket-shop-v1.5.36`).
+* [x] **Закрытие прямого INSERT в базе и удаление fallback в коде (Пакет 1, Шаг 1б / Аудит v3 §3.3, §4):**
+  * **Удаление прямых политик записи в Supabase:** удалены политики `Users can create orders` и `Users can insert order items` в `SUPABASE_SETUP.md`. Создание заказов возможно только через проверенную функцию `create_order`.
+  * **Удаление fallback в `shop.js`:** удалены резервные прямые вставки в `handleCheckoutSubmit` и `syncPendingOrders`; заказы при отсутствии сети сохраняются в защищенную очередь `pending_sync`.
+  * **Изоляция dev-сервера:** привязка сокета в `dev-server.py` к `127.0.0.1` вместо `0.0.0.0`.
+  * **Обновление версий:** `shop.html` (`shop.js?v=1.4.40`), `sw-shop.js` (`freshmarket-shop-v1.5.37`).
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 
