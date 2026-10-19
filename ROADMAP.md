@@ -1051,8 +1051,12 @@ flowchart TD
     * `20261017000000_initial_schema.sql` — базовая схема (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры `set_order_number()` и `handle_new_user()`.
     * `20261018000000_security_hardening.sql` — RLS-защита, функции `is_admin()`, защита от эскалации привилегий `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, зачистка устаревших политик.
   * **Синхронизация документации:** обновление `SUPABASE_SETUP.md` и `supabase/README.md` с описанием применения через Supabase CLI (`supabase db push`) и SQL Editor консоли.
+* [x] **Автоматизация версионирования и кэш-бастинга (Пакет 4, Шаг 4в / Аудит v3 §5):**
+  * **Утилита `scripts/bump_version.py`:** кроссплатформенный скрипт на стандартной библиотеке Python 3 (без сторонних зависимостей и без Node.js согласно Правилу 9).
+  * **Комплексная синхронизация:** атомарное обновление кэшей Service Worker (`freshmarket-shop-v...`, `freshmarket-admin-v...`), JavaScript констант (`SHOP_VERSION`, `APP_VERSION`), разметки splash-экранов и параметров `?v=...` для всех локальных CSS/JS ассетов (20 ссылок в 4 HTML файлах).
+  * **Режимы работы:** поддержка установки точной версии (`bump_version.py 1.5.0`), SemVer инкрементов (`--patch`, `--minor`, `--major`), инспекции (`--status`) и безопасной симуляции (`--dry-run`).
 * [ ] **Синхронизация версий витрины:**
-  * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
+  * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию через `scripts/bump_version.py`.
 
 ### 🌟 Спринт 4: Платежи KHQR и финальный релиз
 * [x] **Создание Лендинга (`index.html`):**
