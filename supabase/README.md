@@ -66,3 +66,34 @@ supabase functions deploy gemini-vision --project-ref qifazsptdgcskrchfocc
 - Сначала отправляется запрос в Supabase Edge Function (`this.sb.functions.invoke(...)`).
 - Если функция еще не развернута или возвращает ошибку, админка мягко использует локальные настройки из `localStorage` (если они заданы закупщиком вручную).
 - После развертывания функций ввод секретов в браузере больше не требуется.
+
+---
+
+## 4. Миграции базы данных (`supabase/migrations/`)
+
+Схема и политики базы данных переведены из монолитного документа в версионированные файлы миграций согласно стандарту Supabase CLI (§3.4, §5 Аудита v3, Пакет 4, Шаг 4б):
+
+```text
+supabase/migrations/
+├── 20261017000000_initial_schema.sql         # Базовые таблицы (products, orders, order_items, profiles), индексы, триггеры
+└── 20261018000000_security_hardening.sql      # RLS политики, is_admin(), protect_profile_role(), RPC create_order
+```
+
+### Применение миграций:
+
+#### Способ 1. Через Supabase CLI:
+```bash
+# Привязать проект к репозиторию (разово)
+supabase link --project-ref qifazsptdgcskrchfocc
+
+# Применить все новые миграции к удаленной базе данных
+supabase db push
+```
+
+#### Способ 2. Через Supabase Dashboard (SQL Editor):
+Если Supabase CLI не установлен локально, файлы миграций можно поочередно выполнить в **SQL Editor** панели [Supabase Dashboard](https://supabase.com/dashboard/project/qifazsptdgcskrchfocc/sql):
+1. Выполнить `20261017000000_initial_schema.sql` (создание таблиц, типов и триггеров).
+2. Выполнить `20261018000000_security_hardening.sql` (активация RLS, ограничение прямого INSERT, RPC `create_order`).
+
+Подробное руководство по бизнес-логике и настройке авторизации сохранено в [SUPABASE_SETUP.md](file:///Users/elwis/dev/FreshMarket/SUPABASE_SETUP.md).
+

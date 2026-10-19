@@ -22,7 +22,16 @@
 
 ---
 
-## 2. SQL Скрипты: Выберите подходящий вариант
+## 2. Структура миграций и SQL Скрипты
+
+> 💡 **Рекомендуемый способ управления базой данных (v1.5.0+):**  
+> Все изменения схемы базы данных и политик RLS версионируются в каталоге [`supabase/migrations/`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/):
+> * [`supabase/migrations/20261017000000_initial_schema.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261017000000_initial_schema.sql) — базовые таблицы (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры нумерации и создания профилей.
+> * [`supabase/migrations/20261018000000_security_hardening.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261018000000_security_hardening.sql) — активация RLS, функции `is_admin()`, триггер защиты ролей `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, очистка устаревших политик.
+>
+> Миграции могут применяться автоматически через Supabase CLI (`supabase db push`) либо копированием содержимого файлов в **SQL Editor** консоли Supabase.
+
+---
 
 ### 🚀 Быстрая миграция (v1.5.3): Добавление поля фасовки/веса (unit) и базовой цены в KHR
 

@@ -1044,7 +1044,13 @@ flowchart TD
   * **Функция `cloudinary-destroy` (`supabase/functions/cloudinary-destroy/index.ts`):** серверное удаление фото с валидацией роли администратора, вычислением подписи SHA-1 и хранением `cloudinary_api_secret` в Vault.
   * **Функция `gemini-vision` (`supabase/functions/gemini-vision/index.ts`):** серверное распознавание продуктов через Google Gemini Vision с проверкой прав `admin` и хранением `gemini_api_key` в Vault.
   * **Интеграция в админке (`admin-catalog.js`):** переключение `CloudinaryService.delete` и `analyzeImageWithGemini` на вызовы Edge Functions с сохранением мягкого локального fallback.
-  * **Обновление версий:** `admin/index.html` (`admin-catalog.js?v=1.4.11`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.18`).
+  * **Автоматизация деплоя:** GitHub Actions workflow `.github/workflows/deploy-edge-functions.yml` для автоматического развертывания функций при push.
+  * **Обновление версий:** `admin/index.html` (`admin-catalog.js?v=1.4.12`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.19`).
+* [x] **Структурирование миграций базы данных (Пакет 4, Шаг 4б / Аудит v3 §3.4, §5):**
+  * **Каталог `supabase/migrations/`:** выделение атомарных SQL-миграций для командной разработки и CI/CD:
+    * `20261017000000_initial_schema.sql` — базовая схема (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры `set_order_number()` и `handle_new_user()`.
+    * `20261018000000_security_hardening.sql` — RLS-защита, функции `is_admin()`, защита от эскалации привилегий `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, зачистка устаревших политик.
+  * **Синхронизация документации:** обновление `SUPABASE_SETUP.md` и `supabase/README.md` с описанием применения через Supabase CLI (`supabase db push`) и SQL Editor консоли.
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 
@@ -1066,4 +1072,5 @@ flowchart TD
   * Автоматическая синхронизация новых рыночных позиций из Supabase в словарный фонд.
   * Инструмент выявления, слияния и безопасного удаления дубликатов из базы с безусловным приоритетом эталонного словаря.
 * [ ] **Telegram Bot Webhook:** мгновенные уведомления закупщику о новых заказах.
-* [ ] **Аналитика и учет цен:** графики динамики цен на рынке Samaki по сезонам, расчет маржинальности.
+* [ ] **Аналитика и учет цен:** графики динамики цен на утреннем рынке по сезонам, расчет маржинальности.
+
