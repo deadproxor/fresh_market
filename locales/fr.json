@@ -162,6 +162,7 @@
     "recent_locations_title": "Lieux récents :",
     "address_placeholder": "Rue, bâtiment ou lien GPS",
     "map_hint": "Déplacez le repère 📍 pour choisir un point",
+    "geodata_privacy_hint": "Les coordonnées sont utilisées uniquement pour le calcul de l'itinéraire via OpenStreetMap et OSRM. Aucune donnée personnelle n'est partagée.",
     "zone_detected": "Zone",
     "by_road": "par route",
     "min": "min",

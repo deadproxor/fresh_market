@@ -825,6 +825,9 @@ class ShopApp {
   }
 
   switchView(viewName) {
+    if (viewName === 'orders' && !this.isUserAuthenticated()) {
+      viewName = 'catalog';
+    }
     this.currentView = viewName;
 
     const views = {
@@ -1123,13 +1126,14 @@ class ShopApp {
 
   showLoadingState() {
     if (this.shopProductsGrid) {
-      const loadTitle = window.i18n ? window.i18n.t('shop.loading_title') : 'Загрузка свежих продуктов...';
-      const loadDesc = window.i18n ? window.i18n.t('shop.loading_desc') : 'Связываемся с базой утреннего рынка';
+      const hasI18n = window.i18n && window.i18n.isReady;
+      const loadTitle = hasI18n ? window.i18n.t('shop.loading_title') : 'Загрузка свежих продуктов...';
+      const loadDesc = hasI18n ? window.i18n.t('shop.loading_desc') : 'Связываемся с базой утреннего рынка';
       this.shopProductsGrid.innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🥬</div>
-          <div class="empty-title">${loadTitle}</div>
-          <div class="empty-desc">${loadDesc}</div>
+          <div class="empty-title" data-i18n="shop.loading_title">${loadTitle}</div>
+          <div class="empty-desc" data-i18n="shop.loading_desc">${loadDesc}</div>
         </div>
       `;
     }
@@ -2337,7 +2341,7 @@ class ShopApp {
     const orderPayload = {
       id: orderId,
       order_number: orderNumber,
-      user_id: this.currentUser?.id || null,
+      user_id: this.currentUser.id,
       customer_name: customerName,
       customer_messenger: customerMessenger,
       customer_phone: customerPhone,
@@ -2457,6 +2461,7 @@ class ShopApp {
   }
 
   saveOrderLocally(order) {
+    if (!this.isUserAuthenticated()) return;
     try {
       const saved = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
       saved.unshift(order);
@@ -2470,7 +2475,11 @@ class ShopApp {
   // 10. Orders History View
   // ------------------------------------------------------------------------
   openOrdersModal() {
-    this.switchView('orders');
+    if (this.isUserAuthenticated()) {
+      this.switchView('orders');
+    } else {
+      this.switchView('catalog');
+    }
   }
 
   closeOrdersModal() {
@@ -2479,6 +2488,10 @@ class ShopApp {
 
   async loadOrders() {
     if (!this.ordersModalBody) return;
+    if (!this.isUserAuthenticated()) {
+      this.switchView('catalog');
+      return;
+    }
 
     const ordersLoading = window.i18n ? window.i18n.t('orders.loading') : 'Загрузка заказов...';
     this.ordersModalBody.innerHTML = `
@@ -2515,9 +2528,10 @@ class ShopApp {
       }
     }
 
-    // 3. Fallback or merge with local storage history
-    if (orders.length === 0) {
-      orders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
+    // 3. Fallback or merge with local storage history (only authenticated user orders)
+    if (orders.length === 0 && this.currentUser) {
+      orders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]')
+        .filter((o) => o.user_id === this.currentUser.id);
     }
 
     this.renderOrdersList(orders);
@@ -3145,6 +3159,14 @@ class ShopApp {
 
     if (this.btnShopHeaderLogout) {
       this.btnShopHeaderLogout.style.display = isAuth ? 'inline-flex' : 'none';
+    }
+
+    // 4. Bottom Nav Orders Button (Visible only for authenticated users)
+    if (this.navOrders) {
+      this.navOrders.style.display = isAuth ? '' : 'none';
+    }
+    if (!isAuth && this.currentView === 'orders') {
+      this.switchView('catalog');
     }
   }
 

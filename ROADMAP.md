@@ -1025,9 +1025,21 @@ flowchart TD
   * **Изоляция dev-сервера:** привязка сокета в `dev-server.py` к `127.0.0.1` вместо `0.0.0.0`.
   * **Обновление версий:** `shop.html` (`shop.js?v=1.4.40`), `sw-shop.js` (`freshmarket-shop-v1.5.37`).
 * [x] **Закрепление внешних CDN-зависимостей и целостность ресурсов (Пакет 2 / Аудит v3 §4):**
-  * **Фиксация версии Supabase JS:** закрепление `@supabase/supabase-js@2.45.4` с UMD-бандлом `/dist/umd/supabase.js`.
-  * **Subresource Integrity (SRI) для Supabase:** добавление `integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"` и `crossorigin="anonymous"` в `shop.html` и `admin/index.html`.
+  * **Фиксация версии Supabase JS:** закрепление `@supabase/supabase-js@2.118.0` с монолитным UMD-бандлом `/dist/umd/supabase.js` (устранено динамическое разделение на чанки Webpack).
+  * **Subresource Integrity (SRI) для Supabase:** добавление `integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK"` и `crossorigin="anonymous"` в `shop.html` и `admin/index.html`.
   * **SRI для Leaflet в витрине:** добавление проверенных хэшей `sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=` для `leaflet.css` и `sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=` для `leaflet.js` в `shop.html` (приведено к единому стандарту с `index.html`).
+* [x] **Политика конфиденциальности геосервисов и Content-Security-Policy (Пакет 3 / Аудит v3 §4):**
+  * **Раскрытие использования геоданных третьими сторонами:** внедрение юридического пояснения об обработке координат доставки через OpenStreetMap (Nominatim) и OSRM для маршрутизации курьера без передачи персональных данных.
+  * **Синхронизация локалей:** добавление ключа `cart.geodata_privacy_hint` во все 5 языковых файлов (`ru.json`, `en.json`, `km.json`, `fr.json`, `ua.json`) без географических привязок (Правило 7, 11).
+  * **Дизайн-система компонентов:** оформление `.delivery-map-privacy-note` в `css/components.css` (`v=1.5.5`) и регистрация компонента на странице `components.html` (Правило 3).
+  * **Пояснение в лендинге:** добавление сноски о геосервисах в футер `index.html`.
+  * **Content-Security-Policy (CSP):** интеграция сбалансированных `<meta http-equiv="Content-Security-Policy">` в `shop.html`, `admin/index.html` и `index.html` с белыми списками для Supabase API/Realtime WSS, Leaflet/OSM, Cloudinary, Google OAuth / Facebook аватарок и Gemini API.
+  * **Обновление версий:** `shop.html` (`shop.js?v=1.4.43`, `components.css?v=1.5.5`), `sw-shop.js` (`freshmarket-shop-v1.5.40`), `components.html` (`components.css?v=1.5.5`).
+* [x] **Изоляция гостевого режима и запрет создания заказов без авторизации:**
+  * **Скрытие навигации «Заказы»:** кнопка `#navOrders` скрыта по умолчанию для неавторизованных посетителей; отображается только при активной сессии (`this.currentUser`).
+  * **Защита маршрутизации:** при попытке переключения на экран заказов (`orders`) гость перенаправляется на витрину (`catalog`).
+  * **Барьер в оформлении заказа:** в корзине неавторизованным пользователям показывается только баннер `cartAuthGate` («Войти для оформления заказа →»); форма заказа со всеми полями, картой и кнопкой отправки скрыта.
+  * **Программный запрет в `handleCheckoutSubmit`:** немедленное прерывание оформления с редиректом в профиль при отсутствии авторизации; исключено сохранение локальных заказов без `user_id`.
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 

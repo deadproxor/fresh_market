@@ -162,6 +162,7 @@
     "recent_locations_title": "Recent locations:",
     "address_placeholder": "Street, building or map link",
     "map_hint": "Drag pin 📍 to pick location",
+    "geodata_privacy_hint": "Coordinates are used solely for route calculation via OpenStreetMap and OSRM. Personal data is not shared with third parties.",
     "zone_detected": "Zone",
     "by_road": "by road",
     "min": "min",
