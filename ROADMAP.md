@@ -1040,6 +1040,11 @@ flowchart TD
   * **Защита маршрутизации:** при попытке переключения на экран заказов (`orders`) гость перенаправляется на витрину (`catalog`).
   * **Барьер в оформлении заказа:** в корзине неавторизованным пользователям показывается только баннер `cartAuthGate` («Войти для оформления заказа →»); форма заказа со всеми полями, картой и кнопкой отправки скрыта.
   * **Программный запрет в `handleCheckoutSubmit`:** немедленное прерывание оформления с редиректом в профиль при отсутствии авторизации; исключено сохранение локальных заказов без `user_id`.
+* [x] **Вынос секретов в Supabase Edge Functions (Пакет 4, Шаг 4а / Аудит v3 §3.4):**
+  * **Функция `cloudinary-destroy` (`supabase/functions/cloudinary-destroy/index.ts`):** серверное удаление фото с валидацией роли администратора, вычислением подписи SHA-1 и хранением `cloudinary_api_secret` в Vault.
+  * **Функция `gemini-vision` (`supabase/functions/gemini-vision/index.ts`):** серверное распознавание продуктов через Google Gemini Vision с проверкой прав `admin` и хранением `gemini_api_key` в Vault.
+  * **Интеграция в админке (`admin-catalog.js`):** переключение `CloudinaryService.delete` и `analyzeImageWithGemini` на вызовы Edge Functions с сохранением мягкого локального fallback.
+  * **Обновление версий:** `admin/index.html` (`admin-catalog.js?v=1.4.11`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.18`).
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию `v1.4.0`.
 

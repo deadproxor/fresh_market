@@ -426,14 +426,35 @@ class CloudinaryService {
 
   static async delete(urlOrPublicId) {
     if (!urlOrPublicId) return;
-    const { cloudName, apiKey, apiSecret } = this.getConfig();
-    if (!cloudName || !apiKey || !apiSecret) {
-      console.warn('[CloudinaryService] API Key/Secret not set. Image not deleted from Cloudinary.');
-      return;
-    }
 
     const publicId = urlOrPublicId.includes('http') ? this.extractPublicId(urlOrPublicId) : urlOrPublicId.trim();
     if (!publicId) return;
+
+    // 1. Try Supabase Edge Function first (Zero-Secret client architecture)
+    const sb = window.adminApp?.sb;
+    if (sb && sb.functions) {
+      try {
+        const { data, error } = await sb.functions.invoke('cloudinary-destroy', {
+          body: { public_id: publicId }
+        });
+        if (!error && (data?.result === 'ok' || data?.data?.result === 'ok')) {
+          console.log('[CloudinaryService] Image deleted via Supabase Edge Function:', data);
+          return data;
+        }
+        if (error) {
+          console.warn('[CloudinaryService] Edge Function returned error, trying fallback:', error.message || error);
+        }
+      } catch (efErr) {
+        console.warn('[CloudinaryService] Edge Function invoke failed:', efErr);
+      }
+    }
+
+    // 2. Client-side fallback if local API Secret is configured
+    const { cloudName, apiKey, apiSecret } = this.getConfig();
+    if (!cloudName || !apiKey || !apiSecret) {
+      console.warn('[CloudinaryService] Edge function unavailable and local API Key/Secret not set. Image not deleted from Cloudinary.');
+      return;
+    }
 
     const timestamp = Math.floor(Date.now() / 1000);
     const cleanSecret = String(apiSecret).trim();
@@ -460,7 +481,7 @@ class CloudinaryService {
     }
 
     const data = await res.json().catch(() => ({}));
-    console.log('[CloudinaryService] Image deleted successfully:', data);
+    console.log('[CloudinaryService] Image deleted successfully via client fallback:', data);
     return data;
   }
 }
@@ -1952,25 +1973,19 @@ class App {
       const uploadResult = await res.json();
       const testPublicId = uploadResult.public_id;
 
-      // If API Key and Secret are filled, test immediate deletion
-      if (cloudApiKey && cloudApiSecret) {
-        this.setCloudinaryStatus('loading', 'Загрузка успешна! Тестируем удаление через API Key/Secret...');
-        // Save temporarily to test delete
-        localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
-        localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
-        localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
+      // Test deletion: try Edge Function first, then client fallback if API Key/Secret is present
+      this.setCloudinaryStatus('loading', 'Загрузка успешна! Тестируем удаление (Edge Function / API Key)...');
+      if (cloudApiKey) localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
+      if (cloudApiSecret) localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
+      localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
 
-        try {
-          await CloudinaryService.delete(testPublicId);
-          this.setCloudinaryStatus('success', 'Cloudinary настроен полностью! Загрузка и удаление (API Key/Secret) работают корректно.');
-          this.showToast('✅ Cloudinary: загрузка и удаление работают!');
-        } catch (delErr) {
-          this.setCloudinaryStatus('error', `Загрузка успешна, но ошибка удаления: ${delErr.message}. Проверьте правильность API Key и API Secret.`);
-          this.showToast(`❌ Cloudinary: ${delErr.message}`);
-        }
-      } else {
-        this.setCloudinaryStatus('success', `Cloudinary настроен для загрузки в папку "${folder}". Для автоудаления фото укажите API Key и Secret.`);
-        this.showToast('✅ Cloudinary: тест загрузки успешен!');
+      try {
+        await CloudinaryService.delete(testPublicId);
+        this.setCloudinaryStatus('success', 'Cloudinary настроен полностью! Загрузка и удаление работают корректно.');
+        this.showToast('✅ Cloudinary: загрузка и удаление работают!');
+      } catch (delErr) {
+        this.setCloudinaryStatus('warning', `Загрузка успешна, но удаление не сработало (${delErr.message}). Настройте Edge Function cloudinary-destroy или локальный API Secret.`);
+        this.showToast(`⚠️ Cloudinary удаление: ${delErr.message}`);
       }
     } catch (e) {
       console.error(e);
@@ -2189,12 +2204,6 @@ class App {
   // Gemini Vision Analysis
   // ------------------------------------------------------------------------
   async analyzeImageWithGemini(base64Image, isEdit = false, editCtx = null) {
-    const apiKey = localStorage.getItem('freshmarket_gemini_api_key');
-    if (!apiKey) {
-      this.openSettingsModal(true);
-      return;
-    }
-
     const selectedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
     const customModel = localStorage.getItem('freshmarket_gemini_custom_model');
     const modelToUse = (selectedModel === 'custom' && customModel) ? customModel.trim() : selectedModel;
@@ -2210,10 +2219,41 @@ class App {
       const mimeTypeMatch = base64Image.match(/^data:(image\/\w+);base64,/);
       const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
 
-      const prompt = `You are an expert botanist, food specialist, and Cambodian market expert specializing in fresh produce, ingredients, seafood, meats, herbs, fruits, and mushrooms found in Southeast Asian and Cambodian markets (such as Samaki Market in Kampot).
+      let parsed = null;
+
+      // 1. Try Supabase Edge Function first (Zero-Secret client architecture)
+      if (this.sb && this.sb.functions) {
+        try {
+          const { data, error } = await this.sb.functions.invoke('gemini-vision', {
+            body: {
+              imageBase64: base64Data,
+              mimeType,
+              model: modelToUse
+            }
+          });
+          if (!error && data?.result) {
+            console.log('[Admin] Produce recognized via Supabase Edge Function:', data.result);
+            parsed = data.result;
+          } else if (error) {
+            console.warn('[Admin] Edge Function gemini-vision error, trying client fallback:', error.message || error);
+          }
+        } catch (efErr) {
+          console.warn('[Admin] Edge Function gemini-vision call failed:', efErr);
+        }
+      }
+
+      // 2. Client-side fallback if API key is stored in localStorage
+      if (!parsed) {
+        const apiKey = localStorage.getItem('freshmarket_gemini_api_key');
+        if (!apiKey) {
+          this.openSettingsModal(true);
+          throw new Error('API ключ Gemini не настроен ни в Supabase Edge Function, ни локально');
+        }
+
+        const prompt = `You are an expert botanist, food specialist, and market produce expert specializing in fresh produce, ingredients, seafood, meats, herbs, fruits, and mushrooms found in Southeast Asian morning markets.
 Analyze the food product in this image and return a JSON object with:
-- "name_en": Clear English name of the product (e.g. "Chicken Drumsticks", "Lemongrass", "Garlic", "Kep Crab", "Bitter Gourd").
-- "name_ru": Clear Russian name of the product (e.g. "Куриные голени", "Лемонграсс", "Чеснок", "Кепский краб", "Горькая тыква").
+- "name_en": Clear English name of the product (e.g. "Chicken Drumsticks", "Lemongrass", "Garlic", "Crab", "Bitter Gourd").
+- "name_ru": Clear Russian name of the product (e.g. "Куриные голени", "Лемонграсс", "Чеснок", "Краб", "Горькая тыква").
 - "name_kh": Authentic Khmer script name followed by pronunciation transcription in English in brackets (e.g. "ភ្លៅមាន់ (Phlov Moan)", "ស្លឹកគ្រៃ (Sloek Krey)", "ខ្ទឹមស (Khtem Sor)").
 - "category": MUST be one of these exact 9 categories:
   ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Грибы"]
@@ -2223,50 +2263,50 @@ Analyze the food product in this image and return a JSON object with:
 
 Return ONLY raw valid JSON, no markdown code block fences.`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: base64Data
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
+                  }
                 }
-              }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0.2,
-            response_mime_type: "application/json"
-          }
-        })
-      });
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.2,
+              response_mime_type: "application/json"
+            }
+          })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errMsg = errorData.error?.message || `Ошибка API Gemini (${response.status})`;
-        throw new Error(errMsg);
-      }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errMsg = errorData.error?.message || `Ошибка API Gemini (${response.status})`;
+          throw new Error(errMsg);
+        }
 
-      const result = await response.json();
-      const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!textResponse) {
-        throw new Error('Пустой ответ от Gemini');
-      }
+        const result = await response.json();
+        const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textResponse) {
+          throw new Error('Пустой ответ от Gemini');
+        }
 
-      let parsed;
-      try {
-        const cleanText = textResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-        parsed = JSON.parse(cleanText);
-      } catch (e) {
-        console.error('Failed to parse Gemini JSON response:', textResponse);
-        throw new Error('Не удалось разобрать ответ ИИ');
+        try {
+          const cleanText = textResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+          parsed = JSON.parse(cleanText);
+        } catch (e) {
+          console.error('Failed to parse Gemini JSON response:', textResponse);
+          throw new Error('Не удалось разобрать ответ ИИ');
+        }
       }
 
       // Check against local dictionary for exact authentic names if matching (Dictionary has top priority)
