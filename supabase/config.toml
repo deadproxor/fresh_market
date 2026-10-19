@@ -1,0 +1,27 @@
+# Supabase CLI Project Configuration
+# Reference: https://supabase.com/docs/guides/cli/config
+
+project_id = "qifazsptdgcskrchfocc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+# Edge Functions Configuration
+# verify_jwt is set to false because authentication and admin role validation
+# are strictly handled inside the function code via supabase.auth.getUser()
+[functions.cloudinary-destroy]
+verify_jwt = false
+
+[functions.gemini-vision]
+verify_jwt = false
