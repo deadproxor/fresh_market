@@ -24,6 +24,9 @@ jobs:
         with:
           version: latest
 
+      - name: Verify Supabase CLI
+        run: supabase --version
+
       - name: Deploy cloudinary-destroy
         run: |
           supabase functions deploy cloudinary-destroy \
