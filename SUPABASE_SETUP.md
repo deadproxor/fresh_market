@@ -28,6 +28,10 @@
 > Все изменения схемы базы данных и политик RLS версионируются в каталоге [`supabase/migrations/`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/):
 > * [`supabase/migrations/20261017000000_initial_schema.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261017000000_initial_schema.sql) — базовые таблицы (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры нумерации и создания профилей.
 > * [`supabase/migrations/20261018000000_security_hardening.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261018000000_security_hardening.sql) — активация RLS, функции `is_admin()`, триггер защиты ролей `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, очистка устаревших политик.
+> * [`supabase/migrations/20261020000000_hardening_v4.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261020000000_hardening_v4.sql) — комплексное усиление по Аудиту v4: динамическая зачистка политик, унификация роли `admin`, Rate Limiting в `create_order()`, таймзона UTC+7, колонка `cart_updated_at` и Realtime публикация.
+>
+> 🔍 **Диагностический скрипт верификации базы данных:**  
+> Файл [`scripts/verify_database.sql`](file:///Users/elwis/dev/FreshMarket/scripts/verify_database.sql) содержит готовые запросы для SQL Editor для мгновенной проверки соответствия живой базы миграциям.
 >
 > Миграции могут применяться автоматически через Supabase CLI (`supabase db push`) либо копированием содержимого файлов в **SQL Editor** консоли Supabase.
 
@@ -751,11 +755,23 @@ CREATE TABLE IF NOT EXISTS products (
 | :--- | :--- | :--- |
 | **Ключ Supabase (`storageKey`)** | `freshmarket_customer_auth` | `freshmarket_admin_auth` |
 | **Тип браузерного хранилища** | `window.localStorage` (долговечная сессия клиента) | `window.sessionStorage` (изоляция во вкладке, безопасность) |
-| **Ролевая проверка (RBAC Gatekeeper)** | Покупатель (OAuth Google/Facebook или гость) | Серверная проверка RBAC: `role === 'admin' \|\| role === 'buyer'` в защищённых `app_metadata` |
+| **Ролевая проверка (RBAC Gatekeeper)** | Покупатель (OAuth Google/Facebook или гость) | Серверная проверка RBAC: `role === 'admin'` в защищённых `app_metadata` |
 | **Защита на уровне базы данных** | RLS (доступ только к своим заказам) | RLS (полный доступ к заказам и редактированию каталога) |
 
 *Преимущества:*
 1. В соседних вкладках можно одновременно работать под администратором и тестировать покупку от лица клиента без взаимных разлогинов или перехвата сессий.
 2. При закрытии служебной вкладки админки сессия закрывается автоматически, исключая несанкционированный доступ с общего устройства.
 3. Попытка входа с учетной записи обычного покупателя в админку пресекается немедленным завершением сессии с сообщением об отказе в доступе.
+
+---
+
+### 🛡️ 3.7. Рекомендации по безопасности Auth и двухфакторной аутентификации (MFA) (Аудит v4 §3.3)
+
+1. **Включение MFA для администратора:**
+   * В **Supabase Dashboard** перейдите в **Authentication** → **Multi-Factor Authentication**.
+   * Включите **App Authenticator (TOTP)** (Google Authenticator, Apple Passwords или 1Password).
+   * Защитите аккаунт закупщика/администратора вторым фактором при входе.
+2. **Конфигурация регистрации по Email (Sign-ups):**
+   * Если закупщик — единственный оператор системы, в **Authentication** → **Providers** → **Email** рекомендуется отключить **Enable Email Signup** (оставить только вход существующих пользователей) либо включить обязательное подтверждение почты **Confirm email**.
+   * Создание учетной записи администратора производить вручную из консоли **Authentication** → **Users** → **Create user** с назначением `app_metadata.role = 'admin'`.
 

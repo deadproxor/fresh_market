@@ -289,6 +289,17 @@
     "install_hint": "ℹ️ Pour installer : appuyez sur « Partager / Menu » de votre navigateur et sélectionnez « Ajouter à l'écran d'accueil »",
     "install_started": "✅ Installation de l'application démarrée"
   },
+  "dialogs": {
+    "btn_ok": "Compris",
+    "max_pending_title": "Commandes en cours",
+    "max_pending_desc": "Vous avez déjà 5 commandes actives en attente d'achats au marché matinal. Vous pourrez commander à nouveau une fois les livraisons effectuées.",
+    "rate_limit_title": "Veuillez patienter",
+    "rate_limit_desc": "Vous venez de passer une commande. Veuillez attendre 2 minutes avant de soumettre la suivante.",
+    "contacts_required_title": "Coordonnées requises",
+    "contacts_required_desc": "Veuillez indiquer votre nom, téléphone et adresse de livraison pour joindre le livreur.",
+    "generic_error_title": "Attention",
+    "generic_error_desc": "Échec de l'envoi de la commande. Veuillez vérifier votre connexion Internet et réessayer."
+  },
   "landing": {
     "common": {
       "btn_to_shop": "Vers la boutique",

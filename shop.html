@@ -491,13 +491,22 @@
       </div>
     </div>
 
+    <!-- Alert / Error Dialog Modal -->
+    <div id="alertDialog" class="modal-overlay modal-overlay-dialog" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <div class="dialog-card">
+        <h3 class="dialog-title" id="dialogTitle"></h3>
+        <p class="dialog-message" id="dialogMessage"></p>
+        <button type="button" class="btn btn-primary dialog-btn" id="dialogBtnOk" data-i18n="dialogs.btn_ok">Понятно</button>
+      </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.4.43"></script>
+  <script src="js/shop.js?v=1.4.47"></script>
 </body>
 
 </html>

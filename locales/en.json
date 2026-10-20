@@ -289,6 +289,17 @@
     "install_hint": "ℹ️ To install: tap 'Share / Menu' in your browser and select 'Add to Home Screen'",
     "install_started": "✅ App installation started"
   },
+  "dialogs": {
+    "btn_ok": "Got it",
+    "max_pending_title": "Orders in progress",
+    "max_pending_desc": "You already have 5 active orders waiting for morning market shopping. You can place a new order after current ones are delivered.",
+    "rate_limit_title": "Please wait",
+    "rate_limit_desc": "You recently placed an order. Please wait 2 minutes before submitting another order.",
+    "contacts_required_title": "Contact details required",
+    "contacts_required_desc": "Please provide your name, phone number, and delivery address to reach the shopper.",
+    "generic_error_title": "Notice",
+    "generic_error_desc": "Failed to submit order. Please check your internet connection and try again."
+  },
   "landing": {
     "common": {
       "btn_to_shop": "To Shop",

@@ -28,6 +28,13 @@ class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             del self.headers['If-None-Match']
         return super().send_head()
 
+    def log_message(self, format, *args):
+        try:
+            sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), format % args))
+            sys.stderr.flush()
+        except Exception:
+            pass
+
 def run():
     socketserver.TCPServer.allow_reuse_address = True
     with http.server.ThreadingHTTPServer(('127.0.0.1', PORT), NoCacheHTTPRequestHandler) as httpd:

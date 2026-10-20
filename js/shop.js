@@ -565,6 +565,12 @@ class ShopApp {
     this.btnFloatingToCart = document.getElementById('btnFloatingToCart');
     this.activeSheetProductId = null;
     this.activeSheetSelectedQty = null;
+
+    // Alert / Error Dialog Modal Elements
+    this.alertDialog = document.getElementById('alertDialog');
+    this.dialogTitle = document.getElementById('dialogTitle');
+    this.dialogMessage = document.getElementById('dialogMessage');
+    this.dialogBtnOk = document.getElementById('dialogBtnOk');
   }
 
   // ------------------------------------------------------------------------
@@ -1029,9 +1035,7 @@ class ShopApp {
     }
     if (this.onboardingOverlay) {
       this.onboardingOverlay.style.display = 'none';
-      if (!this.productBottomSheet || this.productBottomSheet.style.display !== 'flex') {
-        document.body.classList.remove('modal-open');
-      }
+      this.updateModalOpenState();
     }
   }
 
@@ -1630,9 +1634,7 @@ class ShopApp {
   closeProductSheet() {
     if (this.productBottomSheet) {
       this.productBottomSheet.style.display = 'none';
-      if (!this.onboardingOverlay || this.onboardingOverlay.style.display !== 'flex') {
-        document.body.classList.remove('modal-open');
-      }
+      this.updateModalOpenState();
     }
     this.activeSheetProductId = null;
     this.activeSheetSelectedQty = null;
@@ -2196,7 +2198,6 @@ class ShopApp {
     });
 
     addressInput.addEventListener('input', (e) => {
-      if (e.isTrusted === false) return;
       const val = addressInput.value.trim();
       const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(val) : null;
       if (coords) {
@@ -2205,7 +2206,7 @@ class ShopApp {
     });
   }
 
-  saveRecentDeliveryAddress(address) {
+  saveRecentDeliveryAddress(address, coords = null) {
     if (!address || typeof address !== 'string') return;
     const cleanAddr = address.trim();
     if (!cleanAddr) return;
@@ -2213,13 +2214,23 @@ class ShopApp {
     try {
       let recents = JSON.parse(localStorage.getItem('freshmarket_recent_addresses') || '[]');
       if (!Array.isArray(recents)) recents = [];
-      recents = recents.filter(a => a.toLowerCase() !== cleanAddr.toLowerCase());
-      recents.unshift(cleanAddr);
+
+      const extracted = coords || (typeof extractCoordsFromText === 'function' ? extractCoordsFromText(cleanAddr) : null);
+
+      recents = recents.filter(item => {
+        const text = typeof item === 'string' ? item : item?.address;
+        return text && text.toLowerCase() !== cleanAddr.toLowerCase();
+      });
+
+      recents.unshift({
+        address: cleanAddr,
+        lat: extracted?.lat || null,
+        lng: extracted?.lng || null
+      });
+
       recents = recents.slice(0, 3);
       localStorage.setItem('freshmarket_recent_addresses', JSON.stringify(recents));
-    } catch (e) {
-      console.warn('Failed to save recent delivery address', e);
-    }
+    } catch (_) {}
   }
 
   renderRecentDeliveryAddresses() {
@@ -2233,7 +2244,8 @@ class ShopApp {
 
       const savedAddr = localStorage.getItem('freshmarket_customer_address') || this.userProfile?.default_delivery_address;
       if (recents.length === 0 && savedAddr && savedAddr.trim()) {
-        recents = [savedAddr.trim()];
+        const extracted = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(savedAddr) : null;
+        recents = [{ address: savedAddr.trim(), lat: extracted?.lat || null, lng: extracted?.lng || null }];
         localStorage.setItem('freshmarket_recent_addresses', JSON.stringify(recents));
       }
 
@@ -2244,7 +2256,8 @@ class ShopApp {
       }
 
       container.style.display = 'block';
-      list.innerHTML = recents.map((addr, idx) => {
+      list.innerHTML = recents.map((item, idx) => {
+        const addr = typeof item === 'string' ? item : (item?.address || '');
         const displayLabel = addr.length > 32 ? addr.slice(0, 30) + '…' : addr;
         const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(addr) : addr;
         const safeLabel = typeof escapeHtml === 'function' ? escapeHtml(displayLabel) : displayLabel;
@@ -2254,18 +2267,34 @@ class ShopApp {
       }).join('');
 
       list.querySelectorAll('.recent-location-chip').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const idx = parseInt(btn.dataset.idx, 10);
-          const chosen = recents[idx];
+          const item = recents[idx];
+          if (!item) return;
+          const chosenAddr = typeof item === 'string' ? item : item.address;
           const addressInput = document.getElementById('deliveryAddress');
-          if (addressInput && chosen) {
-            addressInput.value = chosen;
-            addressInput.dispatchEvent(new Event('input'));
+          if (addressInput && chosenAddr) {
+            addressInput.value = chosenAddr;
+
+            // Extract or use saved coordinates to set pin on map
+            let lat = typeof item === 'object' && item ? item.lat : null;
+            let lng = typeof item === 'object' && item ? item.lng : null;
+
+            if (!lat || !lng) {
+              const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(chosenAddr) : null;
+              if (coords) {
+                lat = coords.lat;
+                lng = coords.lng;
+              }
+            }
+
+            if (lat && lng) {
+              await this.applyLocationToCheckout(lat, lng, true);
+            }
           }
         });
       });
-    } catch (e) {
-      console.warn('Failed to render recent delivery addresses', e);
+    } catch (_) {
       container.style.display = 'none';
     }
   }
@@ -2282,9 +2311,16 @@ class ShopApp {
 
     const { name: customerName, messenger: customerMessenger, phone: customerPhone } = this.getCurrentCustomerInfo();
 
-    if (!customerPhone) {
-      this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp) для связи с закупщиком');
-      this.openAuthModal();
+    const trimmedName = (customerName || '').trim();
+    const trimmedPhone = (customerPhone || '').trim();
+
+    // Client Pre-Validation: customer name and phone before any network activity
+    if (!trimmedPhone || trimmedName.length < 2 || trimmedName.length > 100) {
+      const friendly = this.getFriendlyErrorMessage({ message: 'customer name or phone required' });
+      this.showAlertDialog({
+        ...friendly,
+        onConfirm: () => this.openAuthModal()
+      });
       return;
     }
 
@@ -2292,8 +2328,8 @@ class ShopApp {
     const commentInput = document.getElementById('customerComment');
     const replacementRadio = document.querySelector('input[name="replacementPolicy"]:checked');
 
-    const deliveryAddress = addressInput?.value.trim();
-    const customerComment = commentInput?.value.trim() || '';
+    const deliveryAddress = (addressInput?.value || '').trim();
+    const customerComment = (commentInput?.value || '').trim();
     const replacementPolicy = replacementRadio?.value || 'call_to_agree';
 
     localStorage.setItem('freshmarket_replacement_policy', replacementPolicy);
@@ -2301,9 +2337,13 @@ class ShopApp {
       this.updateProfileField({ default_replacement_policy: replacementPolicy });
     }
 
-    if (!deliveryAddress) {
-      this.showToast(window.i18n ? window.i18n.t('toasts.address_required') : '⚠️ Пожалуйста, укажите адрес или ориентир доставки');
-      if (addressInput) addressInput.focus();
+    // Client Pre-Validation: delivery address (5..300 chars) before any network activity
+    if (!deliveryAddress || deliveryAddress.length < 5 || deliveryAddress.length > 300) {
+      const friendly = this.getFriendlyErrorMessage({ message: 'delivery address required' });
+      this.showAlertDialog({
+        ...friendly,
+        onConfirm: () => { if (addressInput) addressInput.focus(); }
+      });
       return;
     }
 
@@ -2313,9 +2353,42 @@ class ShopApp {
       return;
     }
 
+    // Client Pre-Validation: Rate Limit check (2 minutes) from local timestamp
+    const lastOrderTime = parseInt(localStorage.getItem('freshmarket_last_order_timestamp') || '0', 10);
+    const now = Date.now();
+    if (lastOrderTime && (now - lastOrderTime) < 120000) {
+      const friendly = this.getFriendlyErrorMessage({ message: 'Rate limit exceeded: please wait 2 minutes between orders' });
+      this.showAlertDialog(friendly);
+      return;
+    }
+
+    const submitBtn = document.getElementById('btnSubmitOrder');
+    if (submitBtn) submitBtn.disabled = true;
+
+    // Client Pre-Validation: Active Orders check (max 5 active orders via lightweight HEAD query)
+    if (this.sb && this.currentUser) {
+      try {
+        const { count: activeCount, error: countErr } = await this.sb
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', this.currentUser.id)
+          .in('status', ['pending', 'new', 'shopping', 'purchasing']);
+
+        if (!countErr && typeof activeCount === 'number' && activeCount >= 5) {
+          const friendly = this.getFriendlyErrorMessage({ message: 'Maximum pending orders limit reached (5 active orders max)' });
+          this.showAlertDialog(friendly);
+          if (submitBtn) submitBtn.disabled = false;
+          return;
+        }
+      } catch (headCheckErr) {
+        console.debug('[FreshMarket Shop] Active orders HEAD pre-check bypassed:', headCheckErr);
+      }
+    }
+
     // Save profile address locally and in recents
     localStorage.setItem('freshmarket_customer_address', deliveryAddress);
-    this.saveRecentDeliveryAddress(deliveryAddress);
+    const pinCoords = this.checkoutCustomerMarker ? this.checkoutCustomerMarker.getLatLng() : null;
+    this.saveRecentDeliveryAddress(deliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null);
 
     // Determine delivery zone & fee automatically (using road distance if available)
     let deliveryZoneId = this.currentDeliveryZone || 'zone_1';
@@ -2395,6 +2468,7 @@ class ShopApp {
     let supabaseSuccess = false;
     let syncErrorMsg = null;
     let finalOrderNumber = orderNumber;
+    let businessError = null;
 
     try {
       // 1. Send to Supabase atomically via RPC create_order
@@ -2414,19 +2488,38 @@ class ShopApp {
 
         if (!rpcErr && rpcData?.success) {
           supabaseSuccess = true;
+          localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
           if (rpcData.order_number) {
             finalOrderNumber = rpcData.order_number;
             orderPayload.order_number = rpcData.order_number;
           }
         } else {
+          if (rpcErr?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(rpcErr?.message || '')) {
+            businessError = rpcErr;
+          }
           throw rpcErr || new Error('RPC create_order failed');
         }
       } else {
         syncErrorMsg = 'Нет подключения к базе данных';
       }
     } catch (err) {
-      console.error('[FreshMarket Shop] Checkout Supabase error:', err);
+      if (err?.code !== 'P0001' && !/limit|reached|wait|exceeded/i.test(err?.message || '')) {
+        console.debug('[FreshMarket Shop] Checkout Supabase error:', err);
+      }
       syncErrorMsg = err?.message || 'Сбой соединения с базой';
+      if (!businessError && (err?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(err?.message || ''))) {
+        businessError = err;
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+
+    // If server actively rejected the order (e.g. rate limit or 5 max pending orders)
+    if (businessError) {
+      const friendly = this.getFriendlyErrorMessage(businessError);
+      this.showAlertDialog(friendly);
+      // Keep cart intact so customer does not lose their selection
+      return;
     }
 
     // 2. Save locally in client history with synchronization status
@@ -2437,6 +2530,10 @@ class ShopApp {
       sync_status: supabaseSuccess ? 'synced' : 'pending_sync',
       sync_error: syncErrorMsg
     });
+
+    if (!supabaseSuccess) {
+      localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
+    }
 
     // Clear cart & refresh catalog cards
     this.cart = {};
@@ -2541,11 +2638,56 @@ class ShopApp {
     if (!this.sb || !this.currentUser) return;
     try {
       const localOrders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
-      const pendingOrders = localOrders.filter(o => o.sync_status === 'pending_sync');
-      if (pendingOrders.length === 0) return;
-
       let hasUpdates = false;
+
+      // Cleanse any legacy rejected orders so they don't fire unwanted network 400 requests
+      localOrders.forEach(o => {
+        if (o.sync_status === 'pending_sync' && o.sync_error && /limit|reached|exceeded|P0001/i.test(o.sync_error)) {
+          o.sync_status = 'rejected';
+          hasUpdates = true;
+        }
+      });
+
+      const pendingOrders = localOrders.filter(o => o.sync_status === 'pending_sync');
+      if (pendingOrders.length === 0) {
+        if (hasUpdates) {
+          localStorage.setItem('freshmarket_my_orders', JSON.stringify(localOrders));
+        }
+        return;
+      }
+
+      // Pre-check rate limit before resyncing
+      const lastOrderTime = parseInt(localStorage.getItem('freshmarket_last_order_timestamp') || '0', 10);
+      const now = Date.now();
+      if (lastOrderTime && (now - lastOrderTime) < 120000) {
+        return; // wait until rate limit period passes
+      }
+
+      let activeCount = 0;
+      try {
+        const { count, error: countErr } = await this.sb
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', this.currentUser.id)
+          .in('status', ['pending', 'new', 'shopping', 'purchasing']);
+
+        if (!countErr && typeof count === 'number') {
+          activeCount = count;
+        }
+      } catch (e) {
+        console.debug('[FreshMarket Shop] Sync active orders HEAD check bypassed:', e);
+      }
+
       for (const order of pendingOrders) {
+        if (activeCount >= 5) {
+          order.sync_status = 'rejected';
+          order.sync_error = 'Too many pending orders: maximum 5 active orders allowed';
+          hasUpdates = true;
+          const friendly = this.getFriendlyErrorMessage({ message: order.sync_error });
+          this.showAlertDialog(friendly);
+          break;
+        }
+
         const { items, sync_status, sync_error, ...orderPayload } = order;
         orderPayload.user_id = this.currentUser.id;
 
@@ -2577,15 +2719,24 @@ class ShopApp {
 
           if (!rpcErr && rpcData?.success) {
             synced = true;
+            localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
+            activeCount++;
             if (rpcData.order_number) {
               order.order_number = rpcData.order_number;
             }
           } else {
-            console.warn('[FreshMarket Shop] Resync RPC failed:', rpcErr);
             order.sync_error = rpcErr?.message || 'RPC create_order failed';
+            if (rpcErr?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(rpcErr?.message || '')) {
+              order.sync_status = 'rejected';
+              hasUpdates = true;
+              const friendly = this.getFriendlyErrorMessage(rpcErr);
+              this.showAlertDialog(friendly);
+            } else {
+              console.debug('[FreshMarket Shop] Resync RPC info:', rpcErr);
+            }
           }
         } catch (syncItemErr) {
-          console.warn('[FreshMarket Shop] Resync item error:', syncItemErr);
+          console.debug('[FreshMarket Shop] Resync item exception:', syncItemErr);
         }
 
         if (synced) {
@@ -2598,7 +2749,7 @@ class ShopApp {
         localStorage.setItem('freshmarket_my_orders', JSON.stringify(localOrders));
       }
     } catch (e) {
-      console.warn('Sync pending orders error:', e);
+      console.debug('Sync pending orders info:', e);
     }
   }
 
@@ -2630,7 +2781,8 @@ class ShopApp {
       purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
       delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : '🛵 Передан курьеру', class: 'status-delivering' },
       completed: { label: window.i18n ? window.i18n.t('orders.status_completed') : '✅ Доставлен и оплачен', class: 'status-completed' },
-      cancelled: { label: window.i18n ? window.i18n.t('orders.status_cancelled') : '❌ Отменен', class: 'status-cancelled' }
+      cancelled: { label: window.i18n ? window.i18n.t('orders.status_cancelled') : '❌ Отменен', class: 'status-cancelled' },
+      rejected: { label: window.i18n ? (window.i18n.t('dialogs.generic_error_title') + ' (Не отправлен)') : '⚠️ Отклонен', class: 'status-cancelled' }
     };
 
     const deliveryPrefix = window.i18n ? window.i18n.t('orders.delivery_prefix') : 'Доставка:';
@@ -3293,6 +3445,105 @@ class ShopApp {
         toastEl.parentNode.removeChild(toastEl);
       }
     }, 250);
+  }
+
+  // ------------------------------------------------------------------------
+  // 13.1 Alert / Error Dialog Controller
+  // ------------------------------------------------------------------------
+  showAlertDialog({ title, message, buttonText, onConfirm } = {}) {
+    if (!this.alertDialog) {
+      this.alertDialog = document.getElementById('alertDialog');
+      this.dialogTitle = document.getElementById('dialogTitle');
+      this.dialogMessage = document.getElementById('dialogMessage');
+      this.dialogBtnOk = document.getElementById('dialogBtnOk');
+    }
+    if (!this.alertDialog) {
+      alert(`${title ? title + '\n\n' : ''}${message || ''}`);
+      if (typeof onConfirm === 'function') onConfirm();
+      return;
+    }
+
+    const defaultTitle = window.i18n ? window.i18n.t('dialogs.generic_error_title') : 'Внимание';
+    const defaultBtn = window.i18n ? window.i18n.t('dialogs.btn_ok') : 'Понятно';
+
+    if (this.dialogTitle) this.dialogTitle.textContent = title || defaultTitle;
+    if (this.dialogMessage) this.dialogMessage.textContent = message || '';
+    if (this.dialogBtnOk) this.dialogBtnOk.textContent = buttonText || defaultBtn;
+
+    this.alertDialog.style.display = 'flex';
+    document.body.classList.add('modal-open');
+
+    const handleDismiss = () => {
+      this.closeAlertDialog();
+      if (typeof onConfirm === 'function') onConfirm();
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { once: true });
+
+    if (this.dialogBtnOk) {
+      this.dialogBtnOk.onclick = () => {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      };
+    }
+
+    this.alertDialog.onclick = (e) => {
+      if (e.target === this.alertDialog) {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      }
+    };
+  }
+
+  updateModalOpenState() {
+    const isAlertOpen = this.alertDialog && this.alertDialog.style.display === 'flex';
+    const isProductSheetOpen = this.productBottomSheet && this.productBottomSheet.style.display === 'flex';
+    const isOnboardingOpen = this.onboardingOverlay && this.onboardingOverlay.style.display === 'flex';
+
+    if (!isAlertOpen && !isProductSheetOpen && !isOnboardingOpen) {
+      document.body.classList.remove('modal-open');
+    } else {
+      document.body.classList.add('modal-open');
+    }
+  }
+
+  closeAlertDialog() {
+    if (this.alertDialog) {
+      this.alertDialog.style.display = 'none';
+    }
+    this.updateModalOpenState();
+  }
+
+  getFriendlyErrorMessage(err) {
+    const rawMsg = err?.message || String(err || '');
+    if (/maximum.*pending.*orders|pending.*orders.*limit|too many pending|active.*orders/i.test(rawMsg)) {
+      return {
+        title: window.i18n ? window.i18n.t('dialogs.max_pending_title') : 'Заказы в обработке',
+        message: window.i18n ? window.i18n.t('dialogs.max_pending_desc') : 'У вас уже есть 5 активных заказов, которые ожидают утренней закупки на рынке. Новые заказы можно будет оформить после доставки текущих.'
+      };
+    }
+    if (/rate limit|exceeded.*minutes|wait.*minutes|between orders/i.test(rawMsg)) {
+      return {
+        title: window.i18n ? window.i18n.t('dialogs.rate_limit_title') : 'Подождите немного',
+        message: window.i18n ? window.i18n.t('dialogs.rate_limit_desc') : 'Вы недавно отправили заказ. Пожалуйста, подождите 2 минуты перед отправкой следующей заявки.'
+      };
+    }
+    if (/customer name|delivery address|phone|contacts|required field/i.test(rawMsg)) {
+      return {
+        title: window.i18n ? window.i18n.t('dialogs.contacts_required_title') : 'Укажите контакты',
+        message: window.i18n ? window.i18n.t('dialogs.contacts_required_desc') : 'Пожалуйста, укажите имя, телефон и адрес доставки для связи с закупщиком.'
+      };
+    }
+    return {
+      title: window.i18n ? window.i18n.t('dialogs.generic_error_title') : 'Внимание',
+      message: rawMsg || (window.i18n ? window.i18n.t('dialogs.generic_error_desc') : 'Не удалось отправить заказ. Пожалуйста, проверьте подключение к интернету и повторите попытку.')
+    };
   }
 
   escapeHtml(str) {

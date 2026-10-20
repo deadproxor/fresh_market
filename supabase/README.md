@@ -76,7 +76,8 @@ supabase functions deploy gemini-vision --project-ref qifazsptdgcskrchfocc
 ```text
 supabase/migrations/
 ├── 20261017000000_initial_schema.sql         # Базовые таблицы (products, orders, order_items, profiles), индексы, триггеры
-└── 20261018000000_security_hardening.sql      # RLS политики, is_admin(), protect_profile_role(), RPC create_order
+├── 20261018000000_security_hardening.sql      # RLS политики, is_admin(), protect_profile_role(), RPC create_order
+└── 20261020000000_hardening_v4.sql           # Rate Limiting, таймзона UTC+7, cart_updated_at, Realtime, зачистка RLS
 ```
 
 ### Применение миграций:
