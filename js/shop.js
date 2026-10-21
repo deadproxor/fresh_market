@@ -62,6 +62,10 @@ class ShopApp {
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
     this.shopLayout = localStorage.getItem('freshmarket_shop_layout') || 'grid-2';
+    this.isCartAddressCustomized = false;
+    this.profileMap = null;
+    this.profileCustomerMarker = null;
+    this.profileRoutePolyline = null;
 
     // 0. Synchronous fast recovery of cached customer session and profile
     this.initCachedUser();
@@ -152,6 +156,7 @@ class ShopApp {
             this.teardownRealtimeProfileSync();
             this.userProfile = null;
             localStorage.removeItem('freshmarket_user_profile');
+            localStorage.removeItem('freshmarket_cart_synced_user');
             this.updateUserAvatar();
           }
           if (this.currentView === 'profile') {
@@ -183,6 +188,7 @@ class ShopApp {
           this.currentUser = null;
           this.userProfile = null;
           localStorage.removeItem('freshmarket_user_profile');
+          localStorage.removeItem('freshmarket_cart_synced_user');
           this.updateUserAvatar();
         }
       }
@@ -196,6 +202,8 @@ class ShopApp {
   // ------------------------------------------------------------------------
   async loadUserProfileAndSyncCart() {
     if (!this.sb || !this.currentUser) return;
+    if (this.isSyncingAuthCart) return;
+    this.isSyncingAuthCart = true;
 
     try {
       const { data: profile, error } = await this.sb
@@ -211,6 +219,7 @@ class ShopApp {
       }
 
       if (!profile) {
+        const nowIso = new Date().toISOString();
         const newProfile = {
           id: this.currentUser.id,
           email: this.currentUser.email || '',
@@ -224,11 +233,13 @@ class ShopApp {
           shop_layout: this.shopLayout || 'grid-2',
           default_replacement_policy: localStorage.getItem('freshmarket_replacement_policy') || 'call_to_agree',
           cart: this.cart || {},
-          updated_at: new Date().toISOString()
+          cart_updated_at: nowIso,
+          updated_at: nowIso
         };
         await this.sb.from('profiles').upsert(newProfile);
         this.userProfile = newProfile;
         localStorage.setItem('freshmarket_user_profile', JSON.stringify(newProfile));
+        localStorage.setItem('freshmarket_cart_synced_user', this.currentUser.id);
         this.updateUserAvatar();
         return;
       }
@@ -282,7 +293,7 @@ class ShopApp {
         if (radio) radio.checked = true;
       }
 
-      // 3. Cross-device Cart Synchronization (Timestamp-based Last-Write-Wins & Merging)
+      // 3. Cross-device Cart Synchronization with Guaranteed Guest Cart Protection
       const cloudCart = (profile.cart && typeof profile.cart === 'object' && !Array.isArray(profile.cart))
         ? profile.cart
         : {};
@@ -292,60 +303,61 @@ class ShopApp {
       const syncedUserKey = 'freshmarket_cart_synced_user';
       const lastSyncedUser = localStorage.getItem(syncedUserKey);
       const localUpdatedAt = parseInt(localStorage.getItem('freshmarket_cart_updated_at') || '0', 10);
-      const cloudUpdatedAt = profile.updated_at ? new Date(profile.updated_at).getTime() : 0;
+      const cloudUpdatedAt = profile.cart_updated_at
+        ? new Date(profile.cart_updated_at).getTime()
+        : (profile.updated_at ? new Date(profile.updated_at).getTime() : 0);
 
-      if (lastSyncedUser !== this.currentUser.id) {
-        // Account switch or initial login on this device
-        if (localKeys.length > 0 && cloudKeys.length > 0) {
-          // Merge pre-login guest cart with existing cloud cart
-          const mergedCart = { ...cloudCart, ...this.cart };
-          this.cart = mergedCart;
-          const now = Date.now();
-          localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
-          localStorage.setItem('freshmarket_cart_updated_at', String(now));
-          this.updateCartUi();
-          this.renderProducts();
-          if (this.currentView === 'cart') this.renderCartModalList();
-          this.syncCartToCloud(true);
-        } else if (cloudKeys.length > 0) {
-          // Local was empty: adopt cloud cart
-          this.cart = cloudCart;
-          localStorage.setItem('freshmarket_cart', JSON.stringify(cloudCart));
-          localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt || Date.now()));
-          this.updateCartUi();
-          this.renderProducts();
-          if (this.currentView === 'cart') this.renderCartModalList();
-        } else if (localKeys.length > 0 && cloudKeys.length === 0) {
-          // Local has items, cloud was empty: push to cloud
-          localStorage.setItem('freshmarket_cart_updated_at', String(Date.now()));
-          this.syncCartToCloud(true);
-        }
-        localStorage.setItem(syncedUserKey, this.currentUser.id);
+      const isFirstLoginOnDevice = lastSyncedUser !== this.currentUser.id;
+
+      if (localKeys.length > 0 && cloudKeys.length === 0) {
+        // GOLDEN RULE 1: Guest filled cart, cloud is empty: NEVER wipe guest cart!
+        // Immediately persist to cloud with fresh timestamp
+        const now = Date.now();
+        localStorage.setItem('freshmarket_cart', JSON.stringify(this.cart));
+        localStorage.setItem('freshmarket_cart_updated_at', String(now));
+        this.updateCartUi();
+        this.renderProducts();
+        if (this.currentView === 'cart') this.renderCartModalList();
+        this.syncCartToCloud(true);
+      } else if (localKeys.length > 0 && cloudKeys.length > 0) {
+        // GOLDEN RULE 2: Both have items: ALWAYS MERGE to prevent loss of newly added guest items
+        const mergedCart = { ...cloudCart, ...this.cart };
+        this.cart = mergedCart;
+        const now = Date.now();
+        localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
+        localStorage.setItem('freshmarket_cart_updated_at', String(now));
+        this.updateCartUi();
+        this.renderProducts();
+        if (this.currentView === 'cart') this.renderCartModalList();
+        this.syncCartToCloud(true);
+      } else if (localKeys.length === 0 && cloudKeys.length > 0) {
+        // Local is empty: restore cloud cart
+        this.cart = cloudCart;
+        localStorage.setItem('freshmarket_cart', JSON.stringify(cloudCart));
+        localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt || Date.now()));
+        this.updateCartUi();
+        this.renderProducts();
+        if (this.currentView === 'cart') this.renderCartModalList();
       } else {
-        // User was already active on this device: compare timestamps (Last-Write-Wins)
+        // Both empty: keep empty
         const localCartStr = JSON.stringify(this.cart || {});
         const cloudCartStr = JSON.stringify(cloudCart);
-
-        if (localCartStr !== cloudCartStr) {
-          // Carts differ between local device and cloud
-          if (cloudUpdatedAt > localUpdatedAt) {
-            // Cloud has newer changes from another browser/device: adopt cloud cart
-            this.cart = cloudCart;
-            localStorage.setItem('freshmarket_cart', cloudCartStr);
-            localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt));
-            this.updateCartUi();
-            this.renderProducts();
-            if (this.currentView === 'cart') this.renderCartModalList();
-          } else if (localUpdatedAt > cloudUpdatedAt) {
-            // Local changes are newer: push to cloud
-            this.syncCartToCloud(false);
-          }
+        if (localCartStr !== cloudCartStr && !isFirstLoginOnDevice && cloudUpdatedAt > localUpdatedAt) {
+          this.cart = cloudCart;
+          localStorage.setItem('freshmarket_cart', cloudCartStr);
+          localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt));
+          this.updateCartUi();
+          this.renderProducts();
+          if (this.currentView === 'cart') this.renderCartModalList();
         }
       }
 
+      localStorage.setItem(syncedUserKey, this.currentUser.id);
       this.updateUserAvatar();
     } catch (err) {
       console.warn('[FreshMarket Shop] Error syncing profile & cart:', err);
+    } finally {
+      this.isSyncingAuthCart = false;
     }
   }
 
@@ -377,11 +389,12 @@ class ShopApp {
         const nowIso = new Date().toISOString();
         const nowMs = new Date(nowIso).getTime();
 
-        // 1. Try direct update first
+        // 1. Try direct update first (updating cart_updated_at dedicated timestamp)
         const { error: updateErr } = await this.sb
           .from('profiles')
           .update({
             cart: cartPayload,
+            cart_updated_at: nowIso,
             updated_at: nowIso
           })
           .eq('id', this.currentUser.id);
@@ -393,6 +406,7 @@ class ShopApp {
             .upsert({
               id: this.currentUser.id,
               cart: cartPayload,
+              cart_updated_at: nowIso,
               updated_at: nowIso
             }, { onConflict: 'id' });
           if (upsertErr) {
@@ -456,17 +470,29 @@ class ShopApp {
   }
 
   handleRemoteProfileUpdate(remoteProfile) {
+    if (this.isSyncingAuthCart) return;
     if (!remoteProfile || !this.currentUser || remoteProfile.id !== this.currentUser.id) return;
+
     const cloudCart = (remoteProfile.cart && typeof remoteProfile.cart === 'object' && !Array.isArray(remoteProfile.cart))
       ? remoteProfile.cart
       : {};
 
+    const cloudKeys = Object.keys(cloudCart);
+    const localKeys = Object.keys(this.cart || {});
+
+    // Golden Rule: Never overwrite non-empty local cart with empty cloud cart
+    if (localKeys.length > 0 && cloudKeys.length === 0) {
+      return;
+    }
+
     const localCartStr = JSON.stringify(this.cart || {});
     const cloudCartStr = JSON.stringify(cloudCart);
-    const cloudUpdatedAt = remoteProfile.updated_at ? new Date(remoteProfile.updated_at).getTime() : Date.now();
+    const cloudUpdatedAt = remoteProfile.cart_updated_at
+      ? new Date(remoteProfile.cart_updated_at).getTime()
+      : (remoteProfile.updated_at ? new Date(remoteProfile.updated_at).getTime() : 0);
     const localUpdatedAt = parseInt(localStorage.getItem('freshmarket_cart_updated_at') || '0', 10);
 
-    if (localCartStr !== cloudCartStr && cloudUpdatedAt >= localUpdatedAt) {
+    if (localCartStr !== cloudCartStr && cloudUpdatedAt > localUpdatedAt) {
       this.cart = cloudCart;
       localStorage.setItem('freshmarket_cart', cloudCartStr);
       localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt));
@@ -771,6 +797,7 @@ class ShopApp {
         r.addEventListener('change', (e) => {
           const val = e.target.value;
           localStorage.setItem('freshmarket_replacement_policy', val);
+          this.updateCartPreferencesBadge(val);
           if (this.sb && this.currentUser) {
             this.updateProfileField({ default_replacement_policy: val });
           }
@@ -1819,6 +1846,13 @@ class ShopApp {
       }
     }
 
+    // Update Cart Card Badge
+    const cartItemsBadge = document.getElementById('cartSectionItemsBadge');
+    if (cartItemsBadge) {
+      const itemsWord = window.i18n ? window.i18n.t('cart.items_count') : 'позиций';
+      cartItemsBadge.textContent = `${count} ${itemsWord}`;
+    }
+
     this.updateFloatingCartBar();
   }
 
@@ -1843,7 +1877,8 @@ class ShopApp {
     let email = '';
     let messenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
     let phone = localStorage.getItem('freshmarket_customer_phone') || '';
-    let address = localStorage.getItem('freshmarket_customer_address') || '';
+    let address = (this.userProfile && this.userProfile.address) || localStorage.getItem('freshmarket_default_address') || localStorage.getItem('freshmarket_customer_address') || '';
+    let addressName = (this.userProfile && this.userProfile.address_name) || localStorage.getItem('freshmarket_customer_address_name') || '';
 
     if (this.currentUser) {
       name = this.currentUser.user_metadata?.full_name || this.currentUser.user_metadata?.name || this.currentUser.email || defaultCustomer;
@@ -1858,10 +1893,20 @@ class ShopApp {
       if (this.userProfile.phone) phone = this.userProfile.phone;
       if (this.userProfile.messenger) messenger = this.userProfile.messenger;
       if (this.userProfile.address) address = this.userProfile.address;
+      if (this.userProfile.address_name) addressName = this.userProfile.address_name;
       if (this.userProfile.email) email = this.userProfile.email;
     }
 
-    return { name, email, messenger, phone, address };
+    // Parse prefix if address stored as "Name: Location" and addressName not explicitly separate
+    if (!addressName && address && address.includes(': ')) {
+      const match = address.match(/^([^:(]+):\s+(.+)$/);
+      if (match && !match[1].startsWith('http')) {
+        addressName = match[1].trim();
+        address = match[2].trim();
+      }
+    }
+
+    return { name, email, messenger, phone, address, addressName };
   }
 
   renderCartModalList() {
@@ -1954,10 +1999,11 @@ class ShopApp {
   }
 
   prefillCheckoutData() {
-    const { name, messenger, phone, address } = this.getCurrentCustomerInfo();
+    const { name, messenger, phone, address, addressName } = this.getCurrentCustomerInfo();
 
     const nameBadge = document.getElementById('checkoutUserName');
     const phoneBadge = document.getElementById('checkoutUserPhone');
+    const addressNameInput = document.getElementById('deliveryAddressName');
     const addressInput = document.getElementById('deliveryAddress');
 
     if (nameBadge) nameBadge.textContent = name;
@@ -1970,15 +2016,72 @@ class ShopApp {
         phoneBadge.textContent = `${messengerIcon} ${phone}`;
       }
     }
-    if (addressInput && !addressInput.value) addressInput.value = address;
+
+    if (addressNameInput && (!addressNameInput.value || !this.isCartAddressCustomized)) {
+      addressNameInput.value = addressName || '';
+    }
+    if (addressInput && (!addressInput.value || !this.isCartAddressCustomized)) {
+      addressInput.value = address;
+    }
+
+    this.syncCartAddressPresetPills(addressNameInput?.value);
+
+    // Accordion expand/collapse click handlers for Cart Cards
+    document.querySelectorAll('#viewCart .settings-section-header').forEach((header) => {
+      if (header.dataset.hasCartToggleListener) return;
+      header.dataset.hasCartToggleListener = 'true';
+      header.addEventListener('click', () => {
+        const section = header.closest('.settings-section');
+        if (section) {
+          section.classList.toggle('is-collapsed');
+          if (section.id === 'cartSectionDelivery' && !section.classList.contains('is-collapsed')) {
+            setTimeout(() => {
+              if (this.checkoutMap) this.checkoutMap.invalidateSize({ pan: false });
+            }, 340);
+          }
+        }
+      });
+    });
 
     this.renderRecentDeliveryAddresses();
     this.initCheckoutMiniMap();
 
-    const savedPolicy = this.userProfile?.default_replacement_policy || localStorage.getItem('freshmarket_replacement_policy');
-    if (savedPolicy) {
-      const radio = document.querySelector(`input[name="replacementPolicy"][value="${savedPolicy}"]`);
-      if (radio) radio.checked = true;
+    const savedPolicy = this.userProfile?.default_replacement_policy || localStorage.getItem('freshmarket_replacement_policy') || 'call_to_agree';
+    const radio = document.querySelector(`input[name="replacementPolicy"][value="${savedPolicy}"]`);
+    if (radio) radio.checked = true;
+    this.updateCartPreferencesBadge(savedPolicy);
+  }
+
+  syncCartAddressPresetPills(activeVal) {
+    const val = (activeVal || '').trim().toLowerCase();
+    const pills = document.querySelectorAll('#cartAddressPresetSelector .address-preset-pill, #cartAddressPresetSelector .messenger-pill');
+    let matchedStandard = false;
+
+    pills.forEach((pill) => {
+      const preset = (pill.dataset.preset || '').trim().toLowerCase();
+      if (preset === 'other') return;
+      const translated = (window.i18n ? window.i18n.t(`cart.preset_${preset}`) : pill.textContent).trim().toLowerCase();
+      const isActive = !!val && (val === preset || val === translated || val === pill.textContent.trim().toLowerCase());
+      if (isActive) matchedStandard = true;
+      pill.classList.toggle('active', isActive);
+    });
+
+    const otherPill = document.querySelector('#cartAddressPresetSelector [data-preset="other"]');
+    if (otherPill) {
+      otherPill.classList.toggle('active', !!val && !matchedStandard);
+    }
+  }
+
+  updateCartPreferencesBadge(policy) {
+    const badge = document.getElementById('cartPreferencesBadge');
+    if (!badge) return;
+    const t = (k, fb) => (window.i18n ? window.i18n.t(k) : fb);
+    if (policy === 'picker_choice') {
+      badge.textContent = t('cart.sub_picker_title', 'Закупщик');
+    } else if (policy === 'do_not_replace') {
+      badge.textContent = t('cart.sub_remove_title', 'Не заменять');
+    } else {
+      badge.textContent = t('cart.sub_call_title', 'Позвонить');
     }
   }
 
@@ -2052,12 +2155,14 @@ class ShopApp {
 
       // Marker drag event
       this.checkoutCustomerMarker.on('dragend', async (e) => {
+        this.isCartAddressCustomized = true;
         const pos = e.target.getLatLng();
         await this.applyLocationToCheckout(pos.lat, pos.lng, false);
       });
 
       // Map click event
       this.checkoutMap.on('click', async (e) => {
+        this.isCartAddressCustomized = true;
         const pos = e.latlng;
         this.checkoutCustomerMarker.setLatLng(pos);
         await this.applyLocationToCheckout(pos.lat, pos.lng, false);
@@ -2066,21 +2171,27 @@ class ShopApp {
 
     setTimeout(() => {
       if (this.checkoutMap) {
-        this.checkoutMap.invalidateSize();
+        this.checkoutMap.invalidateSize({ pan: false });
         const addressInput = document.getElementById('deliveryAddress');
         const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
         if (coords) {
-          this.applyLocationToCheckout(coords.lat, coords.lng, true);
+          const coordsKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
+          if (this._lastCheckoutCoordsKey !== coordsKey) {
+            this._lastCheckoutCoordsKey = coordsKey;
+            this.applyLocationToCheckout(coords.lat, coords.lng, true);
+          }
         } else {
-          this.checkoutMap.setView([marketCoords.lat, marketCoords.lng], 13);
+          if (!this._lastCheckoutCoordsKey) {
+            this._lastCheckoutCoordsKey = 'default';
+            this.checkoutMap.setView([marketCoords.lat, marketCoords.lng], 13);
+          }
         }
       }
-    }, 200);
+    }, 340);
   }
 
   updateDeliveryMapBadge(zoneInfo, roadKm, durationMin) {
     const badgeText = document.getElementById('deliveryMapStatusText');
-    if (!badgeText) return;
     const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
     const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
     const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
@@ -2092,17 +2203,22 @@ class ShopApp {
         infoStr += ` (~${durationMin} ${minText})`;
       }
     }
-    badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+    if (badgeText) {
+      badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+    }
+
+    const cartZoneBadge = document.getElementById('cartDeliveryZoneBadge');
+    if (cartZoneBadge) {
+      cartZoneBadge.textContent = `${zoneInfo.name} • ${feeStr}`;
+    }
   }
 
   async applyLocationToCheckout(lat, lng, panMap = true) {
     const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+    this._lastCheckoutCoordsKey = `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
 
     if (this.checkoutCustomerMarker) {
       this.checkoutCustomerMarker.setLatLng([lat, lng]);
-    }
-    if (panMap && this.checkoutMap) {
-      this.checkoutMap.setView([lat, lng], 14, { animate: true });
     }
 
     // Calculate real road distance and geometry via OSRM
@@ -2136,11 +2252,15 @@ class ShopApp {
       }).addTo(this.checkoutMap);
 
       if (panMap) {
-        this.checkoutMap.fitBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
-          padding: [24, 24],
-          maxZoom: 15.5
+        this.checkoutMap.flyToBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
+          padding: [28, 28],
+          maxZoom: 15.5,
+          duration: 1.1,
+          easeLinearity: 0.25
         });
       }
+    } else if (panMap && this.checkoutMap) {
+      this.checkoutMap.flyTo([lat, lng], 14.5, { duration: 0.9 });
     }
 
     this.updateDeliveryMapBadge(zoneInfo, routeInfo.roadDistanceKm, routeInfo.durationMin);
@@ -2164,9 +2284,48 @@ class ShopApp {
   setupDeliveryLocationHandlers() {
     const btnGetLocation = document.getElementById('btnGetLocation');
     const addressInput = document.getElementById('deliveryAddress');
+    const nameInput = document.getElementById('deliveryAddressName');
     if (!btnGetLocation || !addressInput) return;
 
+    if (nameInput && !nameInput.dataset.hasNameListener) {
+      nameInput.dataset.hasNameListener = 'true';
+      nameInput.addEventListener('input', () => {
+        this.isCartAddressCustomized = true;
+        this.syncCartAddressPresetPills(nameInput.value);
+      });
+    }
+
+    const presetPills = document.querySelectorAll('#cartAddressPresetSelector .address-preset-pill, #cartAddressPresetSelector .messenger-pill');
+    presetPills.forEach((pill) => {
+      if (pill.dataset.hasPresetListener) return;
+      pill.dataset.hasPresetListener = 'true';
+      pill.addEventListener('click', (e) => {
+        e.preventDefault();
+        const presetKey = pill.dataset.preset;
+        if (!nameInput) return;
+
+        this.isCartAddressCustomized = true;
+
+        if (presetKey === 'other') {
+          const isStandard = ['home', 'office', 'villa'].some((k) => {
+            const tr = (window.i18n ? window.i18n.t(`cart.preset_${k}`) : '').trim().toLowerCase();
+            return tr && nameInput.value.trim().toLowerCase() === tr;
+          });
+          if (isStandard) {
+            nameInput.value = '';
+          }
+          nameInput.focus();
+          presetPills.forEach((p) => p.classList.toggle('active', p === pill));
+        } else {
+          const text = pill.textContent.trim();
+          nameInput.value = text;
+          this.syncCartAddressPresetPills(text);
+        }
+      });
+    });
+
     btnGetLocation.addEventListener('click', () => {
+      this.isCartAddressCustomized = true;
       if (!navigator.geolocation) {
         this.showToast(window.i18n ? window.i18n.t('toasts.location_error') : 'Геолокация не поддерживается вашим браузером');
         return;
@@ -2198,15 +2357,39 @@ class ShopApp {
     });
 
     addressInput.addEventListener('input', (e) => {
+      this.isCartAddressCustomized = true;
       const val = addressInput.value.trim();
       const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(val) : null;
       if (coords) {
         this.applyLocationToCheckout(coords.lat, coords.lng, true);
       }
     });
+
+    const btnGeodataPrivacy = document.getElementById('btnGeodataPrivacy');
+    if (btnGeodataPrivacy) {
+      btnGeodataPrivacy.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showGeodataPrivacyDialog();
+      });
+    }
+
+    const btnGeodataPrivacyOpen = document.getElementById('btnGeodataPrivacyModalOpen');
+    if (btnGeodataPrivacyOpen) {
+      btnGeodataPrivacyOpen.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showGeodataPrivacyDialog();
+      });
+      btnGeodataPrivacyOpen.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.showGeodataPrivacyDialog();
+        }
+      });
+    }
   }
 
-  saveRecentDeliveryAddress(address, coords = null) {
+  saveRecentDeliveryAddress(address, coords = null, name = '') {
     if (!address || typeof address !== 'string') return;
     const cleanAddr = address.trim();
     if (!cleanAddr) return;
@@ -2223,6 +2406,7 @@ class ShopApp {
       });
 
       recents.unshift({
+        name: (name || '').trim(),
         address: cleanAddr,
         lat: extracted?.lat || null,
         lng: extracted?.lng || null
@@ -2243,9 +2427,10 @@ class ShopApp {
       if (!Array.isArray(recents)) recents = [];
 
       const savedAddr = localStorage.getItem('freshmarket_customer_address') || this.userProfile?.default_delivery_address;
+      const savedName = localStorage.getItem('freshmarket_customer_address_name') || '';
       if (recents.length === 0 && savedAddr && savedAddr.trim()) {
         const extracted = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(savedAddr) : null;
-        recents = [{ address: savedAddr.trim(), lat: extracted?.lat || null, lng: extracted?.lng || null }];
+        recents = [{ name: savedName, address: savedAddr.trim(), lat: extracted?.lat || null, lng: extracted?.lng || null }];
         localStorage.setItem('freshmarket_recent_addresses', JSON.stringify(recents));
       }
 
@@ -2258,8 +2443,10 @@ class ShopApp {
       container.style.display = 'block';
       list.innerHTML = recents.map((item, idx) => {
         const addr = typeof item === 'string' ? item : (item?.address || '');
-        const displayLabel = addr.length > 32 ? addr.slice(0, 30) + '…' : addr;
-        const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(addr) : addr;
+        const addrName = typeof item === 'object' && item?.name ? item.name : '';
+        const fullDisplay = addrName ? `${addrName}: ${addr}` : addr;
+        const displayLabel = fullDisplay.length > 32 ? fullDisplay.slice(0, 30) + '…' : fullDisplay;
+        const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(fullDisplay) : fullDisplay;
         const safeLabel = typeof escapeHtml === 'function' ? escapeHtml(displayLabel) : displayLabel;
         return `<button type="button" class="recent-location-chip" data-idx="${idx}" title="${safeTitle}">
           <span class="chip-text">${safeLabel}</span>
@@ -2268,11 +2455,20 @@ class ShopApp {
 
       list.querySelectorAll('.recent-location-chip').forEach(btn => {
         btn.addEventListener('click', async () => {
+          this.isCartAddressCustomized = true;
           const idx = parseInt(btn.dataset.idx, 10);
           const item = recents[idx];
           if (!item) return;
           const chosenAddr = typeof item === 'string' ? item : item.address;
+          const chosenName = typeof item === 'object' && item ? item.name : '';
           const addressInput = document.getElementById('deliveryAddress');
+          const addressNameInput = document.getElementById('deliveryAddressName');
+
+          if (addressNameInput && chosenName) {
+            addressNameInput.value = chosenName;
+            this.syncCartAddressPresetPills(chosenName);
+          }
+
           if (addressInput && chosenAddr) {
             addressInput.value = chosenAddr;
 
@@ -2324,13 +2520,20 @@ class ShopApp {
       return;
     }
 
+    const nameInput = document.getElementById('deliveryAddressName');
     const addressInput = document.getElementById('deliveryAddress');
     const commentInput = document.getElementById('customerComment');
     const replacementRadio = document.querySelector('input[name="replacementPolicy"]:checked');
 
-    const deliveryAddress = (addressInput?.value || '').trim();
+    const customAddrName = (nameInput?.value || '').trim();
+    const rawDeliveryAddress = (addressInput?.value || '').trim();
     const customerComment = (commentInput?.value || '').trim();
     const replacementPolicy = replacementRadio?.value || 'call_to_agree';
+
+    let deliveryAddress = rawDeliveryAddress;
+    if (customAddrName && rawDeliveryAddress) {
+      deliveryAddress = `${customAddrName}: ${rawDeliveryAddress}`;
+    }
 
     localStorage.setItem('freshmarket_replacement_policy', replacementPolicy);
     if (this.sb && this.currentUser) {
@@ -2338,7 +2541,7 @@ class ShopApp {
     }
 
     // Client Pre-Validation: delivery address (5..300 chars) before any network activity
-    if (!deliveryAddress || deliveryAddress.length < 5 || deliveryAddress.length > 300) {
+    if (!rawDeliveryAddress || rawDeliveryAddress.length < 5 || deliveryAddress.length > 300) {
       const friendly = this.getFriendlyErrorMessage({ message: 'delivery address required' });
       this.showAlertDialog({
         ...friendly,
@@ -2385,16 +2588,22 @@ class ShopApp {
       }
     }
 
-    // Save profile address locally and in recents
-    localStorage.setItem('freshmarket_customer_address', deliveryAddress);
+    // Save order address in recents (does not overwrite profile default if already set)
     const pinCoords = this.checkoutCustomerMarker ? this.checkoutCustomerMarker.getLatLng() : null;
-    this.saveRecentDeliveryAddress(deliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null);
+    this.saveRecentDeliveryAddress(rawDeliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null, customAddrName);
+    if (customAddrName) {
+      localStorage.setItem('freshmarket_customer_address_name', customAddrName);
+    }
+    if (!localStorage.getItem('freshmarket_default_address') && !this.userProfile?.address) {
+      localStorage.setItem('freshmarket_default_address', rawDeliveryAddress);
+      localStorage.setItem('freshmarket_customer_address', rawDeliveryAddress);
+    }
 
     // Determine delivery zone & fee automatically (using road distance if available)
     let deliveryZoneId = this.currentDeliveryZone || 'zone_1';
     let deliveryFee = this.currentDeliveryFee || 1.00;
 
-    const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(deliveryAddress) : null;
+    const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(rawDeliveryAddress) : null;
     if (coords && !this.currentDeliveryZone && typeof calculateDistanceKm === 'function' && typeof getDeliveryZoneByDistance === 'function') {
       const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
       const dist = calculateDistanceKm(coords.lat, coords.lng, marketCoords.lat, marketCoords.lng);
@@ -2537,6 +2746,12 @@ class ShopApp {
 
     // Clear cart & refresh catalog cards
     this.cart = {};
+    this.isCartAddressCustomized = false;
+    const checkoutAddrInput = document.getElementById('deliveryAddress');
+    if (checkoutAddrInput) checkoutAddrInput.value = '';
+    const checkoutNameInput = document.getElementById('deliveryAddressName');
+    if (checkoutNameInput) checkoutNameInput.value = '';
+    this.syncCartAddressPresetPills('');
     this.saveCart();
     this.renderProducts();
     this.closeCartModal();
@@ -2806,51 +3021,69 @@ class ShopApp {
       });
 
       return `
-        <div class="order-card">
-          <div class="order-card-header">
-            <div>
-              <div class="order-card-number">${this.escapeHtml(order.order_number)}</div>
-              <div class="order-card-date">${dateStr} • ${deliveryPrefix} ${order.target_delivery_date || tomorrowLabel}</div>
-              <div class="order-replacement-policy-tag" style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500;">
-                ${this.formatReplacementPolicy(order.replacement_policy || order.replace_rule)}
-              </div>
+        <div class="settings-section order-card" id="order-${this.escapeHtml(order.order_number)}">
+          <div class="settings-section-header">
+            <div class="settings-section-title" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+              <span class="order-card-number">${this.escapeHtml(order.order_number)}</span>
+              <span class="order-card-date">${dateStr} • ${deliveryPrefix} ${order.target_delivery_date || tomorrowLabel}</span>
             </div>
-            <div style="text-align: right;">
+            <div class="settings-section-header-right">
               <span class="order-status-pill ${st.class}">${st.label}</span>
-              ${order.sync_status === 'pending_sync' ? '<div style="font-size: 11px; color: #d97706; margin-top: 4px; font-weight: 600;">⏳ Ожидает связи с базой</div>' : ''}
+              ${order.sync_status === 'pending_sync' ? '<span class="badge badge-amber" title="Ожидает связи с базой">⏳</span>' : ''}
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
             </div>
           </div>
 
-          <!-- Items preview -->
-          <div class="order-card-items">
-            ${items.map((item) => {
-              const itemTitle = item.product_title || item.product_name_ru || item.product_name_en || 'Товар';
-              const itemQty = item.quantity || item.requested_qty || 1;
-              const itemUnit = item.unit || 'кг';
-              return `
-              <div class="order-item-mini">
-                <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
-                ${item.receipt_url ? `
-                  <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
-                ` : ''}
+          <div class="settings-section-body">
+            <div class="order-replacement-policy-tag" style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;">
+              ${this.formatReplacementPolicy(order.replacement_policy || order.replace_rule)}
+            </div>
+
+            <!-- Items preview -->
+            <div class="order-card-items">
+              ${items.map((item) => {
+                const itemTitle = item.product_title || item.product_name_ru || item.product_name_en || 'Товар';
+                const itemQty = item.quantity || item.requested_qty || 1;
+                const itemUnit = item.unit || 'кг';
+                return `
+                <div class="order-item-mini">
+                  <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
+                  ${item.receipt_url ? `
+                    <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
+                  ` : ''}
+                </div>
+              `;
+              }).join('')}
+            </div>
+
+            <!-- Totals Calculation -->
+            <div class="order-card-footer">
+              <div class="order-calc-breakdown">
+                <div>${marketLabel} <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
+                <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0)).toFixed(2)}</b></div>
               </div>
-            `;
-            }).join('')}
-          </div>
-
-          <!-- Totals Calculation -->
-          <div class="order-card-footer">
-            <div class="order-calc-breakdown">
-              <div>${marketLabel} <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
-              <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0)).toFixed(2)}</b></div>
-            </div>
-            <div class="order-grand-total">
-              ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0))).toFixed(2)}</b>
+              <div class="order-grand-total">
+                ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0))).toFixed(2)}</b>
+              </div>
             </div>
           </div>
         </div>
       `;
     }).join('');
+
+    // Accordion expand/collapse click handlers for order cards
+    this.ordersModalBody.querySelectorAll('.settings-section-header').forEach((header) => {
+      header.addEventListener('click', () => {
+        const section = header.closest('.settings-section');
+        if (section) {
+          section.classList.toggle('is-collapsed');
+        }
+      });
+    });
   }
 
   formatReplacementPolicy(policy) {
@@ -2897,7 +3130,18 @@ class ShopApp {
     const waPill = t('profile.messenger_whatsapp', 'WhatsApp');
     const phonePill = t('profile.messenger_phone', 'Звонок');
     const addressLabelText = t('profile.address_label', 'Адрес или ориентир доставки по умолчанию:');
-    const addressPlaceholderText = t('profile.address_placeholder', 'Улица, дом, квартира, ориентир');
+    const addressNameLabelText = t('cart.address_name_label', 'Название или ориентир:');
+    const addressNamePlaceholderText = t('cart.address_name_placeholder', 'Например: Дом, Офис, Вилла 12...');
+    const presetHomeText = t('cart.preset_home', 'Дом');
+    const presetOfficeText = t('cart.preset_office', 'Офис');
+    const presetVillaText = t('cart.preset_villa', 'Вилла');
+    const presetOtherText = t('cart.preset_other', 'Другое');
+    const addressLocationLabelText = t('cart.address_location_label', 'Точка на карте / Адрес *:');
+    const addressPlaceholderText = t('cart.address_placeholder', 'Улица, дом или ссылка на карту');
+    const mapHintText = t('cart.map_hint', 'Перетащите метку 📍 для выбора точки');
+    const geodataPrivacyHintText = t('cart.geodata_privacy_hint', 'Конфиденциальность геоданных');
+    const geodataBtnTitle = t('cart.geodata_btn_label', 'Подробнее о геоданных');
+    const defaultZoneStatusText = t('cart.zone_1_name', 'Зона 1: Центр ($1.00)');
     const saveContactsText = t('profile.save_contacts_btn', 'Сохранить контакты');
     const installAppText = t('profile.install_app_btn', 'Установить приложение');
     const howItWorksText = t('profile.how_it_works_btn', 'Как работает FreshMarket');
@@ -2930,7 +3174,16 @@ class ShopApp {
 
     let currentMessenger = localStorage.getItem('freshmarket_customer_messenger') || 'telegram';
     let phone = localStorage.getItem('freshmarket_customer_phone') || (this.currentUser?.phone || '');
-    let address = localStorage.getItem('freshmarket_customer_address') || '';
+    let address = (this.userProfile && this.userProfile.address) || localStorage.getItem('freshmarket_default_address') || localStorage.getItem('freshmarket_customer_address') || '';
+    let addressName = (this.userProfile && this.userProfile.address_name) || localStorage.getItem('freshmarket_customer_address_name') || '';
+
+    if (!addressName && address && address.includes(': ')) {
+      const match = address.match(/^([^:(]+):\s+(.+)$/);
+      if (match && !match[1].startsWith('http')) {
+        addressName = match[1].trim();
+        address = match[2].trim();
+      }
+    }
     const phoneMeta = getPhoneLabelAndPlaceholder(currentMessenger);
 
     const currentLang = window.i18n?.currentLang || 'ru';
@@ -2941,6 +3194,12 @@ class ShopApp {
     const userName = isAuthenticated ? (this.userProfile?.full_name || this.currentUser.user_metadata?.full_name || this.currentUser.user_metadata?.name || this.currentUser.email || defaultCustomer) : defaultCustomer;
     const userEmail = isAuthenticated ? (this.userProfile?.email || this.currentUser.email || '') : '';
     const userAvatarUrl = isAuthenticated ? (this.userProfile?.avatar_url || this.currentUser.user_metadata?.avatar_url || this.currentUser.user_metadata?.picture || '') : '';
+
+    const trimmedAddrName = (addressName || '').trim().toLowerCase();
+    const isProfileHomeActive = trimmedAddrName === 'home' || trimmedAddrName === presetHomeText.toLowerCase();
+    const isProfileOfficeActive = trimmedAddrName === 'office' || trimmedAddrName === presetOfficeText.toLowerCase();
+    const isProfileVillaActive = trimmedAddrName === 'villa' || trimmedAddrName === presetVillaText.toLowerCase();
+    const isProfileOtherActive = !!trimmedAddrName && !isProfileHomeActive && !isProfileOfficeActive && !isProfileVillaActive;
 
     this.authModalBody.innerHTML = `
       <div class="profile-view" style="width: 100%;">
@@ -3017,10 +3276,42 @@ class ShopApp {
             </label>
             <input type="text" id="profilePhone" class="text-input" placeholder="${phoneMeta.placeholder}" value="${this.escapeHtml(phone)}" required />
 
-            <label class="field-label" for="profileAddress" style="margin-top: 10px;">${addressLabelText}</label>
-            <textarea id="profileAddress" class="text-input" rows="2" placeholder="${addressPlaceholderText}">${this.escapeHtml(address)}</textarea>
+            <!-- Custom Location / Address Name (e.g. Home, Office, Villa, Other) -->
+            <div class="form-group" style="margin-top: 10px; margin-bottom: 8px;">
+              <label class="field-label" for="profileAddressName" style="margin-bottom: 2px;">${addressNameLabelText}</label>
+              <div class="messenger-selector address-preset-selector" id="profileAddressPresetSelector" style="margin-top: 6px; margin-bottom: 8px;">
+                <button type="button" class="messenger-pill address-preset-pill ${isProfileHomeActive ? 'active' : ''}" data-preset="home">${presetHomeText}</button>
+                <button type="button" class="messenger-pill address-preset-pill ${isProfileOfficeActive ? 'active' : ''}" data-preset="office">${presetOfficeText}</button>
+                <button type="button" class="messenger-pill address-preset-pill ${isProfileVillaActive ? 'active' : ''}" data-preset="villa">${presetVillaText}</button>
+                <button type="button" class="messenger-pill address-preset-pill ${isProfileOtherActive ? 'active' : ''}" data-preset="other">${presetOtherText}</button>
+              </div>
+              <input type="text" id="profileAddressName" class="text-input" placeholder="${addressNamePlaceholderText}" value="${this.escapeHtml(addressName)}" />
+            </div>
+
+            <label class="field-label" for="profileAddress" style="margin-top: 6px;">${addressLocationLabelText}</label>
+            <div class="input-action-wrapper">
+              <input type="text" id="profileAddress" class="text-input" placeholder="${addressPlaceholderText}" value="${this.escapeHtml(address)}" />
+              <button type="button" class="input-trailing-btn" id="btnGetProfileLocation" title="Моё местоположение" aria-label="Моё местоположение">
+                📍
+              </button>
+            </div>
+
+            <!-- Mini-Map Interactive Delivery Radius for Profile -->
+            <div class="delivery-mini-map-wrap" id="profileMiniMapWrap">
+              <div id="profileMiniMap" class="delivery-mini-map"></div>
+              <div class="delivery-map-status-bar" id="profileMapStatusBar">
+                <span class="delivery-map-status-badge" id="profileMapStatusBadge">
+                  <span>📍</span> <span id="profileMapStatusText">${defaultZoneStatusText}</span>
+                </span>
+                <span class="delivery-map-status-hint">${mapHintText}</span>
+              </div>
+            </div>
+            <div class="delivery-map-privacy-note" id="btnProfileGeodataPrivacyWrap" role="button" tabindex="0">
+              <span>${geodataPrivacyHintText}</span>
+              <button type="button" class="btn-help-badge" id="btnProfileGeodataPrivacy" aria-label="Подробнее о геоданных" title="${geodataBtnTitle}">?</button>
+            </div>
             
-            <button type="button" class="btn btn-primary" id="btnSaveProfileDetails" style="margin-top: 6px; width: 100%;">
+            <button type="button" class="btn btn-primary" id="btnSaveProfileDetails" style="margin-top: 10px; width: 100%;">
               ${saveContactsText}
             </button>
           </div>
@@ -3133,7 +3424,14 @@ class ShopApp {
     this.authModalBody.querySelectorAll('.settings-section-header').forEach((header) => {
       header.addEventListener('click', () => {
         const section = header.closest('.settings-section');
-        if (section) section.classList.toggle('is-collapsed');
+        if (section) {
+          section.classList.toggle('is-collapsed');
+          if (section.id === 'profileSectionContacts' && !section.classList.contains('is-collapsed')) {
+            setTimeout(() => {
+              if (this.profileMap) this.profileMap.invalidateSize({ pan: false });
+            }, 340);
+          }
+        }
       });
     });
 
@@ -3168,8 +3466,62 @@ class ShopApp {
       });
     });
 
+    // Profile address preset pills handler
+    const profileAddrNameInput = document.getElementById('profileAddressName');
+    const profilePresetPills = document.querySelectorAll('#profileAddressPresetSelector .address-preset-pill, #profileAddressPresetSelector .messenger-pill');
+
+    const syncProfilePresetPills = (val) => {
+      const lower = (val || '').trim().toLowerCase();
+      let matchedStandard = false;
+
+      profilePresetPills.forEach((pill) => {
+        const presetKey = pill.dataset.preset;
+        if (presetKey === 'other') return;
+        const pText = pill.textContent.trim().toLowerCase();
+        const isMatch = !!lower && (lower === presetKey || lower === pText);
+        if (isMatch) matchedStandard = true;
+        pill.classList.toggle('active', isMatch);
+      });
+
+      const otherPill = document.querySelector('#profileAddressPresetSelector [data-preset="other"]');
+      if (otherPill) {
+        otherPill.classList.toggle('active', !!lower && !matchedStandard);
+      }
+    };
+
+    if (profileAddrNameInput) {
+      profileAddrNameInput.addEventListener('input', () => {
+        syncProfilePresetPills(profileAddrNameInput.value);
+      });
+    }
+
+    profilePresetPills.forEach((pill) => {
+      pill.addEventListener('click', (e) => {
+        e.preventDefault();
+        const presetKey = pill.dataset.preset;
+        if (!profileAddrNameInput) return;
+
+        if (presetKey === 'other') {
+          const isStandard = ['home', 'office', 'villa'].some((k) => {
+            const tr = (window.i18n ? window.i18n.t(`cart.preset_${k}`) : '').trim().toLowerCase();
+            return tr && profileAddrNameInput.value.trim().toLowerCase() === tr;
+          });
+          if (isStandard) {
+            profileAddrNameInput.value = '';
+          }
+          profileAddrNameInput.focus();
+          profilePresetPills.forEach((p) => p.classList.toggle('active', p === pill));
+        } else {
+          const text = pill.textContent.trim();
+          profileAddrNameInput.value = text;
+          syncProfilePresetPills(text);
+        }
+      });
+    });
+
     // Save Contacts click handler
     document.getElementById('btnSaveProfileDetails')?.addEventListener('click', async () => {
+      const pAddressName = document.getElementById('profileAddressName')?.value.trim() || '';
       const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
       const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
       if (!pPhone) {
@@ -3179,7 +3531,29 @@ class ShopApp {
       }
       localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
       localStorage.setItem('freshmarket_customer_phone', pPhone);
-      if (pAddress) localStorage.setItem('freshmarket_customer_address', pAddress);
+      localStorage.setItem('freshmarket_customer_address_name', pAddressName);
+      if (pAddress) {
+        localStorage.setItem('freshmarket_default_address', pAddress);
+        localStorage.setItem('freshmarket_customer_address', pAddress);
+        const pinCoords = this.profileCustomerMarker ? this.profileCustomerMarker.getLatLng() : null;
+        this.saveRecentDeliveryAddress(pAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null, pAddressName);
+
+        // If the cart address has not been customized by the user for the current order, update it to the new default:
+        if (!this.isCartAddressCustomized) {
+          const cartAddrNameInput = document.getElementById('deliveryAddressName');
+          if (cartAddrNameInput) {
+            cartAddrNameInput.value = pAddressName;
+            this.syncCartAddressPresetPills(pAddressName);
+          }
+          const cartAddrInput = document.getElementById('deliveryAddress');
+          if (cartAddrInput) {
+            cartAddrInput.value = pAddress;
+          }
+          if (this.checkoutMap && pinCoords) {
+            this.applyLocationToCheckout(pinCoords.lat, pinCoords.lng, true);
+          }
+        }
+      }
 
       if (this.sb && this.currentUser) {
         try {
@@ -3232,6 +3606,12 @@ class ShopApp {
     document.getElementById('btnLogout')?.addEventListener('click', async () => {
       localStorage.removeItem('freshmarket_cart_synced_user');
       localStorage.removeItem('freshmarket_user_profile');
+      if (this.profileMap) {
+        try { this.profileMap.remove(); } catch (_) {}
+        this.profileMap = null;
+        this.profileCustomerMarker = null;
+        this.profileRoutePolyline = null;
+      }
       if (this.sb) await this.sb.auth.signOut();
       this.currentUser = null;
       this.userProfile = null;
@@ -3268,6 +3648,261 @@ class ShopApp {
         this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
       }
     });
+
+    if (isAuthenticated) {
+      this.initProfileMiniMap();
+      this.setupProfileLocationHandlers();
+    }
+  }
+
+  initProfileMiniMap() {
+    const mapContainer = document.getElementById('profileMiniMap');
+    if (!mapContainer || typeof L === 'undefined') return;
+
+    if (this.profileMap) {
+      try {
+        this.profileMap.remove();
+      } catch (_) {}
+      this.profileMap = null;
+      this.profileCustomerMarker = null;
+      this.profileRoutePolyline = null;
+    }
+
+    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+
+    this.profileMap = L.map('profileMiniMap', {
+      center: [marketCoords.lat, marketCoords.lng],
+      zoom: 14.2,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      subdomains: 'abc',
+      maxZoom: 19
+    }).addTo(this.profileMap);
+
+    const hubIcon = L.divIcon({
+      className: 'checkout-hub-pin',
+      html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+    L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.profileMap);
+
+    L.circle([marketCoords.lat, marketCoords.lng], {
+      radius: 6000,
+      color: '#10b981',
+      fillColor: '#10b981',
+      fillOpacity: 0.04,
+      weight: 1,
+      dashArray: '3, 6'
+    }).addTo(this.profileMap);
+
+    L.circle([marketCoords.lat, marketCoords.lng], {
+      radius: 3000,
+      color: '#10b981',
+      fillColor: '#10b981',
+      fillOpacity: 0.08,
+      weight: 1.2
+    }).addTo(this.profileMap);
+
+    L.circle([marketCoords.lat, marketCoords.lng], {
+      radius: 1000,
+      color: '#059669',
+      fillColor: '#10b981',
+      fillOpacity: 0.16,
+      weight: 1.5
+    }).addTo(this.profileMap);
+
+    const pinIcon = L.divIcon({
+      className: 'checkout-customer-pin',
+      html: '<span>📍</span>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 26]
+    });
+
+    this.profileCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
+      icon: pinIcon,
+      draggable: true
+    }).addTo(this.profileMap);
+
+    this.profileCustomerMarker.on('dragend', async (e) => {
+      const pos = e.target.getLatLng();
+      await this.applyLocationToProfile(pos.lat, pos.lng, false);
+    });
+
+    this.profileMap.on('click', async (e) => {
+      const pos = e.latlng;
+      this.profileCustomerMarker.setLatLng(pos);
+      await this.applyLocationToProfile(pos.lat, pos.lng, false);
+    });
+
+    setTimeout(() => {
+      if (this.profileMap) {
+        this.profileMap.invalidateSize({ pan: false });
+        const addressInput = document.getElementById('profileAddress');
+        const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
+        if (coords) {
+          const coordsKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
+          if (this._lastProfileCoordsKey !== coordsKey) {
+            this._lastProfileCoordsKey = coordsKey;
+            this.applyLocationToProfile(coords.lat, coords.lng, true);
+          }
+        } else {
+          if (!this._lastProfileCoordsKey) {
+            this._lastProfileCoordsKey = 'default';
+            this.profileMap.setView([marketCoords.lat, marketCoords.lng], 13);
+          }
+        }
+      }
+    }, 340);
+  }
+
+  updateProfileDeliveryMapBadge(zoneInfo, roadKm, durationMin) {
+    const badgeText = document.getElementById('profileMapStatusText');
+    if (!badgeText) return;
+    const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+    const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
+    const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
+
+    let infoStr = '';
+    if (roadKm !== undefined) {
+      infoStr = ` • ${roadKm} км ${byRoadText}`;
+      if (durationMin !== undefined) {
+        infoStr += ` (~${durationMin} ${minText})`;
+      }
+    }
+    badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+  }
+
+  async applyLocationToProfile(lat, lng, panMap = true) {
+    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+    this._lastProfileCoordsKey = `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+
+    if (this.profileCustomerMarker) {
+      this.profileCustomerMarker.setLatLng([lat, lng]);
+    }
+
+    let routeInfo = null;
+    if (typeof window.calculateRoadDistanceAndRoute === 'function') {
+      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, lat, lng);
+    } else {
+      const dist = calculateDistanceKm(lat, lng, marketCoords.lat, marketCoords.lng);
+      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [lat, lng]] };
+    }
+
+    const zoneInfo = getDeliveryZoneByDistance(routeInfo.roadDistanceKm);
+
+    if (this.profileMap && routeInfo.coordinates && routeInfo.coordinates.length > 0) {
+      if (this.profileRoutePolyline) {
+        this.profileMap.removeLayer(this.profileRoutePolyline);
+        this.profileRoutePolyline = null;
+      }
+      this.profileRoutePolyline = L.polyline(routeInfo.coordinates, {
+        color: '#10b981',
+        weight: 4,
+        opacity: 0.85,
+        lineJoin: 'round',
+        lineCap: 'round'
+      }).addTo(this.profileMap);
+
+      if (panMap) {
+        this.profileMap.flyToBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
+          padding: [28, 28],
+          maxZoom: 15.5,
+          duration: 1.1,
+          easeLinearity: 0.25
+        });
+      }
+    } else if (panMap && this.profileMap) {
+      this.profileMap.flyTo([lat, lng], 14.5, { duration: 0.9 });
+    }
+
+    this.updateProfileDeliveryMapBadge(zoneInfo, routeInfo.roadDistanceKm, routeInfo.durationMin);
+
+    const mapUrl = `https://maps.google.com/?q=${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+    const addressInput = document.getElementById('profileAddress');
+    if (!addressInput) return;
+
+    let placeName = '';
+    if (typeof window.reverseGeocodeCoords === 'function') {
+      placeName = await window.reverseGeocodeCoords(lat, lng);
+    }
+
+    if (placeName) {
+      addressInput.value = `${placeName} (${mapUrl})`;
+    } else {
+      addressInput.value = mapUrl;
+    }
+  }
+
+  setupProfileLocationHandlers() {
+    const btnGetLocation = document.getElementById('btnGetProfileLocation');
+    const addressInput = document.getElementById('profileAddress');
+    if (!btnGetLocation || !addressInput) return;
+
+    btnGetLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        this.showToast(window.i18n ? window.i18n.t('toasts.location_error') : 'Геолокация не поддерживается вашим браузером');
+        return;
+      }
+
+      btnGetLocation.disabled = true;
+      btnGetLocation.style.opacity = '0.5';
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          btnGetLocation.disabled = false;
+          btnGetLocation.style.opacity = '1';
+
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          await this.applyLocationToProfile(lat, lng, true);
+
+          this.showToast(window.i18n ? window.i18n.t('toasts.location_detected') : '📍 Местоположение определено');
+        },
+        (error) => {
+          btnGetLocation.disabled = false;
+          btnGetLocation.style.opacity = '1';
+          console.warn('Geolocation error in profile:', error);
+          this.showToast(window.i18n ? window.i18n.t('toasts.location_error') : 'Не удалось определить координаты. Укажите адрес вручную');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    addressInput.addEventListener('input', (e) => {
+      const val = addressInput.value.trim();
+      const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(val) : null;
+      if (coords) {
+        this.applyLocationToProfile(coords.lat, coords.lng, true);
+      }
+    });
+
+    const btnGeodataPrivacy = document.getElementById('btnProfileGeodataPrivacy');
+    if (btnGeodataPrivacy) {
+      btnGeodataPrivacy.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showGeodataPrivacyDialog();
+      });
+    }
+
+    const btnProfileGeodataWrap = document.getElementById('btnProfileGeodataPrivacyWrap');
+    if (btnProfileGeodataWrap) {
+      btnProfileGeodataWrap.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.showGeodataPrivacyDialog();
+      });
+      btnProfileGeodataWrap.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.showGeodataPrivacyDialog();
+        }
+      });
+    }
   }
 
   updateHeaderUi() {
@@ -3505,8 +4140,9 @@ class ShopApp {
     const isAlertOpen = this.alertDialog && this.alertDialog.style.display === 'flex';
     const isProductSheetOpen = this.productBottomSheet && this.productBottomSheet.style.display === 'flex';
     const isOnboardingOpen = this.onboardingOverlay && this.onboardingOverlay.style.display === 'flex';
+    const isGeodataOpen = this.geodataDialog && this.geodataDialog.style.display === 'flex';
 
-    if (!isAlertOpen && !isProductSheetOpen && !isOnboardingOpen) {
+    if (!isAlertOpen && !isProductSheetOpen && !isOnboardingOpen && !isGeodataOpen) {
       document.body.classList.remove('modal-open');
     } else {
       document.body.classList.add('modal-open');
@@ -3516,6 +4152,50 @@ class ShopApp {
   closeAlertDialog() {
     if (this.alertDialog) {
       this.alertDialog.style.display = 'none';
+    }
+    this.updateModalOpenState();
+  }
+
+  showGeodataPrivacyDialog() {
+    if (!this.geodataDialog) {
+      this.geodataDialog = document.getElementById('geodataPrivacyDialog');
+      this.btnGeodataModalClose = document.getElementById('btnGeodataModalClose');
+    }
+    if (!this.geodataDialog) return;
+
+    this.geodataDialog.style.display = 'flex';
+    document.body.classList.add('modal-open');
+
+    const handleDismiss = () => {
+      this.closeGeodataPrivacyDialog();
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { once: true });
+
+    if (this.btnGeodataModalClose) {
+      this.btnGeodataModalClose.onclick = () => {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      };
+    }
+
+    this.geodataDialog.onclick = (e) => {
+      if (e.target === this.geodataDialog) {
+        window.removeEventListener('keydown', onKeyDown);
+        handleDismiss();
+      }
+    };
+  }
+
+  closeGeodataPrivacyDialog() {
+    if (this.geodataDialog) {
+      this.geodataDialog.style.display = 'none';
     }
     this.updateModalOpenState();
   }

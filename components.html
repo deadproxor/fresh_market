@@ -1113,7 +1113,19 @@
               <span class="component-box-class">.input-action-wrapper & .delivery-mini-map-wrap</span>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="field-label" style="margin-bottom: 6px;">Адрес доставки *</label>
+              <!-- Custom Location / Address Name (e.g. Home, Office, Villa) -->
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label class="field-label" style="margin-bottom: 2px;">Название или ориентир:</label>
+                <div class="address-preset-selector">
+                  <button type="button" class="address-preset-pill">Дом</button>
+                  <button type="button" class="address-preset-pill">Офис</button>
+                  <button type="button" class="address-preset-pill active">Вилла</button>
+                  <button type="button" class="address-preset-pill">Другое</button>
+                </div>
+                <input type="text" class="text-input" placeholder="Например: Дом, Офис, Вилла 12..." value="Вилла" />
+              </div>
+
+              <label class="field-label" style="margin-bottom: 6px;">Точка на карте / Адрес *</label>
               <div class="input-action-wrapper">
                 <input type="text" class="text-input" value="Street 735, Villa 3B (https://maps.google.com/?q=10.6120,104.1780)" placeholder="Улица, дом или ссылка на карту" />
                 <button type="button" class="input-trailing-btn" title="Моё местоположение" onclick="showToastDemo('📍 Местоположение определено')">
@@ -1134,8 +1146,9 @@
                   <span class="delivery-map-status-hint">Перетащите метку 📍 для выбора точки</span>
                 </div>
               </div>
-              <div class="delivery-map-privacy-note">
-                Координаты используются исключительно для расчета маршрута через OpenStreetMap и OSRM. Персональные данные третьим сторонам не передаются.
+              <div class="delivery-map-privacy-note" onclick="showToastDemo('Модалка: Конфиденциальность геоданных')">
+                <span>Конфиденциальность геоданных</span>
+                <button type="button" class="btn-help-badge" aria-label="Подробнее о геоданных">?</button>
               </div>
 
               <div class="recent-locations-container">
@@ -1487,7 +1500,7 @@
                   <div class="brand-icon">🌱</div>
                   <div class="brand-text">
                     <span class="brand-title">FreshMarket</span>
-                    <span class="brand-subtitle">Доставка с рынка Samaki</span>
+                    <span class="brand-subtitle">Доставка со свежего рынка</span>
                   </div>
                 </div>
                 <div class="header-right">
@@ -1792,6 +1805,35 @@
               💡 <b>Классы системы:</b> <code>.modal-overlay-dialog</code>, <code>.dialog-card</code>, <code>.dialog-title</code>, <code>.dialog-message</code>, <code>.dialog-btn</code>.
             </div>
           </div>
+
+          <!-- Geodata Privacy & Help Badge Dialog Preview -->
+          <div class="component-box" style="justify-content: space-between;">
+            <div class="component-box-header">
+              <span class="component-box-title">Иконка-помощник & Приватность геоданных</span>
+              <span class="component-box-class">.btn-help-badge & .dialog-link</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+                Компактная круглая кнопка со знаком вопроса для вызова разъяснений о приватности геоданных и передаче координат в картографические сервисы:
+              </p>
+              <!-- Interactive demo chip -->
+              <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                  <span>📍</span> Координаты и маршрут курьера
+                  <button type="button" class="btn-help-badge" onclick="demoOpenGeodataDialog()" title="Подробнее о геоданных">?</button>
+                </span>
+                <span class="tag-status tag-status-success" style="font-size: 11px;">100% Защита</span>
+              </div>
+              <div style="margin-top: 6px;">
+                <button type="button" class="btn btn-secondary" onclick="demoOpenGeodataDialog()" style="width: 100%;">
+                  Открыть диалог приватности геоданных
+                </button>
+              </div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); background: var(--bg-card-subtle); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); width: 100%; box-sizing: border-box;">
+              💡 <b>Классы системы:</b> <code>.btn-help-badge</code>, <code>.dialog-link</code>, отдельная страница <code>privacy-geodata.html</code>.
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1929,6 +1971,18 @@
       <h3 class="dialog-title" id="demoDialogTitle">Заказы в обработке</h3>
       <p class="dialog-message" id="demoDialogMessage">У вас уже есть 5 активных заказов, которые ожидают утренней закупки на рынке. Новые заказы можно будет оформить после доставки текущих.</p>
       <button type="button" class="btn btn-primary dialog-btn" id="demoDialogBtnOk" onclick="closeDemoAlertDialog()">Понятно</button>
+    </div>
+  </div>
+
+  <!-- Live Demo Geodata Privacy Modal -->
+  <div id="demoGeodataDialog" class="modal-overlay modal-overlay-dialog" style="display: none;" onclick="if(event.target === this) closeDemoGeodataDialog()">
+    <div class="dialog-card">
+      <h3 class="dialog-title">Конфиденциальность и геоданные</h3>
+      <p class="dialog-message" style="text-align: left; font-size: 13px;">
+        Ваши личные данные (имя, телефон, состав заказа) хранятся исключительно во FreshMarket и никуда не передаются. Сторонним картографическим серверам (OpenStreetMap, OSRM) отправляются только числовые координаты для расчёта маршрута курьера.
+      </p>
+      <button type="button" class="btn btn-primary dialog-btn" onclick="closeDemoGeodataDialog()">Понятно</button>
+      <a href="privacy-geodata.html" class="dialog-link" target="_blank">Читать полный текст политики →</a>
     </div>
   </div>
 
@@ -2180,6 +2234,19 @@
 
     function closeDemoAlertDialog() {
       const modal = document.getElementById('demoAlertDialog');
+      if (modal) modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+
+    // Demo Geodata Privacy Dialog Controller
+    function demoOpenGeodataDialog() {
+      const modal = document.getElementById('demoGeodataDialog');
+      if (modal) modal.style.display = 'flex';
+      document.body.classList.add('modal-open');
+    }
+
+    function closeDemoGeodataDialog() {
+      const modal = document.getElementById('demoGeodataDialog');
       if (modal) modal.style.display = 'none';
       document.body.classList.remove('modal-open');
     }

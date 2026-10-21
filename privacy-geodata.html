@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title data-i18n="privacy_geodata.page_title">Политика конфиденциальности и геоданных — FreshMarket</title>
+
+  <!-- Strict Content-Security-Policy (Zero 'unsafe-inline' in script-src) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
+
+  <!-- Fonts & Core Design System -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/components.css?v=1.5.0" />
+  <link rel="stylesheet" href="css/landing.css?v=1.9.6" />
+
+  <style>
+    .privacy-page-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 20px 80px 20px;
+    }
+
+    .privacy-card {
+      background: var(--bg-card, #ffffff);
+      border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+      border-radius: var(--radius-xl, 24px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+      padding: 36px 32px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 640px) {
+      .privacy-card {
+        padding: 24px 18px;
+        border-radius: var(--radius-lg, 18px);
+      }
+    }
+
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #047857;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 16px;
+    }
+
+    .privacy-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-primary, #0f172a);
+      line-height: 1.25;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.02em;
+    }
+
+    .privacy-subtitle {
+      font-size: 15px;
+      color: var(--text-secondary, #64748b);
+      line-height: 1.6;
+      margin: 0 0 28px 0;
+    }
+
+    .privacy-section {
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+    }
+
+    .privacy-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .privacy-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .privacy-section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary, #0f172a);
+      margin: 0;
+    }
+
+    .privacy-text {
+      font-size: 14px;
+      color: var(--text-secondary, #475569);
+      line-height: 1.65;
+      margin: 0 0 14px 0;
+    }
+
+    .privacy-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .privacy-list li {
+      position: relative;
+      padding-left: 24px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary, #334155);
+    }
+
+    .privacy-list li::before {
+      content: "•";
+      position: absolute;
+      left: 6px;
+      top: 0;
+      color: var(--brand-emerald, #10b981);
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .privacy-highlight-box {
+      background: var(--bg-card-subtle, #f8fafc);
+      border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+      border-radius: var(--radius-md, 14px);
+      padding: 16px 18px;
+      font-size: 13px;
+      color: var(--text-secondary, #475569);
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .privacy-highlight-box strong {
+      color: var(--text-primary, #0f172a);
+    }
+
+    .privacy-footer-actions {
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  </style>
+</head>
+
+<body class="landing-body">
+
+  <!-- ================= TOP NAVIGATION HEADER ================= -->
+  <header class="landing-header">
+    <div class="header-inner" style="max-width: 1000px;">
+      <a href="index.html" class="landing-brand">
+        <span class="brand-glyph">🌱</span>
+        <span class="brand-name">FreshMarket</span>
+      </a>
+
+      <div class="landing-header-controls">
+        <!-- Language Selector Dropdown -->
+        <div data-lang-picker></div>
+
+        <!-- Back to Shop Button -->
+        <a href="shop.html" class="btn btn-secondary btn-sm" data-i18n="privacy_geodata.back_to_shop">
+          ← Вернуться в магазин
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="privacy-page-container">
+    <div class="privacy-card">
+      <div class="privacy-badge">
+        <span>🛡️</span>
+        <span data-i18n="privacy_geodata.badge_secure">100% Защита данных</span>
+      </div>
+
+      <h1 class="privacy-title" data-i18n="privacy_geodata.title">
+        Конфиденциальность и безопасность геоданных
+      </h1>
+      <p class="privacy-subtitle" data-i18n="privacy_geodata.subtitle">
+        Полная прозрачность: как FreshMarket обрабатывает координаты и защищает ваши данные
+      </p>
+
+      <!-- Section 1: Processed Geodata -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <span>📍</span>
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_coords_title">
+            1. Какие геоданные обрабатываются
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.section_coords_desc">
+          При выборе адреса доставки или использовании интерактивной карты приложение определяет числовые координаты (широту и долготу точки) и отправляет их серверам картографии:
+        </p>
+        <ul class="privacy-list">
+          <li data-i18n="privacy_geodata.osm_bullet_1">
+            OpenStreetMap (сервис Nominatim): обратное геокодирование для автоматического определения названия улицы и района по выбранной точке на карте.
+          </li>
+          <li data-i18n="privacy_geodata.osm_bullet_2">
+            Project OSRM: расчёт точного дорожного расстояния от рынка до точки доставки для определения зоны тарифа курьера.
+          </li>
+        </ul>
+        <div class="privacy-highlight-box" data-i18n="privacy_geodata.osm_ip_note">
+          Серверы картографии получают исключительно числовые координаты и технический сетевой IP-адрес браузера для передачи тайлов карты. Никакой привязки к личности пользователя не происходит.
+        </div>
+      </section>
+
+      <!-- Section 2: Strict Privacy -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <span>🔒</span>
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_private_title">
+            2. Что гарантированно остаётся в тайне и никуда не передаётся
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.private_desc">
+          Ваши личные данные никогда не передаются внешним серверам картографии, рекламным сетям или сторонним сервисам:
+        </p>
+        <ul class="privacy-list">
+          <li data-i18n="privacy_geodata.private_bullet_1">
+            Ваше имя, номер телефона и аккаунт в мессенджере (Telegram / WhatsApp) хранятся исключительно в защищённой базе данных заказов FreshMarket.
+          </li>
+          <li data-i18n="privacy_geodata.private_bullet_2">
+            Состав корзины, примечания к покупкам, история заказов и суммы чеков доступны только вам и ответственному закупщику сервиса.
+          </li>
+          <li data-i18n="privacy_geodata.private_bullet_3">
+            Мы не продаём, не передаём и не используем ваши данные в рекламных целях.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Section 3: Storage -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <span>💾</span>
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_storage_title">
+            3. Локальное хранилище (localStorage)
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.storage_desc">
+          Мы не используем отслеживающие рекламные cookie или межсайтовые трекеры. В локальном хранилище вашего браузера сохраняются исключительно технические параметры: выбранный язык интерфейса, корзина покупок и недавние адреса для вашего удобства при повторных заказах.
+        </p>
+      </section>
+
+      <!-- Section 4: Full User Control -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <span>✨</span>
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_control_title">
+            4. Ваш полный контроль
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.control_desc">
+          Использование GPS является строго добровольным. Вы в любой момент можете не предоставлять браузеру доступ к геолокации и ввести адрес доставки вручную текстом в строке оформления заказа.
+        </p>
+      </section>
+
+      <div class="privacy-footer-actions">
+        <a href="shop.html" class="btn btn-primary" data-i18n="privacy_geodata.back_to_shop">
+          ← Вернуться в магазин
+        </a>
+        <span style="font-size: 13px; color: var(--text-muted, #94a3b8);" data-i18n="privacy_geodata.footer_note">
+          FreshMarket • Консьерж-доставка свежих продуктов со свежего утреннего рынка
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/shared/i18n.js?v=1.5.0"></script>
+</body>
+
+</html>

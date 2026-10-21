@@ -3,22 +3,12 @@
 
 <head>
   <meta charset="UTF-8" />
-  <script>
-    // Immediate OAuth Auto-Forward: If auth tokens arrive at landing, seamlessly forward to shop
-    (function () {
-      var h = window.location.hash || '';
-      var s = window.location.search || '';
-      if (h.indexOf('access_token') !== -1 || h.indexOf('error') !== -1 || s.indexOf('code=') !== -1) {
-        window.location.replace('shop.html' + s + h);
-      }
-    })();
-  </script>
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>FreshMarket — Morning Market Concierge Delivery</title>
   <meta name="description"
     content="Personal morning shopper for dawn market produce. Direct paper vendor receipts, 10% flat fee, delivery before noon in insulated cooler packs." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.tile.openstreetmap.org https://*.tile.openstreetmap.fr https://unpkg.com; connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org https://unpkg.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.supabase.co https://*.tile.openstreetmap.org https://*.tile.openstreetmap.fr https://unpkg.com https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org https://unpkg.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
 
   <!-- PWA & Mobile settings -->
   <link rel="manifest" href="manifest-shop.json" />
@@ -553,6 +543,7 @@
 
         <div class="footer-links-group col-4 col-md-12">
           <a href="shop.html">Customer Shop</a>
+          <a href="privacy-geodata.html" data-i18n="cart.geodata_modal_title">Privacy &amp; Geodata</a>
           <a href="components.html">UI Workbench</a>
           <a href="admin/index.html">Buyer Workspace 🔒</a>
         </div>
@@ -562,7 +553,8 @@
         <div class="footer-copy col-8 col-md-12">
           FreshMarket • Honest morning market produce delivered before noon.<br />
           <span style="font-size: 12px; color: var(--text-muted, #94a3b8); opacity: 0.85;">
-            Routing & geocoding powered by OpenStreetMap & OSRM. No personal data shared.
+            Delivery routing and geocoding powered by OpenStreetMap &amp; OSRM servers. Personal details are never shared with third parties.
+            <a href="privacy-geodata.html" style="color: var(--brand-emerald, #10b981); text-decoration: underline; margin-left: 4px;" data-i18n="cart.geodata_modal_link">Policy details →</a>
           </span>
         </div>
         <div class="footer-version col-4 col-md-12">
@@ -573,322 +565,7 @@
   </footer>
 
   <!-- ================= INTERACTIVE CONTROLLER SCRIPT ================= -->
-  <script>
-    (function () {
-      // 1. Interactive Receipt Calculator Logic
-      const calcStallProduce = document.getElementById('calcStallProduce');
-      const calcBuyerFee = document.getElementById('calcBuyerFee');
-      const calcDeliveryFee = document.getElementById('calcDeliveryFee');
-      const calcTotal = document.getElementById('calcTotal');
-      const calcKhrEquivalent = document.getElementById('calcKhrEquivalent');
-      const zoneButtons = document.querySelectorAll('.calc-zone-btn');
-
-      const produceAmount = 18.50;
-      const feeRate = 0.10;
-      const khrRate = 4000;
-      let activeDeliveryFee = 1.00;
-
-      function updateCalculator() {
-        const buyerFee = produceAmount * feeRate;
-        const total = produceAmount + buyerFee + activeDeliveryFee;
-        const totalKhr = Math.round(total * khrRate);
-
-        if (calcStallProduce) calcStallProduce.textContent = '$' + produceAmount.toFixed(2);
-        if (calcBuyerFee) calcBuyerFee.textContent = '+$' + buyerFee.toFixed(2);
-        if (calcDeliveryFee) calcDeliveryFee.textContent = '+$' + activeDeliveryFee.toFixed(2);
-        if (calcTotal) calcTotal.textContent = '$' + total.toFixed(2);
-        if (calcKhrEquivalent) calcKhrEquivalent.textContent = '≈ ' + totalKhr.toLocaleString() + ' ៛';
-      }
-
-      zoneButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          zoneButtons.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          activeDeliveryFee = parseFloat(btn.dataset.fee) || 1.00;
-          updateCalculator();
-        });
-      });
-
-      // Initial calculation
-      updateCalculator();
-
-      // 2. Live Ambient Leaflet Map Controller
-      const HUB_COORDS = [10.6120, 104.1780]; // Dawn Market Hub location
-
-      // Parallax Configuration: tweak amplitude and viewport progress pivot
-      const MAP_PARALLAX_CONFIG = {
-        amplitude: 180,       // Total vertical travel distance in pixels
-        centerProgress: 0.7   // Viewport scroll pivot (0.0 = bottom entry, 0.5 = middle, 1.0 = top exit)
-      };
-
-      let liveMap = null;
-      let zoneCircles = {};
-
-      // Dynamic Framer: aligns HUB_COORDS to the exact center of .map-visual-pane (col-7)
-      function getFramerCamera(customZoom) {
-        const visualPane = document.querySelector('.map-visual-pane');
-        const mapEl = document.getElementById('liveLeafletMap');
-        const mapWrapper = document.querySelector('.unified-map-wrapper');
-        const zoom = (typeof customZoom === 'number') ? customZoom : (window.innerWidth > 1080 ? 13.0 : 11.5);
-
-        if (!visualPane || !mapEl || !liveMap || window.innerWidth <= 1080) {
-          return { center: HUB_COORDS, zoom: zoom };
-        }
-
-        const vRect = visualPane.getBoundingClientRect();
-        const refRect = mapWrapper ? mapWrapper.getBoundingClientRect() : mapEl.getBoundingClientRect();
-        const targetContainerX = (vRect.left - refRect.left) + (vRect.width / 2);
-        const targetContainerY = (vRect.top - refRect.top) + (vRect.height / 2);
-
-        const containerCenterX = refRect.width / 2;
-        const containerCenterY = refRect.height / 2;
-
-        const offsetX = targetContainerX - containerCenterX;
-        const offsetY = targetContainerY - containerCenterY;
-
-        const hubWorldPoint = liveMap.project(HUB_COORDS, zoom);
-        const targetWorldPoint = L.point(hubWorldPoint.x - offsetX, hubWorldPoint.y - offsetY);
-        const targetLatLng = liveMap.unproject(targetWorldPoint, zoom);
-
-        return {
-          center: targetLatLng,
-          zoom: zoom
-        };
-      }
-
-      const mapContainer = document.getElementById('liveLeafletMap');
-      if (mapContainer && typeof L !== 'undefined') {
-        liveMap = L.map('liveLeafletMap', {
-          center: HUB_COORDS,
-          zoom: 12.3,
-          zoomSnap: 0.1,
-          zoomDelta: 0.5,
-          zoomControl: false,
-          attributionControl: true,
-          scrollWheelZoom: false,
-          touchZoom: false,
-          dragging: true,
-          doubleClickZoom: false
-        });
-
-        // Set initial camera to center hub in col-7
-        const initialCam = getFramerCamera();
-        liveMap.setView(initialCam.center, initialCam.zoom);
-
-        // OpenStreetMap Tile Layer (Muted Pastel Theme via CSS)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c'],
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
-        }).addTo(liveMap);
-
-        // Concentric delivery zones (1000m, 3000m, 6000m)
-        zoneCircles = {
-          3: L.circle(HUB_COORDS, {
-            radius: 6000,
-            color: '#059669',
-            dashArray: '6, 6',
-            weight: 1.5,
-            fillColor: '#059669',
-            fillOpacity: 0.03
-          }).addTo(liveMap),
-          2: L.circle(HUB_COORDS, {
-            radius: 3000,
-            color: '#059669',
-            dashArray: '5, 5',
-            weight: 1.5,
-            fillColor: '#059669',
-            fillOpacity: 0.07
-          }).addTo(liveMap),
-          1: L.circle(HUB_COORDS, {
-            radius: 1000,
-            color: '#059669',
-            weight: 2,
-            fillColor: '#059669',
-            fillOpacity: 0.16
-          }).addTo(liveMap)
-        };
-
-        // Center Market Hub Marker with pulse animation
-        const hubIcon = L.divIcon({
-          className: 'custom-hub-icon',
-          html: '<div class="leaflet-hub-marker"><div class="hub-pulse-ring"></div><div class="hub-center-dot"></div><div class="hub-label-pill">🌱 Dawn Market Hub • 5\\u00A0AM</div></div>',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
-        });
-        L.marker(HUB_COORDS, { icon: hubIcon }).addTo(liveMap);
-
-        // Click on circles triggers zone highlight
-        Object.keys(zoneCircles).forEach(z => {
-          const circle = zoneCircles[z];
-          circle.on('click', (e) => {
-            L.DomEvent.stopPropagation(e);
-            highlightZone(z);
-          });
-          circle.on('mouseover', () => highlightZone(z));
-        });
-
-        // Tactile drag restriction: max 200px from calibrated home center
-        let isSpringingBack = false;
-
-        liveMap.on('drag', () => {
-          if (isSpringingBack) return;
-          const homeCam = getFramerCamera();
-          const currentZoom = liveMap.getZoom();
-          const currentCenter = liveMap.getCenter();
-          const currentPoint = liveMap.project(currentCenter, currentZoom);
-          const homePoint = liveMap.project(homeCam.center, currentZoom);
-
-          const dx = currentPoint.x - homePoint.x;
-          const dy = currentPoint.y - homePoint.y;
-          const MAX_DRAG = 200; // Expanded to 200px limit in all directions
-
-          const clampedDx = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, dx));
-          const clampedDy = Math.max(-MAX_DRAG, Math.min(MAX_DRAG, dy));
-
-          if (dx !== clampedDx || dy !== clampedDy) {
-            const clampedPoint = L.point(homePoint.x + clampedDx, homePoint.y + clampedDy);
-            liveMap.setView(liveMap.unproject(clampedPoint, currentZoom), currentZoom, { animate: false });
-          }
-        });
-
-        // Elastic spring-back to calibrated center on mouse release
-        liveMap.on('dragend', () => {
-          isSpringingBack = true;
-          const homeCam = getFramerCamera();
-          liveMap.panTo(homeCam.center, { duration: 0.55, easeLinearity: 0.25 });
-          setTimeout(() => {
-            isSpringingBack = false;
-          }, 600);
-        });
-
-        // Resize handler
-        window.addEventListener('resize', () => {
-          if (liveMap) {
-            liveMap.invalidateSize();
-            const cam = getFramerCamera();
-            liveMap.setView(cam.center, cam.zoom);
-          }
-        });
-
-        // IntersectionObserver camera choreography between Bento and Delivery Zones
-        const zonesSection = document.getElementById('deliveryZones');
-        if ('IntersectionObserver' in window && zonesSection) {
-          const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-              if (entry.isIntersecting) {
-                const cam = getFramerCamera();
-                liveMap.flyTo(cam.center, cam.zoom, { duration: 1.0 });
-              }
-            });
-          }, { threshold: 0.25 });
-          observer.observe(zonesSection);
-        }
-
-        // Smooth GPU Scroll Parallax for Unified Map Underlay
-        const mapWrapper = document.querySelector('.unified-map-wrapper');
-        const mapUnderlay = document.getElementById('unifiedMapUnderlay');
-        let isParallaxTicking = false;
-
-        function updateMapParallax() {
-          if (!mapWrapper || !mapUnderlay) return;
-          const rect = mapWrapper.getBoundingClientRect();
-          const winH = window.innerHeight;
-
-          if (rect.bottom > 0 && rect.top < winH) {
-            // Scroll progress through viewport: 0 entering bottom, 1 leaving top
-            const progress = (winH - rect.top) / (winH + rect.height);
-            // Parallax offset based on configured pivot and amplitude
-            const translateY = (progress - MAP_PARALLAX_CONFIG.centerProgress) * MAP_PARALLAX_CONFIG.amplitude;
-            mapUnderlay.style.transform = `translate3d(0, ${translateY.toFixed(1)}px, 0)`;
-          }
-          isParallaxTicking = false;
-        }
-
-        window.addEventListener('scroll', () => {
-          if (!isParallaxTicking) {
-            requestAnimationFrame(updateMapParallax);
-            isParallaxTicking = true;
-          }
-        }, { passive: true });
-
-        // Initial alignment
-        updateMapParallax();
-      }
-
-      const zoneRows = document.querySelectorAll('.zone-interactive-row');
-
-      function highlightZone(zoneId) {
-        // Disabled on mobile/tablets per design request
-        if (window.innerWidth <= 1080) {
-          return;
-        }
-
-        const id = parseInt(zoneId, 10);
-
-        zoneRows.forEach(row => {
-          const isTarget = parseInt(row.dataset.zone, 10) === id;
-          row.classList.toggle('active', isTarget);
-          row.setAttribute('aria-selected', isTarget ? 'true' : 'false');
-        });
-
-        if (liveMap && zoneCircles) {
-          Object.keys(zoneCircles).forEach(z => {
-            const isTarget = parseInt(z, 10) === id;
-            const circle = zoneCircles[z];
-            if (z === '1') {
-              circle.setStyle({
-                fillOpacity: isTarget ? 0.24 : 0.08,
-                weight: isTarget ? 2.5 : 1.5,
-                dashArray: isTarget ? null : '4, 4'
-              });
-            } else if (z === '2') {
-              circle.setStyle({
-                fillOpacity: isTarget ? 0.18 : 0.05,
-                weight: isTarget ? 2.5 : 1.5,
-                dashArray: isTarget ? null : '5, 5'
-              });
-            } else if (z === '3') {
-              circle.setStyle({
-                fillOpacity: isTarget ? 0.14 : 0.02,
-                weight: isTarget ? 2.5 : 1.5,
-                dashArray: isTarget ? null : '6, 6'
-              });
-            }
-          });
-        }
-      }
-
-      zoneRows.forEach(row => {
-        const zoneId = row.dataset.zone;
-        row.addEventListener('click', () => highlightZone(zoneId));
-        row.addEventListener('mouseenter', () => highlightZone(zoneId));
-        row.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            highlightZone(zoneId);
-          }
-        });
-      });
-
-      // 3. Customer Auth check for logout button
-      try {
-        const rawAuth = localStorage.getItem('freshmarket_customer_auth');
-        const btnLogout = document.getElementById('btnLandingLogout');
-        if (rawAuth && btnLogout) {
-          const parsed = JSON.parse(rawAuth);
-          if (parsed && (parsed.access_token || parsed.user)) {
-            btnLogout.style.display = 'inline-flex';
-            btnLogout.addEventListener('click', () => {
-              localStorage.removeItem('freshmarket_customer_auth');
-              btnLogout.style.display = 'none';
-              window.location.reload();
-            });
-          }
-        }
-      } catch (err) { }
-    })();
-  </script>
+  <script src="js/landing.js?v=1.5.0"></script>
 </body>
 
 </html>

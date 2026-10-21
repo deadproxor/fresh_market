@@ -1,7 +1,16 @@
-/**
- * FreshMarket Admin - Authentication & Workspace Gatekeeper (admin-auth.js)
- * Architecture: Pure Vanilla JS + Supabase Auth
- */
+// Ensure clean PWA boundary: unregister any rogue root shop Service Worker that hijacked /admin/
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    for (var i = 0; i < regs.length; i++) {
+      var r = regs[i];
+      if (r.active && r.active.scriptURL.includes('sw-shop.js')) {
+        r.unregister().then(function () {
+          console.log('[Admin] Cleaned conflicting shop Service Worker registration');
+        });
+      }
+    }
+  });
+}
 
 window.DEFAULT_SUPABASE_URL = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
 window.DEFAULT_SUPABASE_KEY = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
@@ -284,7 +293,7 @@ class AdminAuth {
     try {
       const { data, error } = await this.sb
         .from('orders')
-        .select('*')
+        .select('*, order_items(*)')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -321,6 +330,20 @@ class AdminAuth {
         const deliveryDateStr = order.target_delivery_date ? ` • 📅 ${this.escapeHtml(order.target_delivery_date)}` : '';
         const createdTimeStr = order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
+        const items = order.order_items || [];
+        const itemsListHtml = items.length > 0 ? `
+          <div class="order-admin-items" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 12px;">
+            <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">🛍️ Состав заказа (${items.length}):</div>
+            ${items.map(it => {
+              const itTitle = this.escapeHtml(it.product_title || it.product_name_ru || it.product_name_en || 'Товар');
+              const itQty = this.escapeHtml(it.quantity || it.requested_qty || 1);
+              const itUnit = this.escapeHtml(it.unit || 'кг');
+              const itComment = it.customer_comment ? ` <i style="color: var(--text-muted); font-size: 11px;">[💬 ${this.escapeHtml(it.customer_comment)}]</i>` : '';
+              return `<div style="padding: 2px 0;">• <b>${itTitle}</b> — ${itQty} ${itUnit}${itComment}</div>`;
+            }).join('')}
+          </div>
+        ` : '';
+
         return `
         <div class="order-admin-card">
           <div class="order-admin-header">
@@ -335,13 +358,28 @@ class AdminAuth {
             <div>🔄 Замена: <b>${safePolicy}</b></div>
             <div>🕒 Создан: ${createdTimeStr}${deliveryDateStr}</div>
           </div>
+          ${itemsListHtml}
           <div class="order-admin-actions">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Детализация и сборка заказа на рынке будут доступны в следующей фазе')">🔍 Позиции</button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="alert('Ввод суммы чека и смена статуса будут доступны в следующей фазе')">📝 Ввести чек</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-action="view-items" data-order-id="${this.escapeHtml(order.id)}">🔍 Позиции</button>
+            <button type="button" class="btn btn-primary btn-sm" data-action="enter-receipt" data-order-id="${this.escapeHtml(order.id)}">📝 Ввести чек</button>
           </div>
         </div>
       `;
       }).join('');
+
+      if (!this.ordersDelegationBound) {
+        this.ordersDelegationBound = true;
+        listEl.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-action]');
+          if (!btn) return;
+          const action = btn.dataset.action;
+          if (action === 'view-items') {
+            alert('Детализация и сборка заказа на рынке будут доступны в следующей фазе');
+          } else if (action === 'enter-receipt') {
+            alert('Ввод суммы чека и смена статуса будут доступны в следующей фазе');
+          }
+        });
+      }
     } catch (err) {
       console.warn('[AdminAuth] Orders load error:', err);
       listEl.innerHTML = `<div class="empty-desc">Не удалось загрузить заказы</div>`;

@@ -6,26 +6,9 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>FreshMarket — Панель закупщика (Admin)</title>
-  <script>
-    // Ensure clean PWA boundary: unregister any rogue root shop Service Worker that hijacked /admin/
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        for (var i = 0; i < regs.length; i++) {
-          var r = regs[i];
-          if (r.active && r.active.scriptURL.includes('sw-shop.js')) {
-            r.unregister().then(function() {
-              console.log('[Admin] Cleaned conflicting shop Service Worker registration');
-            });
-          }
-        }
-      });
-    }
-  </script>
-
-  <!-- PWA & Mobile settings for Admin Workspace -->
   <link rel="manifest" href="manifest.json" />
   <meta name="robots" content="noindex, nofollow" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com https://generativelanguage.googleapis.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.supabase.co https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com https://generativelanguage.googleapis.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
   <meta name="theme-color" content="#f5f5f7" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -249,7 +232,7 @@
       <section id="viewOrders" class="admin-section-view" style="display: none;">
         <div class="orders-header-bar">
           <h3 class="orders-title">Заявки на утренний закуп</h3>
-          <span class="admin-badge">Samaki Market</span>
+          <span class="admin-badge">FreshMarket</span>
         </div>
 
         <div id="adminOrdersList">
@@ -856,7 +839,7 @@
   <script src="../js/shared/categories.js?v=1.4.8"></script>
   <script src="../js/shared/forms.js?v=1.4.8"></script>
   <script src="js/admin-catalog.js?v=1.4.12"></script>
-  <script src="js/admin-auth.js?v=1.4.15"></script>
+  <script src="js/admin-auth.js?v=1.4.16"></script>
 </body>
 
 </html>

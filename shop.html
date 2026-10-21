@@ -8,7 +8,7 @@
   <title>FreshMarket — Доставка свежих продуктов с рынка</title>
   <meta name="description"
     content="Заказ и доставка свежих овощей, фруктов, зелени и специй с утреннего рынка прямо к вашей двери." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.tile.openstreetmap.org https://*.tile.openstreetmap.fr https://unpkg.com https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://router.project-osrm.org https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.supabase.co https://*.tile.openstreetmap.org https://*.tile.openstreetmap.fr https://unpkg.com https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org https://router.project-osrm.org https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
 
   <!-- PWA & Mobile Icons -->
   <link rel="manifest" href="manifest-shop.json" />
@@ -237,102 +237,167 @@
             data-i18n="cart.auth_gate_btn">Войти →</button>
         </div>
 
-        <!-- 2. Cart Items List -->
-        <div id="cartItemsList" class="cart-items-list">
-          <!-- Items or Empty State injected via JS -->
+        <!-- 2. Cart Items Card -->
+        <div class="settings-section" id="cartSectionItems">
+          <div class="settings-section-header">
+            <div class="settings-section-title">
+              <span data-i18n="cart.items_title">Выбранные продукты</span>
+            </div>
+            <div class="settings-section-header-right">
+              <span class="badge badge-primary" id="cartSectionItemsBadge">0</span>
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="settings-section-body">
+            <div id="cartItemsList" class="cart-items-list">
+              <!-- Items or Empty State injected via JS -->
+            </div>
+          </div>
         </div>
 
         <!-- 3. Streamlined Checkout Form (Shown when logged in) -->
         <form id="checkoutForm" class="checkout-form" novalidate style="display: none;">
-          <div class="checkout-section-title" data-i18n="cart.delivery_details_title">📦 Детали доставки</div>
-
-          <div class="checkout-user-badge" id="checkoutUserBadge">
-            <div class="user-badge-info">
-              <span class="user-badge-icon">👤</span>
-              <div class="user-badge-text">
-                <div class="user-badge-name" id="checkoutUserName" data-i18n="common.customer">Покупатель</div>
-                <div class="user-badge-phone" id="checkoutUserPhone">+855...</div>
+          
+          <!-- SECTION 1: DELIVERY DETAILS -->
+          <div class="settings-section" id="cartSectionDelivery">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span data-i18n="cart.delivery_details_title">Детали доставки</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-success" id="cartDeliveryZoneBadge">📍 Зона 1</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
               </div>
             </div>
-            <button type="button" class="btn-link-action" id="btnChangeUserProfile"
-              data-i18n="header.btn_profile">Профиль</button>
-          </div>
+            <div class="settings-section-body">
+              <div class="checkout-user-badge" id="checkoutUserBadge">
+                <div class="user-badge-info">
+                  <span class="user-badge-icon">👤</span>
+                  <div class="user-badge-text">
+                    <div class="user-badge-name" id="checkoutUserName" data-i18n="common.customer">Покупатель</div>
+                    <div class="user-badge-phone" id="checkoutUserPhone">+855...</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-link-action" id="btnChangeUserProfile"
+                  data-i18n="header.btn_profile">Профиль</button>
+              </div>
 
-          <div class="form-group">
-            <label class="field-label" for="deliveryAddress" data-i18n="cart.address_label" style="margin-bottom: 6px;">Адрес доставки *</label>
-            <div class="input-action-wrapper">
-              <input type="text" id="deliveryAddress" class="text-input"
-                placeholder="Улица, дом или ссылка на карту"
-                data-i18n-placeholder="cart.address_placeholder" required />
-              <button type="button" class="input-trailing-btn" id="btnGetLocation" title="Моё местоположение" aria-label="Моё местоположение">
-                📍
-              </button>
-            </div>
+              <!-- Address Label / Preset Chips (Home, Office, Villa, Other) -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="field-label" for="deliveryAddressName" data-i18n="cart.address_name_label">Название или ориентир:</label>
+                <div class="messenger-selector address-preset-selector" id="cartAddressPresetSelector" style="margin-top: 6px; margin-bottom: 8px;">
+                  <button type="button" class="messenger-pill address-preset-pill" data-preset="home" data-i18n="cart.preset_home">Дом</button>
+                  <button type="button" class="messenger-pill address-preset-pill" data-preset="office" data-i18n="cart.preset_office">Офис</button>
+                  <button type="button" class="messenger-pill address-preset-pill" data-preset="villa" data-i18n="cart.preset_villa">Вилла</button>
+                  <button type="button" class="messenger-pill address-preset-pill" data-preset="other" data-i18n="cart.preset_other">Другое</button>
+                </div>
+                <input type="text" id="deliveryAddressName" class="text-input"
+                  placeholder="Например: Дом, Офис, Вилла 12..."
+                  data-i18n-placeholder="cart.address_name_placeholder" />
+              </div>
 
-            <!-- Mini-Map Interactive Delivery Radius -->
-            <div class="delivery-mini-map-wrap" id="deliveryMiniMapWrap">
-              <div id="checkoutMiniMap" class="delivery-mini-map"></div>
-              <div class="delivery-map-status-bar" id="deliveryMapStatusBar">
-                <span class="delivery-map-status-badge" id="deliveryMapStatusBadge">
-                  <span>📍</span> <span id="deliveryMapStatusText">Зона 1: Центр ($1.00)</span>
-                </span>
-                <span class="delivery-map-status-hint" data-i18n="cart.map_hint">Перетащите метку 📍 для выбора точки</span>
+              <!-- Location from Map -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="field-label" for="deliveryAddress" data-i18n="cart.address_location_label" style="margin-bottom: 6px;">Точка на карте / Адрес *:</label>
+                <div class="input-action-wrapper">
+                  <input type="text" id="deliveryAddress" class="text-input"
+                    placeholder="Улица, дом или ссылка на карту"
+                    data-i18n-placeholder="cart.address_placeholder" required />
+                  <button type="button" class="input-trailing-btn" id="btnGetLocation" title="Моё местоположение" aria-label="Моё местоположение">
+                    📍
+                  </button>
+                </div>
+
+                <!-- Mini-Map Interactive Delivery Radius -->
+                <div class="delivery-mini-map-wrap" id="deliveryMiniMapWrap">
+                  <div id="checkoutMiniMap" class="delivery-mini-map"></div>
+                  <div class="delivery-map-status-bar" id="deliveryMapStatusBar">
+                    <span class="delivery-map-status-badge" id="deliveryMapStatusBadge">
+                      <span>📍</span> <span id="deliveryMapStatusText">Зона 1: Центр ($1.00)</span>
+                    </span>
+                    <span class="delivery-map-status-hint" data-i18n="cart.map_hint">Перетащите метку 📍 для выбора точки</span>
+                  </div>
+                </div>
+                <div class="delivery-map-privacy-note">
+                  <span data-i18n="cart.geodata_privacy_hint">Конфиденциальность геоданных</span>
+                  <button type="button" class="btn-help-badge" id="btnGeodataPrivacy" aria-label="Подробнее о геоданных" title="Подробнее о геоданных" data-i18n-title="cart.geodata_btn_label">?</button>
+                </div>
+
+                <div id="recentLocationsContainer" class="recent-locations-container" style="display: none;">
+                  <div class="recent-locations-header" data-i18n="cart.recent_locations_title">Недавние адреса:</div>
+                  <div class="recent-locations-list" id="recentLocationsList"></div>
+                </div>
               </div>
             </div>
-            <div class="delivery-map-privacy-note" data-i18n="cart.geodata_privacy_hint">
-              Координаты используются исключительно для расчета маршрута через OpenStreetMap и OSRM. Персональные данные третьим сторонам не передаются.
-            </div>
+          </div>
 
-            <div id="recentLocationsContainer" class="recent-locations-container" style="display: none;">
-              <div class="recent-locations-header" data-i18n="cart.recent_locations_title">Недавние адреса:</div>
-              <div class="recent-locations-list" id="recentLocationsList"></div>
+          <!-- SECTION 2: REPLACEMENT POLICY & PREFERENCES -->
+          <div class="settings-section" id="cartSectionPreferences">
+            <div class="settings-section-header">
+              <div class="settings-section-title">
+                <span data-i18n="cart.preferences_title">Замены и пожелания</span>
+              </div>
+              <div class="settings-section-header-right">
+                <span class="badge badge-gray" id="cartPreferencesBadge">Позвонить</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                  <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-section-body">
+              <label class="field-label" data-i18n="cart.substitutions_title">Если нужного товара нет на рынке:</label>
+              <div class="replacement-options">
+                <label class="replacement-option">
+                  <input type="radio" name="replacementPolicy" value="call_to_agree" checked />
+                  <span class="replacement-box">
+                    <span class="replacement-icon">📞</span>
+                    <span class="replacement-text">
+                      <b data-i18n="cart.sub_call_title">Позвонить / написать</b>
+                      <span data-i18n="cart.sub_call_desc">Сборщик согласует замену с вами</span>
+                    </span>
+                  </span>
+                </label>
+                <label class="replacement-option">
+                  <input type="radio" name="replacementPolicy" value="picker_choice" />
+                  <span class="replacement-box">
+                    <span class="replacement-icon">🔄</span>
+                    <span class="replacement-text">
+                      <b data-i18n="cart.sub_picker_title">На усмотрение закупщика</b>
+                      <span data-i18n="cart.sub_picker_desc">Выберет лучший свежий аналог</span>
+                    </span>
+                  </span>
+                </label>
+                <label class="replacement-option">
+                  <input type="radio" name="replacementPolicy" value="do_not_replace" />
+                  <span class="replacement-box">
+                    <span class="replacement-icon">❌</span>
+                    <span class="replacement-text">
+                      <b data-i18n="cart.sub_remove_title">Не заменять</b>
+                      <span data-i18n="cart.sub_remove_desc">Просто убрать позицию из чека</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="form-group" style="margin-top: 6px; margin-bottom: 0;">
+                <label class="field-label" for="customerComment" data-i18n="cart.comment_label">Пожелания к заказу (необязательно)</label>
+                <input type="text" id="customerComment" class="text-input"
+                  placeholder="Например: спелое манго, свежая мята" data-i18n-placeholder="cart.comment_placeholder" />
+              </div>
             </div>
           </div>
 
-          <!-- Replacement Policy -->
-          <div class="form-group">
-            <label class="field-label" data-i18n="cart.substitutions_title">Если нужного товара нет на рынке:</label>
-            <div class="replacement-options">
-              <label class="replacement-option">
-                <input type="radio" name="replacementPolicy" value="call_to_agree" checked />
-                <span class="replacement-box">
-                  <span class="replacement-icon">📞</span>
-                  <span class="replacement-text">
-                    <b data-i18n="cart.sub_call_title">Позвонить / написать</b>
-                    <span data-i18n="cart.sub_call_desc">Сборщик согласует замену с вами</span>
-                  </span>
-                </span>
-              </label>
-              <label class="replacement-option">
-                <input type="radio" name="replacementPolicy" value="picker_choice" />
-                <span class="replacement-box">
-                  <span class="replacement-icon">🔄</span>
-                  <span class="replacement-text">
-                    <b data-i18n="cart.sub_picker_title">На усмотрение закупщика</b>
-                    <span data-i18n="cart.sub_picker_desc">Выберет лучший свежий аналог</span>
-                  </span>
-                </span>
-              </label>
-              <label class="replacement-option">
-                <input type="radio" name="replacementPolicy" value="do_not_replace" />
-                <span class="replacement-box">
-                  <span class="replacement-icon">❌</span>
-                  <span class="replacement-text">
-                    <b data-i18n="cart.sub_remove_title">Не заменять</b>
-                    <span data-i18n="cart.sub_remove_desc">Просто убрать позицию из чека</span>
-                  </span>
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label" for="customerComment" data-i18n="cart.comment_label">Пожелания к заказу
-              (необязательно)</label>
-            <input type="text" id="customerComment" class="text-input"
-              placeholder="Например: спелое манго, свежая мята" data-i18n-placeholder="cart.comment_placeholder" />
-          </div>
-
+          <!-- Checkout Pricing Formula & Submit Actions -->
           <div class="checkout-pricing-note" data-i18n-html="cart.pricing_formula_note">
             ℹ️ <b>Формула расчета:</b> Чеки с рынка + сервисный сбор 10% + доставка ($1 / $2 / $3.50 по зонам). Оплата наличными или переводом по факту доставки.
           </div>
@@ -500,13 +565,25 @@
       </div>
     </div>
 
+    <!-- Geodata Privacy Info Modal -->
+    <div id="geodataPrivacyDialog" class="modal-overlay modal-overlay-dialog" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="geodataDialogTitle">
+      <div class="dialog-card">
+        <h3 class="dialog-title" id="geodataDialogTitle" data-i18n="cart.geodata_modal_title">Конфиденциальность и геоданные</h3>
+        <p class="dialog-message" id="geodataDialogMessage" style="text-align: left; font-size: 13px;" data-i18n="cart.geodata_modal_summary">
+          Координаты точки доставки и ваш IP-адрес обрабатываются картографическими серверами OpenStreetMap и OSRM исключительно для расчёта маршрута курьера. Персональные данные (имя, телефон, состав заказа) третьим лицам не передаются.
+        </p>
+        <button type="button" class="btn btn-primary dialog-btn" id="btnGeodataModalClose" data-i18n="cart.geodata_modal_close">Понятно</button>
+        <a href="privacy-geodata.html" class="dialog-link" target="_blank" data-i18n="cart.geodata_modal_link">Читать полный текст политики →</a>
+      </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
 
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.4.47"></script>
+  <script src="js/shop.js?v=1.4.52"></script>
 </body>
 
 </html>
