@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.4.13';
+const APP_VERSION = '1.5.0';
 window.APP_VERSION = APP_VERSION;
 
 // Defensive fallbacks for sanitizeUrl and generateUUID (provided by js/shared/utils.js)
@@ -577,8 +577,8 @@ function isValidSupabaseUrl(url) {
 }
 
 function getActiveStorage() {
-  const fallbackUrl = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
-  const fallbackKey = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
+  const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL || '';
+  const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY || '';
   const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
   const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
   const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
@@ -604,19 +604,27 @@ class LookupService {
     const clean = this.normalize(term);
     if (!clean) return null;
 
-    // 1. Direct contains check
+    // 1. Exact match (full string or slash/comma-separated alternative)
     let match = PRODUCE_DICTIONARY.find(item => {
       const ruNorm = this.normalize(item.ru);
       const enNorm = this.normalize(item.en);
       const khNorm = this.normalize(item.kh);
-      return ruNorm.includes(clean) || clean.includes(ruNorm) ||
-        enNorm.includes(clean) || clean.includes(enNorm) ||
-        khNorm.includes(clean);
+      if (ruNorm === clean || enNorm === clean || khNorm === clean) return true;
+      const ruParts = ruNorm.split(/\s*[\/,]\s*/);
+      const enParts = enNorm.split(/\s*[\/,]\s*/);
+      return ruParts.includes(clean) || enParts.includes(clean);
     });
-
     if (match) return match;
 
-    // 2. Token & Stem matching (e.g. "курица", "куриное", "курицу", "куриный" -> match "куриц")
+    // 2. Exact word match (matches complete words in title, e.g. "картофель" matches "картофель молодой")
+    match = PRODUCE_DICTIONARY.find(item => {
+      const ruWords = this.normalize(item.ru).split(/[\s,/-]+/);
+      const enWords = this.normalize(item.en).split(/[\s,/-]+/);
+      return ruWords.includes(clean) || enWords.includes(clean);
+    });
+    if (match) return match;
+
+    // 3. Fallback: Token & Stem matching (e.g. "курица", "куриное", "курицу", "куриный" -> match "куриц")
     const searchTokens = clean.split(/[\s,/-]+/).filter(t => t.length >= 3);
     for (const token of searchTokens) {
       const stem = token.length > 4 ? token.slice(0, 4) : token;
@@ -628,7 +636,15 @@ class LookupService {
       if (match) return match;
     }
 
-    return null;
+    // 4. Fallback contains check (lowest priority)
+    return PRODUCE_DICTIONARY.find(item => {
+      const ruNorm = this.normalize(item.ru);
+      const enNorm = this.normalize(item.en);
+      const khNorm = this.normalize(item.kh);
+      return ruNorm.includes(clean) || clean.includes(ruNorm) ||
+        enNorm.includes(clean) || clean.includes(enNorm) ||
+        khNorm.includes(clean);
+    }) || null;
   }
 
   static findSuggestions(term, limit = 6) {
@@ -2503,8 +2519,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       const match = LookupService.findInDictionary(term);
       if (match) {
         if (!isEditModal) {
-          if (match.kh) {
-            this.fieldNameKh.value = match.kh; // Priority dictionary Khmer
+          if (match.kh && !this.fieldNameKh.value.trim()) {
+            this.fieldNameKh.value = match.kh;
             this.highlightField(this.fieldNameKh);
           }
           if (match.cat) {
@@ -2524,8 +2540,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
           }
           this.checkDuplicateProduct(this.fieldNameEn.value, this.fieldNameRu.value, this.fieldForm.value || this.selectedForm);
         } else if (editCtx) {
-          if (match.kh && editCtx.editNameKh) {
-            editCtx.editNameKh.value = match.kh; // Priority dictionary Khmer
+          if (match.kh && editCtx.editNameKh && !editCtx.editNameKh.value.trim()) {
+            editCtx.editNameKh.value = match.kh;
             this.highlightField(editCtx.editNameKh);
           }
           if (match.cat && editCtx.editCategory) {
@@ -2788,11 +2804,11 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       return;
     }
 
-    // Final Dictionary Check: Dictionary data (especially Khmer) ALWAYS has priority
+    // Final Dictionary Check: Dictionary data populates empty fields without overwriting
     const dictMatch = LookupService.findInDictionary(nameEn) || LookupService.findInDictionary(nameRu);
     if (dictMatch) {
-      if (dictMatch.kh) nameKh = dictMatch.kh;
-      if (dictMatch.cat) category = dictMatch.cat;
+      if (dictMatch.kh && !nameKh) nameKh = dictMatch.kh;
+      if (dictMatch.cat && !category) category = dictMatch.cat;
       if (dictMatch.form && (!form || form === FORMS[0].label)) form = dictMatch.form;
       if (dictMatch.desc && !description) description = dictMatch.desc;
     }
@@ -3675,7 +3691,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         }
       }
 
-      // Final Dictionary Check on edit save: Dictionary has priority for Khmer & Category
+      // Final Dictionary Check on edit save: only populate missing fields
       let finalNameKh = document.getElementById('editNameKh').value.trim();
       let finalCat = document.getElementById('editCategory').value;
       let finalForm = document.getElementById('editFormSelect').value.trim();
@@ -3683,8 +3699,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
       const dictMatch = LookupService.findInDictionary(nameEn) || LookupService.findInDictionary(nameRu);
       if (dictMatch) {
-        if (dictMatch.kh) finalNameKh = dictMatch.kh;
-        if (dictMatch.cat) finalCat = dictMatch.cat;
+        if (dictMatch.kh && !finalNameKh) finalNameKh = dictMatch.kh;
+        if (dictMatch.cat && !finalCat) finalCat = dictMatch.cat;
         if (dictMatch.desc && !finalDesc) finalDesc = dictMatch.desc;
       }
 

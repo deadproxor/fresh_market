@@ -1110,9 +1110,12 @@ flowchart TD
   - **Точечное удаление продуктов строго по UUID:** исключение каскадного `DELETE ... /products?name_en=eq.` в `deleteProductEverywhere()`, исключающее риск удаления одноименных позиций каталога.
   - **Укрепление Edge Function `cloudinary-destroy`:** динамический origin-aware CORS, санитизация `public_id` (длина, regex, запрет `..`) и строгая проверка префиксов каталога (`freshmarket/`, `products/`), маскирование технических ошибок.
   - **Укрепление Edge Function `gemini-vision`:** динамический CORS, ограничение размера изображения до 7 МБ (~10 млн символов base64), белый список моделей (`gemini-2.5-flash`, `gemini-1.5-flash` и др.), маскирование технических ошибок.
-  - **Обновление версий кэширования:** `admin/index.html` (`admin-catalog.js?v=1.4.13`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.21`), `admin/js/admin-catalog.js` (`APP_VERSION = '1.4.13'`).
-* [ ] **Синхронизация версий витрины:**
-  * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию через `scripts/bump_version.py`.
+* [x] **Релиз v1.5.0: Синхронизация версий, дедупликация кода и гигиена Git (Пакет 4 / Аудит v4, выполнен полностью):**
+  - **Статус:** Единый канонический релиз v1.5.0 для всей экосистемы FreshMarket.
+  - **Комплексная синхронизация версий (v1.5.0):** атомарное обновление кэшей Service Worker (`freshmarket-shop-v1.5.0`, `freshmarket-admin-v1.5.0`), констант (`SHOP_VERSION = '1.5.0'`, `APP_VERSION = '1.5.0'`), сплэш-экранов и параметров `?v=1.5.0` для всех 24 ссылок на локальные CSS/JS в 5 HTML-файлах (`shop.html`, `admin/index.html`, `index.html`, `components.html`, `privacy-geodata.html`).
+  - **Централизация конфигурации и дедупликация констант:** единый глобальный объект `window.FreshMarketConfig` в `js/shared/utils.js` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`); устранение сырых строковых литералов и дубликатов из `js/shop.js`, `admin/js/admin-catalog.js` и `admin/js/admin-auth.js`.
+  - **Приватность Git и репозитория:** маскирование личного email разработчика во всей исторической документации и отчетах аудита (`FreshMarket-audit-v1.md`, `v2.md`, `v3.md`, `v4.md`, `FreshMarket-audit-v4-plan.md`).
+  - **Укрепление GitHub Actions Workflow:** ограничение прав раннера минимальными привилегиями `permissions: contents: read` и фиксация проверенной версии Supabase CLI `2.66.0` в `.github/workflows/deploy-edge-functions.yml`.
 
 ### 🌟 Спринт 4: Платежи KHQR и финальный релиз
 * [x] **Создание Лендинга (`index.html`):**

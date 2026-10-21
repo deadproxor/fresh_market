@@ -3,7 +3,7 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.4.0';
+const SHOP_VERSION = '1.5.0';
 window.SHOP_VERSION = SHOP_VERSION;
 
 const FAB_ICONS = {
@@ -127,8 +127,8 @@ class ShopApp {
   // 1. Supabase Initialization
   // ------------------------------------------------------------------------
   initSupabase() {
-    const fallbackUrl = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
-    const fallbackKey = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
+    const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL || '';
+    const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY || '';
     const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
     const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
     if (sbUrl && sbKey && window.supabase) {

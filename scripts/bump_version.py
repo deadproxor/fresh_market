@@ -35,6 +35,7 @@ HTML_FILES = [
     REPO_ROOT / "admin" / "index.html",
     REPO_ROOT / "index.html",
     REPO_ROOT / "components.html",
+    REPO_ROOT / "privacy-geodata.html",
 ]
 
 # Asset Tag Regex (links and scripts with local relative paths ending in .css or .js)
@@ -95,13 +96,7 @@ def detect_current_versions():
         m = re.search(r"const\s+APP_VERSION\s*=\s*'([^']+)'", admin_cat.read_text(encoding="utf-8"))
         versions["admin/js/admin-catalog.js (APP_VERSION)"] = m.group(1) if m else "Not found"
 
-    # 3. Shared Utils JS
-    utils_js = REPO_ROOT / "js" / "shared" / "utils.js"
-    if utils_js.is_file():
-        m = re.search(r"const\s+APP_VERSION\s*=\s*'([^']+)'", utils_js.read_text(encoding="utf-8"))
-        versions["js/shared/utils.js (APP_VERSION)"] = m.group(1) if m else "Not set"
-
-    # 4. Service Worker Shop
+    # 3. Service Worker Shop
     sw_shop = REPO_ROOT / "sw-shop.js"
     if sw_shop.is_file():
         m = re.search(r"const\s+CACHE_NAME\s*=\s*'freshmarket-shop-v([^']+)'", sw_shop.read_text(encoding="utf-8"))
@@ -247,37 +242,7 @@ def apply_version(target_ver: str, dry_run: bool = False):
         else:
             print("  ⏺ admin/js/admin-catalog.js (already up to date)")
 
-    # 5. Update js/shared/utils.js
-    utils_path = REPO_ROOT / "js" / "shared" / "utils.js"
-    if utils_path.is_file():
-        content = utils_path.read_text(encoding="utf-8")
-        if re.search(r"const\s+APP_VERSION\s*=\s*'[^']+'", content):
-            updated = re.sub(
-                r"(const\s+APP_VERSION\s*=\s*')[^']+(';)",
-                rf"\g<1>{clean_ver}\g<2>",
-                content
-            )
-        else:
-            # Inject constant after introductory comment
-            version_block = (
-                f"/**\n * Global Application Version (FreshMarket)\n */\n"
-                f"const APP_VERSION = '{clean_ver}';\n"
-                f"if (typeof window !== 'undefined') window.APP_VERSION = APP_VERSION;\n\n"
-            )
-            comment_end = content.find("*/")
-            if comment_end != -1:
-                insert_pos = comment_end + 2
-                updated = content[:insert_pos] + "\n\n" + version_block + content[insert_pos:].lstrip()
-            else:
-                updated = version_block + content
-
-        if update_file(utils_path, updated, dry_run):
-            print(f"  ✅ js/shared/utils.js (APP_VERSION = '{clean_ver}')")
-            modified_count += 1
-        else:
-            print("  ⏺ js/shared/utils.js (already up to date)")
-
-    # 6. Update HTML files (Assets ?v=... and Splash screens)
+    # 5. Update HTML files (Assets ?v=... and Splash screens)
     total_html_assets = 0
     for html_file in HTML_FILES:
         if not html_file.is_file():

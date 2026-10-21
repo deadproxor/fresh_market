@@ -12,8 +12,8 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-window.DEFAULT_SUPABASE_URL = window.DEFAULT_SUPABASE_URL || 'https://qifazsptdgcskrchfocc.supabase.co';
-window.DEFAULT_SUPABASE_KEY = window.DEFAULT_SUPABASE_KEY || 'sb_publishable_N0kYhX05rgDeXuh9B6DgNg_Fese__Pg';
+window.DEFAULT_SUPABASE_URL = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL;
+window.DEFAULT_SUPABASE_KEY = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY;
 
 class AdminAuth {
   constructor() {
