@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.4.9';
+const APP_VERSION = '1.4.13';
 window.APP_VERSION = APP_VERSION;
 
 // Defensive fallbacks for sanitizeUrl and generateUUID (provided by js/shared/utils.js)
@@ -355,8 +355,7 @@ class CloudinaryService {
       cloudName: (localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
       uploadPreset: (localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
       folder: (localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
-      apiKey: (localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
-      apiSecret: (localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim()
+      apiKey: (localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim()
     };
   }
 
@@ -430,8 +429,8 @@ class CloudinaryService {
     const publicId = urlOrPublicId.includes('http') ? this.extractPublicId(urlOrPublicId) : urlOrPublicId.trim();
     if (!publicId) return;
 
-    // 1. Try Supabase Edge Function first (Zero-Secret client architecture)
-    const sb = window.adminApp?.sb;
+    // Invoke Supabase Edge Function (Zero-Secret client architecture)
+    const sb = window.supabaseClient || window.adminApp?.sb;
     if (sb && sb.functions) {
       try {
         const { data, error } = await sb.functions.invoke('cloudinary-destroy', {
@@ -442,47 +441,16 @@ class CloudinaryService {
           return data;
         }
         if (error) {
-          console.warn('[CloudinaryService] Edge Function returned error, trying fallback:', error.message || error);
+          console.warn('[CloudinaryService] Edge Function returned error:', error.message || error);
+          throw new Error(error.message || 'Ошибка Edge Function cloudinary-destroy');
         }
       } catch (efErr) {
         console.warn('[CloudinaryService] Edge Function invoke failed:', efErr);
+        throw efErr;
       }
+    } else {
+      console.warn('[CloudinaryService] Supabase Edge Function client not available. Image deletion skipped.');
     }
-
-    // 2. Client-side fallback if local API Secret is configured
-    const { cloudName, apiKey, apiSecret } = this.getConfig();
-    if (!cloudName || !apiKey || !apiSecret) {
-      console.warn('[CloudinaryService] Edge function unavailable and local API Key/Secret not set. Image not deleted from Cloudinary.');
-      return;
-    }
-
-    const timestamp = Math.floor(Date.now() / 1000);
-    const cleanSecret = String(apiSecret).trim();
-    const cleanApiKey = String(apiKey).trim();
-    const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${cleanSecret}`;
-    const signature = await this.sha1(stringToSign);
-
-    const formData = new FormData();
-    formData.append('public_id', publicId);
-    formData.append('timestamp', String(timestamp));
-    formData.append('api_key', cleanApiKey);
-    formData.append('signature', signature);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/destroy`, {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err.error?.message || `Ошибка удаления (${res.status})`;
-      console.warn('[CloudinaryService] Image destroy request failed:', msg);
-      throw new Error(msg);
-    }
-
-    const data = await res.json().catch(() => ({}));
-    console.log('[CloudinaryService] Image deleted successfully via client fallback:', data);
-    return data;
   }
 }
 
@@ -841,6 +809,9 @@ class App {
     this.currentImageBase64 = '';
     this.editModalImageBase64 = '';
     this.khrRate = this.getKhrRate();
+    // Clean up legacy sensitive keys if present in localStorage (Zero-Secret client architecture)
+    localStorage.removeItem('freshmarket_cloudinary_api_secret');
+    localStorage.removeItem('freshmarket_cloudinary_secret');
     this.initElements();
     this.initEventListeners();
     this.initAutocomplete();
@@ -1008,7 +979,6 @@ class App {
     this.settingCloudinaryPreset = document.getElementById('settingCloudinaryPreset');
     this.settingCloudinaryFolder = document.getElementById('settingCloudinaryFolder');
     this.settingCloudinaryApiKey = document.getElementById('settingCloudinaryApiKey');
-    this.settingCloudinaryApiSecret = document.getElementById('settingCloudinaryApiSecret');
     this.btnTestCloudinary = document.getElementById('btnTestCloudinary');
 
     // Settings Backup & Import/Export Elements
@@ -1698,13 +1668,11 @@ class App {
     const preset = localStorage.getItem('freshmarket_cloudinary_preset') || '';
     const folder = localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket';
     const cloudApiKey = localStorage.getItem('freshmarket_cloudinary_api_key') || '';
-    const cloudApiSecret = localStorage.getItem('freshmarket_cloudinary_api_secret') || '';
 
     if (this.settingCloudinaryName) this.settingCloudinaryName.value = cloudName;
     if (this.settingCloudinaryPreset) this.settingCloudinaryPreset.value = preset;
     if (this.settingCloudinaryFolder) this.settingCloudinaryFolder.value = folder;
     if (this.settingCloudinaryApiKey) this.settingCloudinaryApiKey.value = cloudApiKey;
-    if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = cloudApiSecret;
 
     // Currency Rate
     const rateInput = document.getElementById('settingKhrRate');
@@ -1773,13 +1741,11 @@ class App {
     const preset = this.settingCloudinaryPreset ? this.settingCloudinaryPreset.value.trim() : '';
     const folder = this.settingCloudinaryFolder ? this.settingCloudinaryFolder.value.trim() : 'freshmarket';
     const cloudApiKey = this.settingCloudinaryApiKey ? this.settingCloudinaryApiKey.value.trim() : '';
-    const cloudApiSecret = this.settingCloudinaryApiSecret ? this.settingCloudinaryApiSecret.value.trim() : '';
 
     localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
     localStorage.setItem('freshmarket_cloudinary_preset', preset);
     localStorage.setItem('freshmarket_cloudinary_folder', folder || 'freshmarket');
     localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
-    localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
 
     // 4. KHR Exchange Rate
     const rateInput = document.getElementById('settingKhrRate');
@@ -1935,7 +1901,6 @@ class App {
     const uploadPreset = (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim();
     const folder = (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim();
     const cloudApiKey = (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim();
-    const cloudApiSecret = (this.settingCloudinaryApiSecret?.value || localStorage.getItem('freshmarket_cloudinary_api_secret') || '').trim();
 
     if (!cloudName || !uploadPreset) {
       this.setCloudinaryStatus('error', 'Ошибка: заполните Cloud Name и Upload Preset выше');
@@ -1973,10 +1938,9 @@ class App {
       const uploadResult = await res.json();
       const testPublicId = uploadResult.public_id;
 
-      // Test deletion: try Edge Function first, then client fallback if API Key/Secret is present
-      this.setCloudinaryStatus('loading', 'Загрузка успешна! Тестируем удаление (Edge Function / API Key)...');
+      // Test deletion via Supabase Edge Function
+      this.setCloudinaryStatus('loading', 'Загрузка успешна! Тестируем удаление через Edge Function...');
       if (cloudApiKey) localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
-      if (cloudApiSecret) localStorage.setItem('freshmarket_cloudinary_api_secret', cloudApiSecret);
       localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
 
       try {
@@ -1984,7 +1948,7 @@ class App {
         this.setCloudinaryStatus('success', 'Cloudinary настроен полностью! Загрузка и удаление работают корректно.');
         this.showToast('✅ Cloudinary: загрузка и удаление работают!');
       } catch (delErr) {
-        this.setCloudinaryStatus('warning', `Загрузка успешна, но удаление не сработало (${delErr.message}). Настройте Edge Function cloudinary-destroy или локальный API Secret.`);
+        this.setCloudinaryStatus('warning', `Загрузка успешна, но удаление не сработало (${delErr.message}). Убедитесь, что настроена Edge Function cloudinary-destroy.`);
         this.showToast(`⚠️ Cloudinary удаление: ${delErr.message}`);
       }
     } catch (e) {
@@ -2031,8 +1995,7 @@ class App {
           cloudName: (this.settingCloudinaryName?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
           preset: (this.settingCloudinaryPreset?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
           folder: (this.settingCloudinaryFolder?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
-          apiKey: (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim(),
-          apiSecret: '' // Секрет исключен из открытого экспорта во избежание утечки
+          apiKey: (this.settingCloudinaryApiKey?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim()
         }
       }
     };
@@ -2183,10 +2146,6 @@ class App {
         localStorage.setItem('freshmarket_cloudinary_api_key', s.cloudinary.apiKey || '');
         if (this.settingCloudinaryApiKey) this.settingCloudinaryApiKey.value = s.cloudinary.apiKey || '';
       }
-      if (s.cloudinary.apiSecret !== undefined) {
-        localStorage.setItem('freshmarket_cloudinary_api_secret', s.cloudinary.apiSecret || '');
-        if (this.settingCloudinaryApiSecret) this.settingCloudinaryApiSecret.value = s.cloudinary.apiSecret || '';
-      }
     }
 
 
@@ -2222,9 +2181,10 @@ class App {
       let parsed = null;
 
       // 1. Try Supabase Edge Function first (Zero-Secret client architecture)
-      if (this.sb && this.sb.functions) {
+      const sb = window.supabaseClient || this.sb;
+      if (sb && sb.functions) {
         try {
-          const { data, error } = await this.sb.functions.invoke('gemini-vision', {
+          const { data, error } = await sb.functions.invoke('gemini-vision', {
             body: {
               imageBase64: base64Data,
               mimeType,
@@ -2928,35 +2888,18 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     try {
       const localAdapter = new LocalStorageAdapter();
       await localAdapter.delete(id);
-
-      // If product object is known, also remove any local matching item by name_en (in case ID differed)
-      if (product && product.name_en) {
-        const localProds = await localAdapter.getAll();
-        const targetName = (product.name_en || '').toLowerCase().trim();
-        const cleaned = localProds.filter(p => p.id !== id && (p.name_en || '').toLowerCase().trim() !== targetName);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-      }
     } catch (localErr) {
       console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
       errors.push(localErr.message);
     }
 
-    // 2. If Supabase credentials are configured, also delete from Supabase
+    // 2. If Supabase credentials are configured, delete from Supabase strictly by primary key ID
     const sbUrl = localStorage.getItem('freshmarket_supabase_url');
     const sbKey = localStorage.getItem('freshmarket_supabase_key');
     if (sbUrl && sbKey) {
       try {
         const sb = new SupabaseAdapter(sbUrl, sbKey);
         await sb.delete(id);
-
-        // Also delete by matching name_en if known (to remove duplicate cloud records)
-        if (product && product.name_en) {
-          const encodedName = encodeURIComponent(product.name_en.trim());
-          await fetch(`${sb.url}/rest/v1/products?name_en=eq.${encodedName}`, {
-            method: 'DELETE',
-            headers: sb.headers
-          }).catch(() => {});
-        }
       } catch (sbErr) {
         console.warn('[FreshMarket] Error deleting from Supabase:', sbErr);
         if (localStorage.getItem('freshmarket_storage_provider') === 'supabase') {

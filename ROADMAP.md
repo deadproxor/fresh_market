@@ -1103,7 +1103,14 @@ flowchart TD
   - **Устранение дергания карты и внедрение `flyToBounds` / `flyTo`:** замена резких скачков `setView` и `fitBounds` на плавный кинематический перелет камеры Leaflet, включение аппаратного ускорения тайлов карты (`will-change: transform, opacity`).
   - **Предотвращение ложных перерисовок:** кэширование координат `_lastCheckoutCoordsKey` и `_lastProfileCoordsKey` для исключения повторного дергания камеры при смене вкладок; отложенный вызов `invalidateSize({ pan: false })` (340ms) после завершения раскрытия аккордеон-карточки.
   - **Синхронизация Design System и 5 языков:** добавление `preset_other` во все 5 файлов `locales/*.json`, обновление стилей в `css/components.css` и интерактивной витрины в `components.html`.
-  - **Обновление кэшей:** `shop.html` (`shop.js?v=1.4.52`), `sw-shop.js` (`freshmarket-shop-v1.5.50`).
+* [x] **Админка и Edge Functions (Пакет 1 / Аудит v4, выполнен полностью):**
+  - **Статус:** Переключение вызовов на `window.supabaseClient`; полная ликвидация `Cloudinary API Secret` из браузера; точечное удаление товаров строго по UUID; серверное укрепление Edge Functions.
+  - **Вызовы Edge Functions в админке:** исправление поиска клиента Supabase в `admin/js/admin-catalog.js` (`window.supabaseClient || window.adminApp?.sb` в `CloudinaryService.delete` и `window.supabaseClient || this.sb` в `analyzeImageWithGemini`).
+  - **Zero-Secret клиентская архитектура:** удаление поля `settingCloudinaryApiSecret` из разметки `admin/index.html` и из логики сохранения/чтения/экспорта/импорта; автоматическая самоочистка чувствительных ключей (`freshmarket_cloudinary_api_secret`, `freshmarket_cloudinary_secret`) из `localStorage` при старте.
+  - **Точечное удаление продуктов строго по UUID:** исключение каскадного `DELETE ... /products?name_en=eq.` в `deleteProductEverywhere()`, исключающее риск удаления одноименных позиций каталога.
+  - **Укрепление Edge Function `cloudinary-destroy`:** динамический origin-aware CORS, санитизация `public_id` (длина, regex, запрет `..`) и строгая проверка префиксов каталога (`freshmarket/`, `products/`), маскирование технических ошибок.
+  - **Укрепление Edge Function `gemini-vision`:** динамический CORS, ограничение размера изображения до 7 МБ (~10 млн символов base64), белый список моделей (`gemini-2.5-flash`, `gemini-1.5-flash` и др.), маскирование технических ошибок.
+  - **Обновление версий кэширования:** `admin/index.html` (`admin-catalog.js?v=1.4.13`), `admin/sw-admin.js` (`freshmarket-admin-v1.5.21`), `admin/js/admin-catalog.js` (`APP_VERSION = '1.4.13'`).
 * [ ] **Синхронизация версий витрины:**
   * Перевод `shop.html`, `shop.css`, `shop.js` и `sw-shop.js` на единую версию через `scripts/bump_version.py`.
 

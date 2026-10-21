@@ -1,11 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  const cors = getCorsHeaders(req);
+
   // 1. Handle CORS preflight options
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   try {
@@ -14,7 +16,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -28,7 +30,7 @@ serve(async (req) => {
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -36,7 +38,7 @@ serve(async (req) => {
     if (role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: Admin role required' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -47,18 +49,32 @@ serve(async (req) => {
 
     if (!cloudName || !cloudApiKey || !cloudApiSecret) {
       return new Response(
-        JSON.stringify({ error: 'Server misconfiguration: cloudinary_cloud_name, cloudinary_api_key or cloudinary_api_secret not set in Supabase Vault' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Server misconfiguration: cloudinary secrets not set in Supabase Vault' }),
+        { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 4. Parse request payload
+    // 4. Parse and validate request payload
     const body = await req.json().catch(() => ({}));
     const publicId = typeof body.public_id === 'string' ? body.public_id.trim() : '';
-    if (!publicId) {
-      return new Response(JSON.stringify({ error: 'Invalid or missing public_id' }), {
+
+    if (!publicId || publicId.length > 255 || publicId.includes('..') || publicId.startsWith('/') || !/^[a-zA-Z0-9_\-\/]+$/.test(publicId)) {
+      return new Response(JSON.stringify({ error: 'Invalid public_id parameter' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Ensure publicId is scoped to project media folders
+    const allowedPrefixes = ['freshmarket/', 'products/'];
+    const customFolder = Deno.env.get('cloudinary_folder') || Deno.env.get('CLOUDINARY_FOLDER');
+    if (customFolder) allowedPrefixes.push(`${customFolder.replace(/^\/+|\/+$/g, '')}/`);
+
+    const hasAllowedPrefix = allowedPrefixes.some((pfx) => publicId.startsWith(pfx));
+    if (!hasAllowedPrefix) {
+      return new Response(JSON.stringify({ error: 'Forbidden: public_id must reside within allowed project folders' }), {
+        status: 403,
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -89,18 +105,19 @@ serve(async (req) => {
     if (!cloudinaryRes.ok) {
       return new Response(
         JSON.stringify({ error: resultData.error?.message || 'Cloudinary destroy API error' }),
-        { status: cloudinaryRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: cloudinaryRes.status, headers: { ...cors, 'Content-Type': 'application/json' } }
       );
     }
 
     return new Response(
       JSON.stringify({ result: 'ok', data: resultData }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Internal error' }), {
+    console.error('[cloudinary-destroy error]', err);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...cors, 'Content-Type': 'application/json' }
     });
   }
 });

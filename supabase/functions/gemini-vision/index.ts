@@ -1,11 +1,22 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.118.0';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+
+const ALLOWED_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-pro',
+  'gemini-3.5-flash',
+  'gemini-3.8-flash'
+];
 
 serve(async (req) => {
+  const cors = getCorsHeaders(req);
+
   // 1. Handle CORS preflight options
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: cors });
   }
 
   try {
@@ -14,7 +25,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -28,7 +39,7 @@ serve(async (req) => {
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -36,7 +47,7 @@ serve(async (req) => {
     if (role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: Admin role required' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -45,23 +56,34 @@ serve(async (req) => {
     if (!geminiApiKey) {
       return new Response(
         JSON.stringify({ error: 'Server misconfiguration: gemini_api_key not set in Supabase Vault' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 4. Parse request payload
+    // 4. Parse request payload and enforce limits
     const body = await req.json().catch(() => ({}));
     const rawImage = typeof body.imageBase64 === 'string' ? body.imageBase64 : '';
     if (!rawImage) {
       return new Response(JSON.stringify({ error: 'Missing imageBase64 data' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Enforce 7MB payload size limit (~10 million characters in base64)
+    if (rawImage.length > 10_000_000) {
+      return new Response(JSON.stringify({ error: 'Payload Too Large: imageBase64 exceeds 7MB limit' }), {
+        status: 413,
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
     const base64Data = rawImage.replace(/^data:image\/\w+;base64,/, '');
     const mimeType = typeof body.mimeType === 'string' && body.mimeType ? body.mimeType : 'image/jpeg';
-    const modelToUse = typeof body.model === 'string' && body.model ? body.model : 'gemini-2.5-flash';
+    
+    // Model whitelist check
+    const requestedModel = typeof body.model === 'string' ? body.model.trim() : '';
+    const modelToUse = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : 'gemini-2.5-flash';
 
     const systemPrompt = `You are an expert botanist, food specialist, and market produce expert specializing in fresh foods, ingredients, seafood, meats, herbs, fruits, and mushrooms found in Southeast Asian morning markets.
 Analyze the food product in this image and return a JSON object with:
@@ -107,7 +129,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       const errMsg = errorData.error?.message || `Gemini API error (${response.status})`;
       return new Response(JSON.stringify({ error: errMsg }), {
         status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -116,7 +138,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     if (!textResponse) {
       return new Response(JSON.stringify({ error: 'Empty response from Gemini' }), {
         status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
 
@@ -125,12 +147,13 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
 
     return new Response(
       JSON.stringify({ result: parsed }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'Internal error' }), {
+    console.error('[gemini-vision error]', err);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...cors, 'Content-Type': 'application/json' }
     });
   }
 });
