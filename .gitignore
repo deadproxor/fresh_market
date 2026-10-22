@@ -1,9 +1,11 @@
 .DS_Store
 *.log
+*.bak
 *.code-workspace
 bump.js
 bump.py
 assets/onboarding/sketches_v1/originals/
 AGENTS.md
 branding/
+sync_tool/
 

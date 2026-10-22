@@ -932,6 +932,10 @@ class App {
     this.statCategoriesRatio = document.getElementById('statCategoriesRatio');
     this.statDictCount = document.getElementById('statDictCount');
     this.statProductsCount = document.getElementById('statProductsCount');
+    this.statDbCount = document.getElementById('statDbCount');
+    this.statBadgeCore = document.getElementById('statBadgeCore');
+    this.statBadgeDb = document.getElementById('statBadgeDb');
+    this.statBadgeTotal = document.getElementById('statBadgeTotal');
     this.categoryStatsGrid = document.getElementById('categoryStatsGrid');
     this.recentList = document.getElementById('recentList');
     this.btnViewAllRecent = document.getElementById('btnViewAllRecent');
@@ -2967,9 +2971,59 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     const dictTotal = PRODUCE_DICTIONARY.length;
     const userProductsCount = this.products.length;
 
+    const coreCount = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && Array.isArray(PRODUCE_DICTIONARY_SECTIONS.core))
+      ? PRODUCE_DICTIONARY_SECTIONS.core.length
+      : 152;
+    const fromDbCount = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && Array.isArray(PRODUCE_DICTIONARY_SECTIONS.from_database))
+      ? PRODUCE_DICTIONARY_SECTIONS.from_database.length
+      : 11;
+    const totalDict = coreCount + fromDbCount;
+
     if (this.statCategoriesRatio) this.statCategoriesRatio.textContent = `${categoriesUsed} / ${totalCategories}`;
     if (this.statDictCount) this.statDictCount.textContent = dictTotal;
     if (this.statProductsCount) this.statProductsCount.textContent = userProductsCount;
+
+    // Main Catalog stats bar (Single row: Total on storefront + Badges for core dictionary vs database)
+    const coreSet = new Set();
+    const coreItems = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && Array.isArray(PRODUCE_DICTIONARY_SECTIONS.core))
+      ? PRODUCE_DICTIONARY_SECTIONS.core
+      : [];
+    coreItems.forEach(c => {
+      (c.en || '').split('/').forEach(p => {
+        const t = p.trim().toLowerCase();
+        if (t) coreSet.add(t);
+      });
+      (c.ru || '').split('/').forEach(p => {
+        const t = p.trim().toLowerCase();
+        if (t) coreSet.add(t);
+      });
+    });
+
+    let countCore = 0;
+    let countDb = 0;
+    this.products.forEach(p => {
+      const enTokens = (p.name_en || '').split('/').map(t => t.trim().toLowerCase());
+      const ruTokens = (p.name_ru || '').split('/').map(t => t.trim().toLowerCase());
+      const isCore = enTokens.some(t => t && coreSet.has(t)) || ruTokens.some(t => t && coreSet.has(t));
+      if (isCore) {
+        countCore++;
+      } else {
+        countDb++;
+      }
+    });
+
+    if (this.statDbCount) {
+      this.statDbCount.textContent = userProductsCount;
+    }
+    if (this.statBadgeCore) {
+      this.statBadgeCore.textContent = `Словарь: ${countCore}`;
+    }
+    if (this.statBadgeDb) {
+      this.statBadgeDb.textContent = `База: ${countDb}`;
+    }
+    if (this.statBadgeTotal) {
+      this.statBadgeTotal.textContent = `Всего: ${totalDict}`;
+    }
 
     this.renderCategoryStatsBreakdown();
     this.renderCategoriesGrid();

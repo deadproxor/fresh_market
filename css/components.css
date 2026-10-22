@@ -777,6 +777,63 @@ body {
   margin-bottom: 0;
 }
 
+/* Catalog & Storefront Stats Bar (2 Columns: Hero Metric + Stacked Badges) */
+.catalog-stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  width: 100%;
+  gap: 12px;
+}
+
+.catalog-stat-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.catalog-stat-main .catalog-stat-num {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+}
+
+.catalog-stat-main .catalog-stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.catalog-stat-badges-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.catalog-stat-badges-col .badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  text-align: center;
+}
+
 /* Category Cards Grid & Tiles */
 .categories-grid,
 .categories-stats-grid {
