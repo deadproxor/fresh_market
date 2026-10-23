@@ -39,7 +39,7 @@ DECLARE
   v_customer_comment TEXT;
   v_replacement_policy TEXT;
   v_item RECORD;
-  v_product RECORD;
+  v_product public.products%ROWTYPE;
   v_item_product_id UUID;
   v_raw_qty TEXT;
   v_num_str TEXT;
@@ -258,7 +258,12 @@ BEGIN
     -- 8.2. Проверка наличия в таблице products с безопасным приведением ::text
     IF v_item.product_id IS NOT NULL AND v_item.product_id <> '' THEN
       SELECT * INTO v_product FROM public.products WHERE products.id::text = v_item.product_id::text;
-      v_item_product_id := v_product.id;
+      IF NOT FOUND THEN
+        v_product := NULL;
+        v_item_product_id := NULL;
+      ELSE
+        v_item_product_id := v_product.id;
+      END IF;
     ELSE
       v_product := NULL;
       v_item_product_id := NULL;
