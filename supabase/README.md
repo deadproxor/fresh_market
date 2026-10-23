@@ -79,7 +79,8 @@ supabase/migrations/
 ├── 20261018000000_security_hardening.sql      # RLS политики, is_admin(), protect_profile_role(), RPC create_order
 ├── 20261020000000_hardening_v4.sql           # Rate Limiting, таймзона UTC+7, cart_updated_at, Realtime, зачистка RLS
 ├── 20261023000000_idempotent_order_creation.sql # Идемпотентность create_order(), возврат существующего заказа до rate limit
-└── 20261023010000_protect_profile_role_on_insert.sql # Защита роли profiles.role при INSERT и UPDATE, аудит прав
+├── 20261023010000_protect_profile_role_on_insert.sql # Защита роли profiles.role при INSERT и UPDATE, аудит прав
+└── 20261023020000_server_side_delivery_zone_calculation.sql # Серверный расчет зоны доставки по координатам, защита тарифов
 ```
 
 ### Применение миграций:

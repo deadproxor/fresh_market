@@ -361,7 +361,14 @@ CREATE TRIGGER on_auth_user_created
 --   1. Идемпотентность: возврат существующего заказа по p_order_id до лимитов
 --   2. Серверный Rate Limiting (1 заказ в 2 мин, макс 5 pending)
 --   3. Валидацию полей, санитизацию строк и защиту от перезаписи чужих заказов
---   4. Часовой пояс Asia/Phnom_Penh (UTC+7) и расчет зон доставки
+-- 1. Добавление колонок координат в таблицу orders (если еще не добавлены)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC(10, 7) DEFAULT NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS delivery_lng NUMERIC(10, 7) DEFAULT NULL;
+
+-- 2. Удаление устаревшей сигнатуры create_order (10 параметров)
+DROP FUNCTION IF EXISTS public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB);
+
+-- 3. Создание обновленной функции create_order (12 параметров)
 CREATE OR REPLACE FUNCTION public.create_order(
   p_order_id UUID DEFAULT NULL,
   p_customer_name TEXT DEFAULT NULL,
@@ -372,7 +379,9 @@ CREATE OR REPLACE FUNCTION public.create_order(
   p_customer_comment TEXT DEFAULT NULL,
   p_replacement_policy TEXT DEFAULT 'call_to_agree',
   p_target_delivery_date DATE DEFAULT NULL,
-  p_items JSONB DEFAULT '[]'::jsonb
+  p_items JSONB DEFAULT '[]'::jsonb,
+  p_delivery_lat NUMERIC DEFAULT NULL,
+  p_delivery_lng NUMERIC DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -380,6 +389,9 @@ SECURITY DEFINER
 SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
+  v_market_lat CONSTANT NUMERIC := 10.6120;
+  v_market_lng CONSTANT NUMERIC := 104.1780;
+  v_distance_km NUMERIC;
   v_user_id UUID;
   v_existing_order RECORD;
   v_order_id UUID;
@@ -513,13 +525,40 @@ BEGIN
   v_delivery_address := substring(trim(p_delivery_address) from 1 for 300);
   v_customer_comment := substring(trim(p_customer_comment) from 1 for 500);
 
-  -- 5. Предварительная тарификация доставки по зонам (белый список)
-  CASE p_delivery_zone
-    WHEN 'zone_1' THEN v_delivery_fee := 1.00; v_delivery_zone := 'zone_1';
-    WHEN 'zone_2' THEN v_delivery_fee := 2.00; v_delivery_zone := 'zone_2';
-    WHEN 'zone_3' THEN v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
-    ELSE v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
-  END CASE;
+  -- 5. Серверный расчёт зоны и стоимости доставки (по координатам или fallback)
+  IF p_delivery_lat IS NOT NULL AND p_delivery_lng IS NOT NULL
+     AND p_delivery_lat BETWEEN -90 AND 90 AND p_delivery_lng BETWEEN -180 AND 180 THEN
+
+    -- Формула гаверсинусов с коэффициентом извилистости дорог 1.25 (Great Circle Distance * 1.25)
+    v_distance_km := 6371.0 * acos(
+      LEAST(1.0, GREATEST(-1.0,
+        sin(radians(v_market_lat)) * sin(radians(p_delivery_lat)) +
+        cos(radians(v_market_lat)) * cos(radians(p_delivery_lat)) * 
+        cos(radians(p_delivery_lng) - radians(v_market_lng))
+      ))
+    ) * 1.25;
+
+    IF v_distance_km <= 1.0 THEN
+      v_delivery_zone := 'zone_1';
+      v_delivery_fee := 1.00;
+    ELSIF v_distance_km <= 3.0 THEN
+      v_delivery_zone := 'zone_2';
+      v_delivery_fee := 2.00;
+    ELSE
+      v_delivery_zone := 'zone_3';
+      v_delivery_fee := 3.50;
+    END IF;
+  ELSE
+    -- Fallback: координаты не переданы (ручной ввод адреса без GPS).
+    -- Защита от занижения: если запрошена zone_1 без координат, безопасно поднимаем до zone_2 ($2.00).
+    IF p_delivery_zone IN ('zone_2', 'zone_3') THEN
+      v_delivery_zone := p_delivery_zone;
+      v_delivery_fee := CASE p_delivery_zone WHEN 'zone_2' THEN 2.00 ELSE 3.50 END;
+    ELSE
+      v_delivery_zone := 'zone_2';
+      v_delivery_fee := 2.00;
+    END IF;
+  END IF;
 
   -- 6. Часовой пояс Asia/Phnom_Penh (UTC+7) и предварительная валидация
   v_local_date := (now() AT TIME ZONE 'Asia/Phnom_Penh')::date;
@@ -579,6 +618,8 @@ BEGIN
     replace_rule,
     delivery_zone,
     delivery_fee,
+    delivery_lat,
+    delivery_lng,
     estimated_total,
     market_items_total,
     actual_market_total,
@@ -604,6 +645,8 @@ BEGIN
     v_replacement_policy,
     v_delivery_zone,
     v_delivery_fee,
+    p_delivery_lat,
+    p_delivery_lng,
     0.00,
     0.00,
     0.00,
@@ -615,6 +658,8 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     customer_phone = EXCLUDED.customer_phone,
     delivery_address = EXCLUDED.delivery_address,
+    delivery_lat = COALESCE(EXCLUDED.delivery_lat, orders.delivery_lat),
+    delivery_lng = COALESCE(EXCLUDED.delivery_lng, orders.delivery_lng),
     customer_notes = EXCLUDED.customer_notes,
     customer_comment = EXCLUDED.customer_comment,
     updated_at = now()
@@ -741,6 +786,7 @@ BEGIN
     'order_number', v_order_number,
     'delivery_fee', v_delivery_fee,
     'grand_total', v_delivery_fee,
+    'delivery_zone', v_delivery_zone,
     'status', 'pending',
     'created_at', now()
   ) INTO v_result;
@@ -750,8 +796,8 @@ END;
 $$;
 
 -- Ограничение прав: вызов функции разрешен только авторизованным покупателям
-REVOKE ALL ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB) TO authenticated;
+REVOKE ALL ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB, NUMERIC, NUMERIC) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB, NUMERIC, NUMERIC) TO authenticated;
 ```
 
 ---

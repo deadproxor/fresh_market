@@ -2607,6 +2607,9 @@ class ShopApp {
     let deliveryFee = this.currentDeliveryFee || 1.00;
 
     const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(rawDeliveryAddress) : null;
+    const finalLat = (pinCoords && typeof pinCoords.lat === 'number') ? pinCoords.lat : (coords?.lat || null);
+    const finalLng = (pinCoords && typeof pinCoords.lng === 'number') ? pinCoords.lng : (coords?.lng || null);
+
     if (coords && !this.currentDeliveryZone && typeof calculateDistanceKm === 'function' && typeof getDeliveryZoneByDistance === 'function') {
       const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
       const dist = calculateDistanceKm(coords.lat, coords.lng, marketCoords.lat, marketCoords.lng);
@@ -2632,6 +2635,8 @@ class ShopApp {
       customer_phone: customerPhone,
       delivery_address: deliveryAddress,
       delivery_zone: deliveryZoneId,
+      delivery_lat: finalLat,
+      delivery_lng: finalLng,
       customer_notes: customerComment,
       customer_comment: customerComment,
       target_delivery_date: targetDate,
@@ -2695,7 +2700,9 @@ class ShopApp {
           p_customer_comment: customerComment,
           p_replacement_policy: replacementPolicy,
           p_target_delivery_date: targetDate,
-          p_items: orderItemsPayload
+          p_items: orderItemsPayload,
+          p_delivery_lat: finalLat,
+          p_delivery_lng: finalLng
         });
 
         if (!rpcErr && rpcData?.success) {
@@ -2704,6 +2711,12 @@ class ShopApp {
           if (rpcData.order_number) {
             finalOrderNumber = rpcData.order_number;
             orderPayload.order_number = rpcData.order_number;
+          }
+          if (rpcData.delivery_zone) {
+            orderPayload.delivery_zone = rpcData.delivery_zone;
+          }
+          if (typeof rpcData.delivery_fee === 'number') {
+            orderPayload.delivery_fee = rpcData.delivery_fee;
           }
         } else {
           if (rpcErr?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(rpcErr?.message || '')) {
@@ -2908,7 +2921,9 @@ class ShopApp {
             p_customer_comment: order.customer_comment || order.customer_notes || '',
             p_replacement_policy: order.replacement_policy || 'call_to_agree',
             p_target_delivery_date: order.target_delivery_date || null,
-            p_items: sanitizedItems
+            p_items: sanitizedItems,
+            p_delivery_lat: order.delivery_lat || null,
+            p_delivery_lng: order.delivery_lng || null
           });
 
           if (!rpcErr && rpcData?.success) {
