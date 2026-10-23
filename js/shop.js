@@ -2021,7 +2021,12 @@ class ShopApp {
     }
 
     if (addressNameInput && (!addressNameInput.value || !this.isCartAddressCustomized)) {
-      addressNameInput.value = addressName || '';
+      const presetKey = this.resolveAddressPresetKey(addressName);
+      if (presetKey && ['home', 'office', 'villa'].includes(presetKey)) {
+        addressNameInput.value = window.i18n ? window.i18n.t(`cart.preset_${presetKey}`) : addressName;
+      } else {
+        addressNameInput.value = addressName || '';
+      }
     }
     if (addressInput && (!addressInput.value || !this.isCartAddressCustomized)) {
       addressInput.value = address;
@@ -2055,24 +2060,52 @@ class ShopApp {
     this.updateCartPreferencesBadge(savedPolicy);
   }
 
+  resolveAddressPresetKey(val) {
+    if (!val) return null;
+    const clean = String(val).trim().toLowerCase();
+    if (!clean) return null;
+
+    const synonyms = {
+      home: ['home', 'дом', 'дім', 'maison', 'ផ្ទះ'],
+      office: ['office', 'офис', 'офіс', 'bureau', 'ការិយាល័យ'],
+      villa: ['villa', 'вилла', 'вілла', 'វីឡា'],
+      other: ['other', 'другое', 'інше', 'autre', 'ផ្សេងទៀត']
+    };
+
+    for (const [key, list] of Object.entries(synonyms)) {
+      if (list.includes(clean)) return key;
+    }
+
+    if (window.i18n && typeof window.i18n.t === 'function') {
+      for (const key of ['home', 'office', 'villa', 'other']) {
+        const tr = window.i18n.t(`cart.preset_${key}`)?.trim().toLowerCase();
+        if (tr && tr === clean) return key;
+      }
+    }
+
+    return 'other';
+  }
+
   syncCartAddressPresetPills(activeVal) {
-    const val = (activeVal || '').trim().toLowerCase();
     const pills = document.querySelectorAll('#cartAddressPresetSelector .address-preset-pill, #cartAddressPresetSelector .messenger-pill');
-    let matchedStandard = false;
+    if (!pills.length) return;
+
+    const nameInput = document.getElementById('deliveryAddressName');
+    const isFocused = nameInput && document.activeElement === nameInput;
+
+    let targetKey = null;
+    if (activeVal) {
+      targetKey = this.resolveAddressPresetKey(activeVal);
+    } else if (isFocused) {
+      targetKey = 'other';
+    } else {
+      targetKey = 'home';
+    }
 
     pills.forEach((pill) => {
-      const preset = (pill.dataset.preset || '').trim().toLowerCase();
-      if (preset === 'other') return;
-      const translated = (window.i18n ? window.i18n.t(`cart.preset_${preset}`) : pill.textContent).trim().toLowerCase();
-      const isActive = !!val && (val === preset || val === translated || val === pill.textContent.trim().toLowerCase());
-      if (isActive) matchedStandard = true;
-      pill.classList.toggle('active', isActive);
+      const preset = pill.dataset.preset;
+      pill.classList.toggle('active', preset === targetKey);
     });
-
-    const otherPill = document.querySelector('#cartAddressPresetSelector [data-preset="other"]');
-    if (otherPill) {
-      otherPill.classList.toggle('active', !!val && !matchedStandard);
-    }
   }
 
   updateCartPreferencesBadge(policy) {
@@ -2296,6 +2329,16 @@ class ShopApp {
         this.isCartAddressCustomized = true;
         this.syncCartAddressPresetPills(nameInput.value);
       });
+      nameInput.addEventListener('focus', () => {
+        if (!nameInput.value.trim()) {
+          this.syncCartAddressPresetPills('other');
+        }
+      });
+      nameInput.addEventListener('blur', () => {
+        if (!nameInput.value.trim()) {
+          this.syncCartAddressPresetPills('');
+        }
+      });
     }
 
     const presetPills = document.querySelectorAll('#cartAddressPresetSelector .address-preset-pill, #cartAddressPresetSelector .messenger-pill');
@@ -2318,11 +2361,11 @@ class ShopApp {
             nameInput.value = '';
           }
           nameInput.focus();
-          presetPills.forEach((p) => p.classList.toggle('active', p === pill));
+          this.syncCartAddressPresetPills('other');
         } else {
-          const text = pill.textContent.trim();
+          const text = (window.i18n ? window.i18n.t(`cart.preset_${presetKey}`) : pill.textContent).trim();
           nameInput.value = text;
-          this.syncCartAddressPresetPills(text);
+          this.syncCartAddressPresetPills(presetKey);
         }
       });
     });
@@ -2462,14 +2505,28 @@ class ShopApp {
           const idx = parseInt(btn.dataset.idx, 10);
           const item = recents[idx];
           if (!item) return;
-          const chosenAddr = typeof item === 'string' ? item : item.address;
-          const chosenName = typeof item === 'object' && item ? item.name : '';
+          let chosenAddr = typeof item === 'string' ? item : (item?.address || '');
+          let chosenName = typeof item === 'object' && item ? (item.name || '') : '';
           const addressInput = document.getElementById('deliveryAddress');
           const addressNameInput = document.getElementById('deliveryAddressName');
 
-          if (addressNameInput && chosenName) {
-            addressNameInput.value = chosenName;
-            this.syncCartAddressPresetPills(chosenName);
+          // Parse prefix from chosenAddr if chosenName was not separated
+          if (!chosenName && chosenAddr && chosenAddr.includes(': ')) {
+            const match = chosenAddr.match(/^([^:(]+):\s+(.+)$/);
+            if (match && !match[1].startsWith('http')) {
+              chosenName = match[1].trim();
+              chosenAddr = match[2].trim();
+            }
+          }
+
+          if (addressNameInput) {
+            const presetKey = this.resolveAddressPresetKey(chosenName);
+            let displayPresetName = chosenName;
+            if (presetKey && ['home', 'office', 'villa'].includes(presetKey)) {
+              displayPresetName = window.i18n ? window.i18n.t(`cart.preset_${presetKey}`) : chosenName;
+            }
+            addressNameInput.value = displayPresetName || '';
+            this.syncCartAddressPresetPills(presetKey || 'home');
           }
 
           if (addressInput && chosenAddr) {
@@ -2593,10 +2650,9 @@ class ShopApp {
 
     // Save order address in recents (does not overwrite profile default if already set)
     const pinCoords = this.checkoutCustomerMarker ? this.checkoutCustomerMarker.getLatLng() : null;
-    this.saveRecentDeliveryAddress(rawDeliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null, customAddrName);
-    if (customAddrName) {
-      localStorage.setItem('freshmarket_customer_address_name', customAddrName);
-    }
+    const effectiveSavedName = customAddrName || (window.i18n ? window.i18n.t('cart.preset_home') : 'Дом');
+    this.saveRecentDeliveryAddress(rawDeliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null, effectiveSavedName);
+    localStorage.setItem('freshmarket_customer_address_name', effectiveSavedName);
     if (!localStorage.getItem('freshmarket_default_address') && !this.userProfile?.address) {
       localStorage.setItem('freshmarket_default_address', rawDeliveryAddress);
       localStorage.setItem('freshmarket_customer_address', rawDeliveryAddress);
@@ -3191,11 +3247,16 @@ class ShopApp {
     const userEmail = isAuthenticated ? (this.userProfile?.email || this.currentUser.email || '') : '';
     const userAvatarUrl = isAuthenticated ? (this.userProfile?.avatar_url || this.currentUser.user_metadata?.avatar_url || this.currentUser.user_metadata?.picture || '') : '';
 
-    const trimmedAddrName = (addressName || '').trim().toLowerCase();
-    const isProfileHomeActive = trimmedAddrName === 'home' || trimmedAddrName === presetHomeText.toLowerCase();
-    const isProfileOfficeActive = trimmedAddrName === 'office' || trimmedAddrName === presetOfficeText.toLowerCase();
-    const isProfileVillaActive = trimmedAddrName === 'villa' || trimmedAddrName === presetVillaText.toLowerCase();
-    const isProfileOtherActive = !!trimmedAddrName && !isProfileHomeActive && !isProfileOfficeActive && !isProfileVillaActive;
+    const profilePresetKey = this.resolveAddressPresetKey(addressName);
+    const effectiveProfilePreset = profilePresetKey || 'home';
+    const isProfileHomeActive = effectiveProfilePreset === 'home';
+    const isProfileOfficeActive = effectiveProfilePreset === 'office';
+    const isProfileVillaActive = effectiveProfilePreset === 'villa';
+    const isProfileOtherActive = effectiveProfilePreset === 'other';
+    let localizedProfileAddrName = addressName || '';
+    if (profilePresetKey && ['home', 'office', 'villa'].includes(profilePresetKey)) {
+      localizedProfileAddrName = window.i18n ? window.i18n.t(`cart.preset_${profilePresetKey}`) : addressName;
+    }
 
     this.authModalBody.innerHTML = `
       <div class="profile-view" style="width: 100%;">
@@ -3281,7 +3342,7 @@ class ShopApp {
                 <button type="button" class="messenger-pill address-preset-pill ${isProfileVillaActive ? 'active' : ''}" data-preset="villa">${presetVillaText}</button>
                 <button type="button" class="messenger-pill address-preset-pill ${isProfileOtherActive ? 'active' : ''}" data-preset="other">${presetOtherText}</button>
               </div>
-              <input type="text" id="profileAddressName" class="text-input" placeholder="${addressNamePlaceholderText}" value="${this.escapeHtml(addressName)}" />
+              <input type="text" id="profileAddressName" class="text-input" placeholder="${addressNamePlaceholderText}" value="${this.escapeHtml(localizedProfileAddrName)}" />
             </div>
 
             <label class="field-label" for="profileAddress" style="margin-top: 6px;">${addressLocationLabelText}</label>
@@ -3467,27 +3528,34 @@ class ShopApp {
     const profilePresetPills = document.querySelectorAll('#profileAddressPresetSelector .address-preset-pill, #profileAddressPresetSelector .messenger-pill');
 
     const syncProfilePresetPills = (val) => {
-      const lower = (val || '').trim().toLowerCase();
-      let matchedStandard = false;
-
+      const isFocused = profileAddrNameInput && document.activeElement === profileAddrNameInput;
+      let targetKey = null;
+      if (val) {
+        targetKey = this.resolveAddressPresetKey(val);
+      } else if (isFocused) {
+        targetKey = 'other';
+      } else {
+        targetKey = 'home';
+      }
       profilePresetPills.forEach((pill) => {
         const presetKey = pill.dataset.preset;
-        if (presetKey === 'other') return;
-        const pText = pill.textContent.trim().toLowerCase();
-        const isMatch = !!lower && (lower === presetKey || lower === pText);
-        if (isMatch) matchedStandard = true;
-        pill.classList.toggle('active', isMatch);
+        pill.classList.toggle('active', presetKey === targetKey);
       });
-
-      const otherPill = document.querySelector('#profileAddressPresetSelector [data-preset="other"]');
-      if (otherPill) {
-        otherPill.classList.toggle('active', !!lower && !matchedStandard);
-      }
     };
 
     if (profileAddrNameInput) {
       profileAddrNameInput.addEventListener('input', () => {
         syncProfilePresetPills(profileAddrNameInput.value);
+      });
+      profileAddrNameInput.addEventListener('focus', () => {
+        if (!profileAddrNameInput.value.trim()) {
+          syncProfilePresetPills('other');
+        }
+      });
+      profileAddrNameInput.addEventListener('blur', () => {
+        if (!profileAddrNameInput.value.trim()) {
+          syncProfilePresetPills('');
+        }
       });
     }
 
@@ -3496,6 +3564,8 @@ class ShopApp {
         e.preventDefault();
         const presetKey = pill.dataset.preset;
         if (!profileAddrNameInput) return;
+
+        this.isCartAddressCustomized = true;
 
         if (presetKey === 'other') {
           const isStandard = ['home', 'office', 'villa'].some((k) => {
@@ -3506,24 +3576,27 @@ class ShopApp {
             profileAddrNameInput.value = '';
           }
           profileAddrNameInput.focus();
-          profilePresetPills.forEach((p) => p.classList.toggle('active', p === pill));
+          syncProfilePresetPills('other');
         } else {
-          const text = pill.textContent.trim();
+          const text = (window.i18n ? window.i18n.t(`cart.preset_${presetKey}`) : pill.textContent).trim();
           profileAddrNameInput.value = text;
-          syncProfilePresetPills(text);
+          syncProfilePresetPills(presetKey);
         }
       });
     });
 
     // Save Contacts click handler
     document.getElementById('btnSaveProfileDetails')?.addEventListener('click', async () => {
-      const pAddressName = document.getElementById('profileAddressName')?.value.trim() || '';
+      let pAddressName = document.getElementById('profileAddressName')?.value.trim() || '';
       const pPhone = document.getElementById('profilePhone')?.value.trim() || '';
       const pAddress = document.getElementById('profileAddress')?.value.trim() || '';
       if (!pPhone) {
         this.showToast(window.i18n ? window.i18n.t('toasts.contacts_required') : '⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи');
         document.getElementById('profilePhone')?.focus();
         return;
+      }
+      if (!pAddressName && pAddress) {
+        pAddressName = window.i18n ? window.i18n.t('cart.preset_home') : 'Дом';
       }
       localStorage.setItem('freshmarket_customer_messenger', currentMessenger);
       localStorage.setItem('freshmarket_customer_phone', pPhone);

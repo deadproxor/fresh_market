@@ -294,7 +294,7 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="field-label" for="deliveryAddressName" data-i18n="cart.address_name_label">Название или ориентир:</label>
                 <div class="messenger-selector address-preset-selector" id="cartAddressPresetSelector" style="margin-top: 6px; margin-bottom: 8px;">
-                  <button type="button" class="messenger-pill address-preset-pill" data-preset="home" data-i18n="cart.preset_home">Дом</button>
+                  <button type="button" class="messenger-pill address-preset-pill active" data-preset="home" data-i18n="cart.preset_home">Дом</button>
                   <button type="button" class="messenger-pill address-preset-pill" data-preset="office" data-i18n="cart.preset_office">Офис</button>
                   <button type="button" class="messenger-pill address-preset-pill" data-preset="villa" data-i18n="cart.preset_villa">Вилла</button>
                   <button type="button" class="messenger-pill address-preset-pill" data-preset="other" data-i18n="cart.preset_other">Другое</button>
@@ -570,7 +570,7 @@
       <div class="dialog-card">
         <h3 class="dialog-title" id="geodataDialogTitle" data-i18n="cart.geodata_modal_title">Конфиденциальность и геоданные</h3>
         <p class="dialog-message" id="geodataDialogMessage" style="text-align: left; font-size: 13px;" data-i18n="cart.geodata_modal_summary">
-          Координаты точки доставки и ваш IP-адрес обрабатываются картографическими серверами OpenStreetMap и OSRM исключительно для расчёта маршрута курьера. Персональные данные (имя, телефон, состав заказа) третьим лицам не передаются.
+          Координаты точки доставки и сетевой IP-адрес обрабатываются картографическими сервисами (OpenStreetMap, OSRM) для расчёта маршрута и подсказки адреса. Персональные контакты (имя, телефон, мессенджер) и состав заказа внешним серверам не передаются.
         </p>
         <button type="button" class="btn btn-primary dialog-btn" id="btnGeodataModalClose" data-i18n="cart.geodata_modal_close">Понятно</button>
         <a href="privacy-geodata.html" class="dialog-link" target="_blank" data-i18n="cart.geodata_modal_link">Читать полный текст политики →</a>
@@ -583,7 +583,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.5.3"></script>
+  <script src="js/shop.js?v=1.5.5"></script>
 </body>
 
 </html>

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title data-i18n="privacy_geodata.page_title">Политика конфиденциальности и геоданных — FreshMarket</title>
+  <title data-i18n="privacy_geodata.page_title">Политика конфиденциальности и защита данных — FreshMarket</title>
 
   <!-- Strict Content-Security-Policy (Zero 'unsafe-inline' in script-src) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="css/components.css?v=1.5.0" />
-  <link rel="stylesheet" href="css/landing.css?v=1.5.0" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.4" />
+  <link rel="stylesheet" href="css/landing.css?v=1.5.4" />
 
   <style>
     .privacy-page-container {
@@ -145,6 +145,33 @@
       color: var(--text-primary, #0f172a);
     }
 
+    .privacy-contacts-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .privacy-contact-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-card-subtle, #f8fafc);
+      border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.1));
+      border-radius: var(--radius-md, 12px);
+      color: var(--text-primary, #0f172a);
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .privacy-contact-badge:hover {
+      border-color: var(--brand-emerald, #10b981);
+      background: rgba(16, 185, 129, 0.05);
+      color: var(--brand-emerald, #047857);
+    }
+
     .privacy-footer-actions {
       margin-top: 32px;
       display: flex;
@@ -187,84 +214,157 @@
       </div>
 
       <h1 class="privacy-title" data-i18n="privacy_geodata.title">
-        Конфиденциальность и безопасность геоданных
+        Политика конфиденциальности и защита данных
       </h1>
       <p class="privacy-subtitle" data-i18n="privacy_geodata.subtitle">
-        Полная прозрачность: как FreshMarket обрабатывает координаты и защищает ваши данные
+        Полная прозрачность: как FreshMarket обрабатывает координаты, использует внешние сервисы и защищает персональную информацию
       </p>
 
-      <!-- Section 1: Processed Geodata -->
+      <!-- Section 1: Geodata & Mapping Providers -->
       <section class="privacy-section">
         <div class="privacy-section-header">
-          <span>📍</span>
           <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_coords_title">
-            1. Какие геоданные обрабатываются
+            1. Геоданные и картографические сервисы
           </h2>
         </div>
         <p class="privacy-text" data-i18n="privacy_geodata.section_coords_desc">
-          При выборе адреса доставки или использовании интерактивной карты приложение определяет числовые координаты (широту и долготу точки) и отправляет их серверам картографии:
+          При интерактивном выборе адреса на карте приложение передаёт числовые координаты (широту и долготу точки) и сетевой IP-адрес браузера сторонним картографическим провайдерам:
         </p>
         <ul class="privacy-list">
           <li data-i18n="privacy_geodata.osm_bullet_1">
-            OpenStreetMap (сервис Nominatim): обратное геокодирование для автоматического определения названия улицы и района по выбранной точке на карте.
+            OpenStreetMap и Nominatim: отображение тайлов карты и определение названия улицы/района по выбранной точке на карте.
           </li>
           <li data-i18n="privacy_geodata.osm_bullet_2">
-            Project OSRM: расчёт точного дорожного расстояния от рынка до точки доставки для определения зоны тарифа курьера.
+            Project OSRM: расчёт дорожного расстояния и построение маршрута от рынка до точки доставки для наглядности покупателю.
           </li>
         </ul>
         <div class="privacy-highlight-box" data-i18n="privacy_geodata.osm_ip_note">
-          Серверы картографии получают исключительно числовые координаты и технический сетевой IP-адрес браузера для передачи тайлов карты. Никакой привязки к личности пользователя не происходит.
+          Сторонние серверы картографии получают сетевой IP-адрес устройства и координаты точки на карте. Персональные контакты (имя, телефон, мессенджер, состав заказа) внешним картографическим серверам не передаются. При отказе от использования карты или ручном вводе адреса координаты GPS не запрашиваются.
         </div>
       </section>
 
-      <!-- Section 2: Strict Privacy -->
+      <!-- Section 2: Third-Party Processors & Integrations -->
       <section class="privacy-section">
         <div class="privacy-section-header">
-          <span>🔒</span>
-          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_private_title">
-            2. Что гарантированно остаётся в тайне и никуда не передаётся
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_thirdparty_title">
+            2. Внешние сервисы и обработчики данных
           </h2>
         </div>
-        <p class="privacy-text" data-i18n="privacy_geodata.private_desc">
-          Ваши личные данные никогда не передаются внешним серверам картографии, рекламным сетям или сторонним сервисам:
+        <p class="privacy-text" data-i18n="privacy_geodata.thirdparty_desc">
+          Для обеспечения безопасности, быстрой загрузки и аутентификации сервис взаимодействует со следующими проверенными облачными провайдерами:
         </p>
         <ul class="privacy-list">
-          <li data-i18n="privacy_geodata.private_bullet_1">
-            Ваше имя, номер телефона и аккаунт в мессенджере (Telegram / WhatsApp) хранятся исключительно в защищённой базе данных заказов FreshMarket.
+          <li data-i18n="privacy_geodata.thirdparty_bullet_supabase">
+            Supabase Inc.: облачная база данных (PostgreSQL), управление сессиями входа (Supabase Auth) и Realtime-синхронизация корзины и заказов между вашими устройствами.
           </li>
-          <li data-i18n="privacy_geodata.private_bullet_2">
-            Состав корзины, примечания к покупкам, история заказов и суммы чеков доступны только вам и ответственному закупщику сервиса.
+          <li data-i18n="privacy_geodata.thirdparty_bullet_oauth">
+            Google и Facebook OAuth: при авторизации через сторонние аккаунты мы получаем только базовые данные профиля (email, имя и публичный аватар).
           </li>
-          <li data-i18n="privacy_geodata.private_bullet_3">
-            Мы не продаём, не передаём и не используем ваши данные в рекламных целях.
+          <li data-i18n="privacy_geodata.thirdparty_bullet_cloudinary">
+            Cloudinary Inc.: глобальный CDN для оптимизации и быстрой доставки фотографий каталога продуктов (обрабатывает IP-адрес устройства при запросе изображений).
+          </li>
+          <li data-i18n="privacy_geodata.thirdparty_bullet_fonts">
+            Google Fonts: загрузка оптимизированных шрифтов интерфейса (Plus Jakarta Sans, Inter). Серверы Google обрабатывают стандартные сетевые заголовки HTTP.
           </li>
         </ul>
       </section>
 
-      <!-- Section 3: Storage -->
+      <!-- Section 3: Browser Local Storage (localStorage) -->
       <section class="privacy-section">
         <div class="privacy-section-header">
-          <span>💾</span>
           <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_storage_title">
-            3. Локальное хранилище (localStorage)
+            3. Локальное хранилище браузера (localStorage)
           </h2>
         </div>
         <p class="privacy-text" data-i18n="privacy_geodata.storage_desc">
-          Мы не используем отслеживающие рекламные cookie или межсайтовые трекеры. В локальном хранилище вашего браузера сохраняются исключительно технические параметры: выбранный язык интерфейса, корзина покупок и недавние адреса для вашего удобства при повторных заказах.
+          FreshMarket не использует сторонние отслеживающие рекламные cookie. В локальном хранилище вашего браузера (localStorage) сохраняются данные, необходимые для непрерывной работы PWA и офлайн-доступа:
         </p>
+        <ul class="privacy-list">
+          <li data-i18n="privacy_geodata.storage_bullet_profile">
+            Контакты и профиль: ваше имя, телефон, предпочитаемый мессенджер (Telegram, WhatsApp или звонок) и сохранённый адрес доставки.
+          </li>
+          <li data-i18n="privacy_geodata.storage_bullet_auth">
+            Сессия входа: токен авторизации Supabase Auth для сохранения активного входа между сеансами.
+          </li>
+          <li data-i18n="privacy_geodata.storage_bullet_cart">
+            Корзина покупок: состав выбранных товаров, примечания к заменам и временные метки синхронизации корзины между вкладками и устройствами.
+          </li>
+          <li data-i18n="privacy_geodata.storage_bullet_orders">
+            История заказов: локальный кэш до 30 последних оформленных заказов (номера, суммы, прикреплённые чеки и статусы доставки).
+          </li>
+          <li data-i18n="privacy_geodata.storage_bullet_settings">
+            Настройки интерфейса: выбранный язык, активная вкладка каталога, вид сетки витрины, статус онбординга, политика замен и недавние адреса.
+          </li>
+        </ul>
       </section>
 
-      <!-- Section 4: Full User Control -->
+      <!-- Section 4: Personal Data Access -->
       <section class="privacy-section">
         <div class="privacy-section-header">
-          <span>✨</span>
-          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_control_title">
-            4. Ваш полный контроль
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_private_title">
+            4. Доступ к персональным данным
           </h2>
         </div>
-        <p class="privacy-text" data-i18n="privacy_geodata.control_desc">
-          Использование GPS является строго добровольным. Вы в любой момент можете не предоставлять браузеру доступ к геолокации и ввести адрес доставки вручную текстом в строке оформления заказа.
+        <p class="privacy-text" data-i18n="privacy_geodata.private_desc">
+          Ваша контактная информация и детали покупок находятся под надёжной защитой:
         </p>
+        <ul class="privacy-list">
+          <li data-i18n="privacy_geodata.private_bullet_1">
+            Ваше имя, телефон, контакт в мессенджере и состав корзины доступны исключительно вам и назначенному закупщику-консьержу для сборки и доставки заказа.
+          </li>
+          <li data-i18n="privacy_geodata.private_bullet_2">
+            Мы никогда не продаём, не передаём ваши данные рекламным сетям и не используем контакты для нежелательных рассылок.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Section 5: Data Retention Periods -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_retention_title">
+            5. Сроки хранения данных
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.retention_desc">
+          Мы храним данные только в течение времени, необходимого для обслуживания клиентов и отчётности:
+        </p>
+        <ul class="privacy-list">
+          <li data-i18n="privacy_geodata.retention_bullet_local">
+            В браузере (localStorage): данные сохраняются до выхода из учётной записи (кнопка «Выйти» очищает сессию, профиль и привязку корзины) или ручной очистки хранилища браузера. Локальная история заказов ограничена 30 последними записями.
+          </li>
+          <li data-i18n="privacy_geodata.retention_bullet_cloud">
+            В облачной базе данных: профиль сохраняется до запроса на удаление аккаунта; данные заказов сохраняются для подтверждения доставки, отчётности по чекам и бухгалтерской сверки, либо до запроса на удаление.
+          </li>
+        </ul>
+      </section>
+
+      <!-- Section 6: User Rights & Data Deletion -->
+      <section class="privacy-section">
+        <div class="privacy-section-header">
+          <h2 class="privacy-section-title" data-i18n="privacy_geodata.section_rights_title">
+            6. Ваши права и удаление данных (Право на забвение)
+          </h2>
+        </div>
+        <p class="privacy-text" data-i18n="privacy_geodata.rights_desc">
+          Вы имеете право в любой момент запросить полный экспорт или безвозвратное удаление вашего профиля, контактных данных и истории заказов из облачной базы данных.
+        </p>
+        <p class="privacy-text" data-i18n="privacy_geodata.rights_contact_intro">
+          Для запроса на удаление данных свяжитесь со службой поддержки FreshMarket по удобному каналу:
+        </p>
+        <div class="privacy-contacts-grid">
+          <a href="https://t.me/freshmarket_support" class="privacy-contact-badge" target="_blank" rel="noopener noreferrer">
+            <span data-i18n="privacy_geodata.rights_contact_tg">Telegram:</span>
+            <strong>@freshmarket_support</strong>
+          </a>
+          <a href="https://wa.me/85500000000" class="privacy-contact-badge" target="_blank" rel="noopener noreferrer">
+            <span data-i18n="privacy_geodata.rights_contact_wa">WhatsApp:</span>
+            <strong>+855 00 000 000</strong>
+          </a>
+          <a href="mailto:privacy@freshmarket.local" class="privacy-contact-badge">
+            <span data-i18n="privacy_geodata.rights_contact_email">Эл. почта:</span>
+            <strong>privacy@freshmarket.local</strong>
+          </a>
+        </div>
       </section>
 
       <div class="privacy-footer-actions">
@@ -278,7 +378,7 @@
     </div>
   </main>
 
-  <script src="js/shared/i18n.js?v=1.5.0"></script>
+  <script src="js/shared/i18n.js?v=1.5.4"></script>
 </body>
 
 </html>
