@@ -2855,10 +2855,10 @@ class ShopApp {
       const localOrders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]');
       let hasUpdates = false;
 
-      // Cleanse any legacy rejected orders so they don't fire unwanted network 400 requests
+      // Восстанавливаем заказы, которые могли быть ошибочно помечены 'rejected' из-за лимитов
       localOrders.forEach(o => {
-        if (o.sync_status === 'pending_sync' && o.sync_error && /limit|reached|exceeded|P0001/i.test(o.sync_error)) {
-          o.sync_status = 'rejected';
+        if (o.sync_status === 'rejected' && o.sync_error && /limit|reached|wait|exceeded|P0001/i.test(o.sync_error)) {
+          o.sync_status = 'pending_sync';
           hasUpdates = true;
         }
       });
@@ -2871,38 +2871,14 @@ class ShopApp {
         return;
       }
 
-      // Pre-check rate limit before resyncing
+      // Если предыдущая попытка синхронизации вернула ограничение частоты и 2 минуты еще не прошли — ждем
       const lastOrderTime = parseInt(localStorage.getItem('freshmarket_last_order_timestamp') || '0', 10);
       const now = Date.now();
-      if (lastOrderTime && (now - lastOrderTime) < 120000) {
-        return; // wait until rate limit period passes
-      }
-
-      let activeCount = 0;
-      try {
-        const { count, error: countErr } = await this.sb
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', this.currentUser.id)
-          .in('status', ['pending', 'new', 'shopping', 'purchasing']);
-
-        if (!countErr && typeof count === 'number') {
-          activeCount = count;
-        }
-      } catch (e) {
-        console.debug('[FreshMarket Shop] Sync active orders HEAD check bypassed:', e);
+      if (lastOrderTime && (now - lastOrderTime) < 120000 && pendingOrders.some(o => o.sync_error && /rate limit/i.test(o.sync_error))) {
+        return;
       }
 
       for (const order of pendingOrders) {
-        if (activeCount >= 5) {
-          order.sync_status = 'rejected';
-          order.sync_error = 'Too many pending orders: maximum 5 active orders allowed';
-          hasUpdates = true;
-          const friendly = this.getFriendlyErrorMessage({ message: order.sync_error });
-          this.showAlertDialog(friendly);
-          break;
-        }
-
         const { items, sync_status, sync_error, ...orderPayload } = order;
         orderPayload.user_id = this.currentUser.id;
 
@@ -2918,7 +2894,7 @@ class ShopApp {
 
         let synced = false;
         try {
-          // Attempt atomic RPC sync first
+          // Вызов атомарной RPC create_order с проверкой идемпотентности по order.id
           const { data: rpcData, error: rpcErr } = await this.sb.rpc('create_order', {
             p_order_id: order.id,
             p_customer_name: order.customer_name,
@@ -2935,17 +2911,19 @@ class ShopApp {
           if (!rpcErr && rpcData?.success) {
             synced = true;
             localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
-            activeCount++;
             if (rpcData.order_number) {
               order.order_number = rpcData.order_number;
             }
           } else {
             order.sync_error = rpcErr?.message || 'RPC create_order failed';
-            if (rpcErr?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(rpcErr?.message || '')) {
-              order.sync_status = 'rejected';
+            const isLimit = /limit|reached|wait|exceeded/i.test(rpcErr?.message || '') || rpcErr?.code === 'P0001';
+            if (isLimit) {
+              // Временное ограничение (Rate limit 2 мин или 5 active pending заявок):
+              // НЕ бракуем заказ (он остается в 'pending_sync' для последующей синхронизации)
+              localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
               hasUpdates = true;
-              const friendly = this.getFriendlyErrorMessage(rpcErr);
-              this.showAlertDialog(friendly);
+              console.debug('[FreshMarket Shop] Sync throttled by server limits:', rpcErr?.message);
+              break; // Прерываем синхронизацию следующих заказов до окончания лимита
             } else {
               console.debug('[FreshMarket Shop] Resync RPC info:', rpcErr);
             }

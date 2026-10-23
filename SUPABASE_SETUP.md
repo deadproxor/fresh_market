@@ -29,6 +29,7 @@
 > * [`supabase/migrations/20261017000000_initial_schema.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261017000000_initial_schema.sql) — базовые таблицы (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры нумерации и создания профилей.
 > * [`supabase/migrations/20261018000000_security_hardening.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261018000000_security_hardening.sql) — активация RLS, функции `is_admin()`, триггер защиты ролей `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, очистка устаревших политик.
 > * [`supabase/migrations/20261020000000_hardening_v4.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261020000000_hardening_v4.sql) — комплексное усиление по Аудиту v4: динамическая зачистка политик, унификация роли `admin`, Rate Limiting в `create_order()`, таймзона UTC+7, колонка `cart_updated_at` и Realtime публикация.
+> * [`supabase/migrations/20261023000000_idempotent_order_creation.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261023000000_idempotent_order_creation.sql) — идемпотентность `create_order()`: проверка и немедленный возврат существующего заказа по `p_order_id` до проверок rate limit и лимита pending.
 >
 > 🔍 **Диагностический скрипт верификации базы данных:**  
 > Файл [`scripts/verify_database.sql`](file:///Users/elwis/dev/FreshMarket/scripts/verify_database.sql) содержит готовые запросы для SQL Editor для мгновенной проверки соответствия живой базы миграциям.
@@ -344,8 +345,12 @@ CREATE TRIGGER on_auth_user_created
 -- ============================================================================
 -- 2.5. ТРАНЗАКЦИОННАЯ RPC-ФУНКЦИЯ ОФОРМЛЕНИЯ ЗАКАЗА (public.create_order)
 -- ============================================================================
--- Решает проблему неатомарности (§3.2 Аудита v2, §3.3 Аудита v3)
--- Включает валидацию лимитов, защиту от Hijacking, гибридную обработку позиций
+-- Решает проблему неатомарности (§3.2 Аудита v2, §3.3 Аудита v3, Аудит v4)
+-- Включает:
+--   1. Идемпотентность: возврат существующего заказа по p_order_id до лимитов
+--   2. Серверный Rate Limiting (1 заказ в 2 мин, макс 5 pending)
+--   3. Валидацию полей, санитизацию строк и защиту от перезаписи чужих заказов
+--   4. Часовой пояс Asia/Phnom_Penh (UTC+7) и расчет зон доставки
 CREATE OR REPLACE FUNCTION public.create_order(
   p_order_id UUID DEFAULT NULL,
   p_customer_name TEXT DEFAULT NULL,
@@ -365,10 +370,12 @@ SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
   v_user_id UUID;
+  v_existing_order RECORD;
   v_order_id UUID;
   v_order_number TEXT;
   v_delivery_fee NUMERIC(10, 2);
   v_delivery_zone TEXT;
+  v_local_date DATE;
   v_target_date DATE;
   v_customer_name TEXT;
   v_customer_phone TEXT;
@@ -400,9 +407,59 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: order creation requires authentication';
   END IF;
 
-  -- 2. Валидация контактов и ограничений
-  IF p_customer_phone IS NULL OR trim(p_customer_phone) = '' THEN
-    RAISE EXCEPTION 'Customer phone or messenger contact is required';
+  -- 1.1. Проверка идемпотентности (повторный вызов для уже созданного заказа)
+  IF p_order_id IS NOT NULL THEN
+    SELECT * INTO v_existing_order
+    FROM public.orders
+    WHERE id = p_order_id;
+
+    IF FOUND THEN
+      IF v_existing_order.user_id <> v_user_id THEN
+        RAISE EXCEPTION 'Access denied: order belongs to another user';
+      END IF;
+
+      RETURN jsonb_build_object(
+        'success', true,
+        'order_id', v_existing_order.id,
+        'order_number', v_existing_order.order_number,
+        'delivery_fee', v_existing_order.delivery_fee,
+        'grand_total', v_existing_order.grand_total,
+        'status', v_existing_order.status,
+        'created_at', v_existing_order.created_at,
+        'idempotent_replay', true
+      );
+    END IF;
+  END IF;
+
+  -- 2. Серверный Rate Limiting (только для НОВЫХ заказов!)
+  -- 2.1. Интервал между заказами: не чаще 1 заказа в 2 минуты для одного аккаунта
+  IF EXISTS (
+    SELECT 1 FROM public.orders 
+    WHERE user_id = v_user_id 
+      AND created_at > (now() - INTERVAL '2 minutes')
+  ) THEN
+    RAISE EXCEPTION 'Rate limit exceeded: please wait 2 minutes between orders';
+  END IF;
+
+  -- 2.2. Лимит активных заявок: не более 5 заказов в статусе pending
+  IF (
+    SELECT count(*) FROM public.orders
+    WHERE user_id = v_user_id AND status = 'pending'
+  ) >= 5 THEN
+    RAISE EXCEPTION 'Maximum pending orders limit reached (5). Please wait until your active orders are processed.';
+  END IF;
+
+  -- 3. Обязательная валидация клиентских полей (Аудит v4 §2.3)
+  IF p_customer_phone IS NULL OR length(trim(p_customer_phone)) < 3 THEN
+    RAISE EXCEPTION 'Customer phone or messenger contact is required (minimum 3 characters)';
+  END IF;
+
+  IF p_customer_name IS NULL OR length(trim(p_customer_name)) < 2 THEN
+    RAISE EXCEPTION 'Customer name is required (minimum 2 characters)';
+  END IF;
+
+  IF p_delivery_address IS NULL OR length(trim(p_delivery_address)) < 5 THEN
+    RAISE EXCEPTION 'Delivery address is required (minimum 5 characters)';
   END IF;
 
   IF p_items IS NULL OR jsonb_array_length(p_items) = 0 THEN
@@ -413,15 +470,25 @@ BEGIN
     RAISE EXCEPTION 'Order contains too many items (maximum 50)';
   END IF;
 
-  -- 3. Санитизация и обрезка строк по лимитам
+  -- 4. Серверные белые списки и санитизация строк (Аудит v4 §2.3)
+  IF trim(COALESCE(p_replacement_policy, '')) IN ('call_to_agree', 'shopper_choice', 'do_not_replace') THEN
+    v_replacement_policy := trim(p_replacement_policy);
+  ELSE
+    v_replacement_policy := 'call_to_agree';
+  END IF;
+
+  IF trim(COALESCE(p_customer_messenger, '')) IN ('telegram', 'whatsapp', 'phone') THEN
+    v_customer_messenger := trim(p_customer_messenger);
+  ELSE
+    v_customer_messenger := 'telegram';
+  END IF;
+
   v_customer_name := substring(trim(p_customer_name) from 1 for 100);
   v_customer_phone := substring(trim(p_customer_phone) from 1 for 50);
-  v_customer_messenger := substring(trim(COALESCE(p_customer_messenger, 'telegram')) from 1 for 50);
   v_delivery_address := substring(trim(p_delivery_address) from 1 for 300);
   v_customer_comment := substring(trim(p_customer_comment) from 1 for 500);
-  v_replacement_policy := substring(trim(COALESCE(p_replacement_policy, 'call_to_agree')) from 1 for 50);
 
-  -- 4. Серверная тарификация доставки по зонам (белый список)
+  -- 5. Предварительная тарификация доставки по зонам (белый список)
   CASE p_delivery_zone
     WHEN 'zone_1' THEN v_delivery_fee := 1.00; v_delivery_zone := 'zone_1';
     WHEN 'zone_2' THEN v_delivery_fee := 2.00; v_delivery_zone := 'zone_2';
@@ -429,12 +496,13 @@ BEGIN
     ELSE v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
   END CASE;
 
-  -- 5. Генерация/присвоение идентификаторов
+  -- 6. Часовой пояс Asia/Phnom_Penh (UTC+7) для нумерации и дат доставки (Аудит v4 §2.3)
+  v_local_date := (now() AT TIME ZONE 'Asia/Phnom_Penh')::date;
   v_order_id := COALESCE(p_order_id, gen_random_uuid());
-  v_order_number := 'FM-' || to_char(CURRENT_DATE, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
-  v_target_date := COALESCE(p_target_delivery_date, CURRENT_DATE + INTERVAL '1 day');
+  v_order_number := 'FM-' || to_char(v_local_date, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
+  v_target_date := COALESCE(p_target_delivery_date, v_local_date + INTERVAL '1 day');
 
-  -- 6. Вставка шапки заказа (с защитой от Hijacking чужого заказа)
+  -- 7. Вставка шапки заказа (с защитой от изменения чужих заказов)
   INSERT INTO public.orders (
     id,
     order_number,
@@ -490,6 +558,7 @@ BEGIN
     customer_phone = EXCLUDED.customer_phone,
     delivery_address = EXCLUDED.delivery_address,
     customer_notes = EXCLUDED.customer_notes,
+    customer_comment = EXCLUDED.customer_comment,
     updated_at = now()
   WHERE orders.id::text = v_order_id::text AND orders.user_id::text = v_user_id::text
   RETURNING order_number INTO v_order_number;
@@ -498,7 +567,7 @@ BEGIN
     RAISE EXCEPTION 'Access denied: cannot modify an order owned by another user';
   END IF;
 
-  -- 7. Вставка позиций (универсальный парсинг количества и цен)
+  -- 8. Вставка позиций (универсальный парсинг количества и цен)
   FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS (
     id UUID,
     product_id TEXT,
@@ -516,7 +585,7 @@ BEGIN
     estimated_price TEXT
   )
   LOOP
-    -- Извлечение числа из "1.5 kg", "2 шт", "1" или 1.5
+    -- 8.1. Извлечение числа из "1.5 kg", "2 шт", "1" или 1.5
     v_raw_qty := trim(COALESCE(v_item.requested_qty, v_item.quantity, '1'));
     v_num_str := (regexp_match(v_raw_qty, '^([0-9]+(?:\.[0-9]+)?)'))[1];
     IF v_num_str IS NOT NULL AND v_num_str <> '' THEN
@@ -529,7 +598,7 @@ BEGIN
       RAISE EXCEPTION 'Invalid item quantity: % (must be between 0.001 and 500)', v_qty;
     END IF;
 
-    -- Проверка наличия в таблице products с безопасным приведением ::text
+    -- 8.2. Проверка наличия в таблице products с безопасным приведением ::text
     IF v_item.product_id IS NOT NULL AND v_item.product_id <> '' THEN
       SELECT * INTO v_product FROM public.products WHERE products.id::text = v_item.product_id::text;
       v_item_product_id := v_product.id;
@@ -538,7 +607,7 @@ BEGIN
       v_item_product_id := NULL;
     END IF;
 
-    -- Метаданные: приоритет БД, иначе безопасный fallback на клиентские данные
+    -- 8.3. Метаданные: приоритет БД, иначе безопасная санитизация кастомных позиций (Аудит v4 §2.3)
     v_final_title := COALESCE(
       v_product.name_ru,
       NULLIF(substring(trim(v_item.product_name_ru) from 1 for 100), ''),
@@ -553,9 +622,11 @@ BEGIN
     v_final_form := COALESCE(v_product.form, substring(trim(v_item.product_form) from 1 for 50), 'Целый');
     v_final_unit := substring(trim(COALESCE(v_item.unit, 'кг')) from 1 for 20);
     v_final_comment := substring(trim(v_item.customer_comment) from 1 for 300);
+
+    -- 8.4. Ограничение ориентировочной цены (диапазон от 0 до 1,000,000 KHR) (Аудит v4 §2.3)
     v_final_price := COALESCE(
       v_product.price,
-      GREATEST(0.00, LEAST(COALESCE(NULLIF(regexp_replace(v_item.estimated_price, '[^0-9.]', '', 'g'), '')::numeric, 0.00), 9999.99))
+      GREATEST(0.00, LEAST(COALESCE(NULLIF(regexp_replace(v_item.estimated_price, '[^0-9.]', '', 'g'), '')::numeric, 0.00), 1000000.00))
     );
 
     INSERT INTO public.order_items (
@@ -600,7 +671,7 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
   END LOOP;
 
-  -- 8. Формирование возвращаемого JSON-результата
+  -- 9. Формирование возвращаемого JSON-результата
   SELECT jsonb_build_object(
     'success', true,
     'order_id', v_order_id,
