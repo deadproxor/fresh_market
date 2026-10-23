@@ -914,6 +914,10 @@
   * Ликвидирована ошибочная принудительная отбраковка заказов в статус `rejected` при возврате серверных ограничений по частоте (2 минуты) или лимиту активных заявок (5 pending).
   * Заказы при временных ограничениях сохраняют статус `pending_sync` и безопасно дожидаются снятия лимита, предотвращая создание дубликатов покупателем.
   * Добавлен автоматический механизм восстановления (auto-heal) для ранее ошибочно отклоненных заказов из `localStorage`.
+* [x] **Защита роли в `public.profiles` при создании профиля (`20261023010000_protect_profile_role_on_insert.sql`)**:
+  * Расширен триггер `trg_protect_profile_role` на события `BEFORE INSERT OR UPDATE ON public.profiles`.
+  * При операции `INSERT` неадминистратором (`auth.uid() IS NOT NULL AND NOT public.is_admin()`) роль принудительно выставляется в `'customer'`, предотвращая обход через прямое создание профиля.
+  * Усилена RLS-политика `Users can insert own profile` явным условием `(role IS NULL OR role = 'customer' OR public.is_admin())` для двухуровневой защиты (Defense in Depth).
 * [x] **Синхронизация документации и PWA**:
   * Обновлены `SUPABASE_SETUP.md`, `supabase/README.md`, версионирование `shop.html` (`shop.js?v=1.5.1`) и Service Worker `sw-shop.js` (`freshmarket-shop-v1.5.1`).
 

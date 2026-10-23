@@ -288,19 +288,30 @@ CREATE POLICY "Users can update own profile" ON public.profiles
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+  FOR INSERT TO authenticated 
+  WITH CHECK (
+    auth.uid() = id 
+    AND (role IS NULL OR role = 'customer' OR public.is_admin())
+  );
 
 DROP POLICY IF EXISTS "Admin full access to profiles" ON public.profiles;
 CREATE POLICY "Admin full access to profiles" ON public.profiles
   FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
--- Защита от эскалации привилегий: запрет клиентам изменять собственную роль в profiles
+-- Защита от эскалации привилегий: запрет клиентам задавать или изменять роль в profiles (INSERT и UPDATE)
 CREATE OR REPLACE FUNCTION public.protect_profile_role()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Если вызывающий пользователь НЕ является администратором, запретить изменение роли:
-  IF NEW.role IS DISTINCT FROM OLD.role AND NOT public.is_admin() THEN
-    NEW.role := OLD.role;
+  IF TG_OP = 'INSERT' THEN
+    -- Обычный аутентифицированный пользователь не может назначить себе роль администратора
+    IF auth.uid() IS NOT NULL AND NOT public.is_admin() THEN
+      NEW.role := 'customer';
+    END IF;
+  ELSIF TG_OP = 'UPDATE' THEN
+    -- При обновлении запрещено изменять роль, если пользователь не администратор
+    IF NEW.role IS DISTINCT FROM OLD.role AND NOT public.is_admin() THEN
+      NEW.role := OLD.role;
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -308,7 +319,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, pg_temp;
 
 DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
 CREATE TRIGGER trg_protect_profile_role
-BEFORE UPDATE ON public.profiles
+BEFORE INSERT OR UPDATE ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
 
 -- Автоматический триггер: при входе через Google / Facebook / Email
