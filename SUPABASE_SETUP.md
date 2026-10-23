@@ -418,7 +418,12 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: order creation requires authentication';
   END IF;
 
-  -- 1.1. Проверка идемпотентности (повторный вызов для уже созданного заказа)
+  -- 1.1. Транзакционная рекомендательная блокировка от гонок (Advisory Lock)
+  -- Сериализует одновременные вызовы create_order для одного аккаунта,
+  -- предотвращая обход rate limiting и дублирование генерации номеров заказов.
+  PERFORM pg_advisory_xact_lock(hashtext('create_order'), hashtext(v_user_id::text));
+
+  -- 1.2. Проверка идемпотентности (повторный вызов для уже созданного заказа)
   IF p_order_id IS NOT NULL THEN
     SELECT * INTO v_existing_order
     FROM public.orders
@@ -516,10 +521,9 @@ BEGIN
     ELSE v_delivery_fee := 3.50; v_delivery_zone := 'zone_3';
   END CASE;
 
-  -- 6. Часовой пояс Asia/Phnom_Penh (UTC+7) для нумерации и дат доставки (Аудит v4 §2.3)
+  -- 6. Часовой пояс Asia/Phnom_Penh (UTC+7) и предварительная валидация
   v_local_date := (now() AT TIME ZONE 'Asia/Phnom_Penh')::date;
   v_order_id := COALESCE(p_order_id, gen_random_uuid());
-  v_order_number := 'FM-' || to_char(v_local_date, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
 
   -- 6.1. Строгая валидация целевой даты доставки (не в прошлом и не далее 14 дней)
   IF p_target_delivery_date IS NOT NULL THEN
@@ -533,6 +537,28 @@ BEGIN
   ELSE
     v_target_date := v_local_date + INTERVAL '1 day';
   END IF;
+
+  -- 6.2. Предварительная валидация состава заказа (до вызова nextval, чтобы исключить холостой расход номеров)
+  FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS (
+    quantity TEXT,
+    requested_qty TEXT
+  )
+  LOOP
+    v_raw_qty := trim(COALESCE(v_item.requested_qty, v_item.quantity, '1'));
+    v_num_str := (regexp_match(v_raw_qty, '^([0-9]+(?:\.[0-9]+)?)'))[1];
+    IF v_num_str IS NOT NULL AND v_num_str <> '' THEN
+      v_qty := v_num_str::numeric;
+    ELSE
+      v_qty := 1.00;
+    END IF;
+
+    IF v_qty <= 0 OR v_qty > 500 THEN
+      RAISE EXCEPTION 'Invalid item quantity: % (must be between 0.001 and 500)', v_qty;
+    END IF;
+  END LOOP;
+
+  -- 6.3. Генерация номера заказа из последовательности ТОЛЬКО после успешной проверки всех полей и позиций
+  v_order_number := 'FM-' || to_char(v_local_date, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
 
   -- 7. Вставка шапки заказа (с защитой от изменения чужих заказов)
   INSERT INTO public.orders (
