@@ -309,46 +309,56 @@ class ShopApp {
 
       const isFirstLoginOnDevice = lastSyncedUser !== this.currentUser.id;
 
-      if (localKeys.length > 0 && cloudKeys.length === 0) {
-        // GOLDEN RULE 1: Guest filled cart, cloud is empty: NEVER wipe guest cart!
-        // Immediately persist to cloud with fresh timestamp
-        const now = Date.now();
-        localStorage.setItem('freshmarket_cart', JSON.stringify(this.cart));
-        localStorage.setItem('freshmarket_cart_updated_at', String(now));
-        this.updateCartUi();
-        this.renderProducts();
-        if (this.currentView === 'cart') this.renderCartModalList();
-        this.syncCartToCloud(true);
-      } else if (localKeys.length > 0 && cloudKeys.length > 0) {
-        // GOLDEN RULE 2: Both have items: ALWAYS MERGE to prevent loss of newly added guest items
-        const mergedCart = { ...cloudCart, ...this.cart };
-        this.cart = mergedCart;
-        const now = Date.now();
-        localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
-        localStorage.setItem('freshmarket_cart_updated_at', String(now));
-        this.updateCartUi();
-        this.renderProducts();
-        if (this.currentView === 'cart') this.renderCartModalList();
-        this.syncCartToCloud(true);
-      } else if (localKeys.length === 0 && cloudKeys.length > 0) {
-        // Local is empty: restore cloud cart
-        this.cart = cloudCart;
-        localStorage.setItem('freshmarket_cart', JSON.stringify(cloudCart));
-        localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt || Date.now()));
-        this.updateCartUi();
-        this.renderProducts();
-        if (this.currentView === 'cart') this.renderCartModalList();
-      } else {
-        // Both empty: keep empty
-        const localCartStr = JSON.stringify(this.cart || {});
-        const cloudCartStr = JSON.stringify(cloudCart);
-        if (localCartStr !== cloudCartStr && !isFirstLoginOnDevice && cloudUpdatedAt > localUpdatedAt) {
-          this.cart = cloudCart;
-          localStorage.setItem('freshmarket_cart', cloudCartStr);
-          localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt));
+      if (isFirstLoginOnDevice) {
+        // === СЦЕНАРИЙ 1: Первичная авторизация гостя на этом устройстве ===
+        if (localKeys.length > 0 && cloudKeys.length === 0) {
+          // Гость набрал товары до входа, в облаке пусто: сохраняем гостевую корзину в облако
+          const now = Date.now();
+          localStorage.setItem('freshmarket_cart', JSON.stringify(this.cart));
+          localStorage.setItem('freshmarket_cart_updated_at', String(now));
           this.updateCartUi();
           this.renderProducts();
           if (this.currentView === 'cart') this.renderCartModalList();
+          this.syncCartToCloud(true);
+        } else if (localKeys.length > 0 && cloudKeys.length > 0) {
+          // И у гостя есть товары, и в облаке есть корзина: объединяем, чтобы не потерять добавленное до логина
+          const mergedCart = { ...cloudCart, ...this.cart };
+          this.cart = mergedCart;
+          const now = Date.now();
+          localStorage.setItem('freshmarket_cart', JSON.stringify(mergedCart));
+          localStorage.setItem('freshmarket_cart_updated_at', String(now));
+          this.updateCartUi();
+          this.renderProducts();
+          if (this.currentView === 'cart') this.renderCartModalList();
+          this.syncCartToCloud(true);
+        } else if (localKeys.length === 0 && cloudKeys.length > 0) {
+          // Локальная корзина пуста: подгружаем облачную корзину
+          this.cart = cloudCart;
+          localStorage.setItem('freshmarket_cart', JSON.stringify(cloudCart));
+          localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt || Date.now()));
+          this.updateCartUi();
+          this.renderProducts();
+          if (this.currentView === 'cart') this.renderCartModalList();
+        }
+        localStorage.setItem(syncedUserKey, this.currentUser.id);
+      } else {
+        // === СЦЕНАРИЙ 2: Регулярная синхронизация уже авторизованного аккаунта (Cross-Device LWW) ===
+        const localCartStr = JSON.stringify(this.cart || {});
+        const cloudCartStr = JSON.stringify(cloudCart);
+
+        if (localCartStr !== cloudCartStr) {
+          if (cloudUpdatedAt >= localUpdatedAt) {
+            // Облако новее или равно: применяем актуальное состояние из БД (удаление товаров или очистка после заказа)
+            this.cart = cloudCart;
+            localStorage.setItem('freshmarket_cart', cloudCartStr);
+            localStorage.setItem('freshmarket_cart_updated_at', String(cloudUpdatedAt || Date.now()));
+            this.updateCartUi();
+            this.renderProducts();
+            if (this.currentView === 'cart') this.renderCartModalList();
+          } else {
+            // Локальные изменения новее: отправляем их в облако
+            this.syncCartToCloud(true);
+          }
         }
       }
 
@@ -477,14 +487,6 @@ class ShopApp {
       ? remoteProfile.cart
       : {};
 
-    const cloudKeys = Object.keys(cloudCart);
-    const localKeys = Object.keys(this.cart || {});
-
-    // Golden Rule: Never overwrite non-empty local cart with empty cloud cart
-    if (localKeys.length > 0 && cloudKeys.length === 0) {
-      return;
-    }
-
     const localCartStr = JSON.stringify(this.cart || {});
     const cloudCartStr = JSON.stringify(cloudCart);
     const cloudUpdatedAt = remoteProfile.cart_updated_at
@@ -492,6 +494,7 @@ class ShopApp {
       : (remoteProfile.updated_at ? new Date(remoteProfile.updated_at).getTime() : 0);
     const localUpdatedAt = parseInt(localStorage.getItem('freshmarket_cart_updated_at') || '0', 10);
 
+    // Применяем удаленное состояние только если оно новее локального (LWW, включая очистку после заказа на другом устройстве)
     if (localCartStr !== cloudCartStr && cloudUpdatedAt > localUpdatedAt) {
       this.cart = cloudCart;
       localStorage.setItem('freshmarket_cart', cloudCartStr);
@@ -2752,7 +2755,7 @@ class ShopApp {
     const checkoutNameInput = document.getElementById('deliveryAddressName');
     if (checkoutNameInput) checkoutNameInput.value = '';
     this.syncCartAddressPresetPills('');
-    this.saveCart();
+    this.saveCart(true);
     this.renderProducts();
     this.closeCartModal();
 

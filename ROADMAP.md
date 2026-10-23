@@ -921,8 +921,13 @@
   * Расширен триггер `trg_protect_profile_role` на события `BEFORE INSERT OR UPDATE ON public.profiles`.
   * При операции `INSERT` неадминистратором (`auth.uid() IS NOT NULL AND NOT public.is_admin()`) роль принудительно выставляется в `'customer'`, предотвращая обход через прямое создание профиля.
   * Усилена RLS-политика `Users can insert own profile` явным условием `(role IS NULL OR role = 'customer' OR public.is_admin())` для двухуровневой защиты (Defense in Depth).
+* [x] **Кросс-девайс синхронизация корзины (Last-Write-Wins & Защита от воскрешения товаров)**:
+  * Изолировано объединение корзины гостя (`{ ...cloudCart, ...this.cart }`) строго до момента первичного входа в аккаунт на данном устройстве (`isFirstLoginOnDevice`).
+  * Для авторизованных сессий реализован строгий приоритет Last-Write-Wins (LWW) по меткам времени `cart_updated_at`: если облако новее, локальная корзина безусловно принимает облачное состояние, что устраняет самопроизвольное воскрешение ранее удалённых товаров.
+  * Устранён ложный блокирующий фильтр в `handleRemoteProfileUpdate`: при очистке корзины после заказа на одном устройстве второе устройство мгновенно принимает пустое состояние корзины вместо её повторного заполнения старыми данными.
+  * Обеспечен немедленный сброс корзины в облаке при оформлении заказа (`this.saveCart(true)`).
 * [x] **Синхронизация документации и PWA**:
-  * Обновлены `SUPABASE_SETUP.md`, `supabase/README.md`, версионирование `shop.html` (`shop.js?v=1.5.1`) и Service Worker `sw-shop.js` (`freshmarket-shop-v1.5.1`).
+  * Обновлены `SUPABASE_SETUP.md`, `supabase/README.md`, версионирование `shop.html` (`shop.js?v=1.5.2`) и Service Worker `sw-shop.js` (`freshmarket-shop-v1.5.2`).
 
 ---
 
