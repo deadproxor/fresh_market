@@ -907,6 +907,9 @@
   * Если заказ с данным UUID уже зарегистрирован за текущим пользователем (`user_id = auth.uid()`), функция немедленно возвращает существующие данные (`success: true`, `order_number`, `delivery_fee`, `status`, `idempotent_replay: true`), исключая ложные срабатывания `Rate limit exceeded` и `Maximum pending orders limit reached (5)`.
   * Чужие заказы защищены строгой проверкой авторизации (`Access denied`).
   * **Безопасная типизация `v_product public.products%ROWTYPE`:** устранена фатальная ошибка `record "v_product" is not assigned yet` при оформлении позиций без `product_id` (или не найденных в таблице `products`), обеспечен корректный fallback на клиентские названия и цены без сбоев транзакции.
+  * **Строгая серверная валидация даты доставки и белых списков:**
+    * Добавлена валидация `p_target_delivery_date`: запрещены даты в прошлом (`< v_local_date`) и даты позднее 14 дней (`> v_local_date + INTERVAL '14 days'`).
+    * Добавлена строгая проверка полей `p_customer_messenger` (`telegram`, `whatsapp`, `phone`) и `p_replacement_policy` (`call_to_agree`, `picker_choice`, `do_not_replace` с нормализацией `shopper_choice` -> `picker_choice`) с генерацией исключения `RAISE EXCEPTION` при недопустимых значениях.
 * [x] **Устойчивая фоновая синхронизация витрины (`js/shop.js` -> `syncPendingOrders`)**:
   * Ликвидирована ошибочная принудительная отбраковка заказов в статус `rejected` при возврате серверных ограничений по частоте (2 минуты) или лимиту активных заявок (5 pending).
   * Заказы при временных ограничениях сохраняют статус `pending_sync` и безопасно дожидаются снятия лимита, предотвращая создание дубликатов покупателем.

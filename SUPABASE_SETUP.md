@@ -470,14 +470,23 @@ BEGIN
     RAISE EXCEPTION 'Order contains too many items (maximum 50)';
   END IF;
 
-  -- 4. Серверные белые списки и санитизация строк (Аудит v4 §2.3)
-  IF trim(COALESCE(p_replacement_policy, '')) IN ('call_to_agree', 'shopper_choice', 'do_not_replace') THEN
-    v_replacement_policy := trim(p_replacement_policy);
+  -- 4. Серверные белые списки и строгая валидация полей (Аудит v4 §2.3)
+  IF p_replacement_policy IS NOT NULL AND trim(p_replacement_policy) <> '' THEN
+    IF trim(p_replacement_policy) IN ('picker_choice', 'shopper_choice') THEN
+      v_replacement_policy := 'picker_choice';
+    ELSIF trim(p_replacement_policy) IN ('call_to_agree', 'do_not_replace') THEN
+      v_replacement_policy := trim(p_replacement_policy);
+    ELSE
+      RAISE EXCEPTION 'Invalid replacement policy: %. Allowed values: call_to_agree, picker_choice, do_not_replace', p_replacement_policy;
+    END IF;
   ELSE
     v_replacement_policy := 'call_to_agree';
   END IF;
 
-  IF trim(COALESCE(p_customer_messenger, '')) IN ('telegram', 'whatsapp', 'phone') THEN
+  IF p_customer_messenger IS NOT NULL AND trim(p_customer_messenger) <> '' THEN
+    IF trim(p_customer_messenger) NOT IN ('telegram', 'whatsapp', 'phone') THEN
+      RAISE EXCEPTION 'Invalid customer messenger: %. Allowed values: telegram, whatsapp, phone', p_customer_messenger;
+    END IF;
     v_customer_messenger := trim(p_customer_messenger);
   ELSE
     v_customer_messenger := 'telegram';
@@ -500,7 +509,19 @@ BEGIN
   v_local_date := (now() AT TIME ZONE 'Asia/Phnom_Penh')::date;
   v_order_id := COALESCE(p_order_id, gen_random_uuid());
   v_order_number := 'FM-' || to_char(v_local_date, 'YYMMDD') || '-' || lpad(nextval('order_number_seq')::text, 3, '0');
-  v_target_date := COALESCE(p_target_delivery_date, v_local_date + INTERVAL '1 day');
+
+  -- 6.1. Строгая валидация целевой даты доставки (не в прошлом и не далее 14 дней)
+  IF p_target_delivery_date IS NOT NULL THEN
+    IF p_target_delivery_date < v_local_date THEN
+      RAISE EXCEPTION 'Invalid target delivery date: cannot be in the past (%)', p_target_delivery_date;
+    END IF;
+    IF p_target_delivery_date > (v_local_date + INTERVAL '14 days') THEN
+      RAISE EXCEPTION 'Invalid target delivery date: exceeds 14 days limit (%)', p_target_delivery_date;
+    END IF;
+    v_target_date := p_target_delivery_date;
+  ELSE
+    v_target_date := v_local_date + INTERVAL '1 day';
+  END IF;
 
   -- 7. Вставка шапки заказа (с защитой от изменения чужих заказов)
   INSERT INTO public.orders (
