@@ -11,21 +11,29 @@ on:
       - '.github/workflows/deploy-edge-functions.yml'
   workflow_dispatch: # Allows manual trigger via "Run workflow" in GitHub UI
 
-permissions:
-  contents: read
+# Global zero-privilege default
+permissions: {}
+
+env:
+  SUPABASE_CLI_VERSION: '2.66.0'
 
 jobs:
   deploy:
+    name: Deploy to Supabase
     runs-on: ubuntu-latest
+    permissions:
+      contents: read # Strictly grant read access for checkout step
 
     steps:
+      # Pinned to immutable commit SHA (v4.2.2) to prevent supply-chain attacks
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      # Pinned to immutable commit SHA (v1.7.3) with locked CLI version
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
-          version: 2.66.0
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Verify Supabase CLI
         run: supabase --version
