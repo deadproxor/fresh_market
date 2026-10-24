@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.5';
 window.APP_VERSION = APP_VERSION;
 
 // Defensive fallbacks for sanitizeUrl and generateUUID (provided by js/shared/utils.js)
@@ -2901,6 +2901,39 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     this.checkModalOpenState();
   }
 
+  async isImageShared(imgUrl, excludeProductId) {
+    if (!imgUrl || typeof imgUrl !== 'string') return false;
+    const cleanUrl = imgUrl.trim();
+    if (!cleanUrl) return false;
+
+    // 1. Check in local products list (in-memory)
+    const isSharedLocally = (this.products || []).some(
+      p => p && p.id !== excludeProductId && p.img_url && p.img_url.trim() === cleanUrl
+    );
+    if (isSharedLocally) return true;
+
+    // 2. Check in Supabase database if connected
+    const sb = window.supabaseClient || window.adminApp?.sb;
+    if (sb) {
+      try {
+        const { count, error } = await sb
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .neq('id', excludeProductId)
+          .eq('img_url', cleanUrl);
+
+        if (!error && typeof count === 'number' && count > 0) {
+          return true;
+        }
+      } catch (err) {
+        console.warn('[FreshMarket] Error checking image references in Supabase:', err);
+        return true; // Fail-safe: preserve image if check fails
+      }
+    }
+
+    return false;
+  }
+
   async deleteProductEverywhere(id, product = null) {
     const errors = [];
 
@@ -2910,7 +2943,7 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       await localAdapter.delete(id);
     } catch (localErr) {
       console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
-      errors.push(localErr.message);
+      errors.push(`LocalStorage: ${localErr.message || localErr}`);
     }
 
     // 2. If Supabase credentials are configured, delete from Supabase strictly by primary key ID
@@ -2921,24 +2954,28 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
         const sb = new SupabaseAdapter(sbUrl, sbKey);
         await sb.delete(id);
       } catch (sbErr) {
-        console.warn('[FreshMarket] Error deleting from Supabase:', sbErr);
-        if (localStorage.getItem('freshmarket_storage_provider') === 'supabase') {
-          errors.push(sbErr.message);
+        console.error('[FreshMarket] Error deleting from Supabase:', sbErr);
+        errors.push(`База данных (Supabase): ${sbErr.message || sbErr}`);
+      }
+    }
+
+    // If database or storage deletion failed, abort before deleting media assets
+    if (errors.length > 0) {
+      throw new Error(errors.join('; '));
+    }
+
+    // 3. If product has an image hosted on Cloudinary, delete it from Cloudinary ONLY if no other product uses it
+    if (product && product.img_url && (product.img_url.includes('cloudinary.com') || product.img_url.includes('res.cloudinary'))) {
+      const isShared = await this.isImageShared(product.img_url, id);
+      if (isShared) {
+        console.log('[FreshMarket] Изображение используется в других товарах. Удаление из Cloudinary пропущено во избежание битых ссылок.');
+      } else {
+        try {
+          await CloudinaryService.delete(product.img_url);
+        } catch (cloudErr) {
+          console.warn('[FreshMarket] Error deleting image from Cloudinary:', cloudErr);
         }
       }
-    }
-
-    // 3. If product has an image hosted on Cloudinary, delete it from Cloudinary
-    if (product && product.img_url && (product.img_url.includes('cloudinary.com') || product.img_url.includes('res.cloudinary'))) {
-      try {
-        await CloudinaryService.delete(product.img_url);
-      } catch (cloudErr) {
-        console.warn('[FreshMarket] Error deleting image from Cloudinary:', cloudErr);
-      }
-    }
-
-    if (errors.length > 0 && localStorage.getItem('freshmarket_storage_provider') === 'supabase') {
-      throw new Error(errors.join(', '));
     }
   }
 
@@ -2947,6 +2984,8 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
     const id = this.pendingDeleteId;
     const name = this.pendingDeleteName;
     const targetProduct = this.products.find(p => p.id === id);
+
+    if (this.btnConfirmDelete) this.btnConfirmDelete.disabled = true;
 
     try {
       await this.deleteProductEverywhere(id, targetProduct);
@@ -2958,7 +2997,10 @@ Return ONLY raw valid JSON, no markdown code block fences.`;
       this.showToast(`«${name}» удален`);
     } catch (e) {
       console.error(e);
+      this.closeDeleteModal();
       this.showToast(e.message ? `❌ Ошибка при удалении: ${e.message}` : 'Ошибка при удалении');
+    } finally {
+      if (this.btnConfirmDelete) this.btnConfirmDelete.disabled = false;
     }
   }
 
