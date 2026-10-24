@@ -310,7 +310,7 @@
                 <span>Google Gemini Vision</span>
               </div>
               <div class="settings-section-header-right">
-                <span class="badge badge-gray" id="aiStatusBadge">API Key</span>
+                <span class="badge badge-primary" id="aiStatusBadge">Edge Function</span>
                 <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
                   aria-label="Свернуть / Развернуть">
                   <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
@@ -321,12 +321,10 @@
               </div>
             </div>
             <div class="settings-section-body">
-              <div class="form-group">
-                <label class="field-label" for="settingApiKey">Google Gemini API Key</label>
-                <input type="password" id="settingApiKey" class="text-input" placeholder="AIzaSy..." autocomplete="off"
-                  spellcheck="false" />
-                <div class="form-field-hint">Для автозаполнения полей по фото продуктов и перевода названий на
-                  кхмерский.</div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <div class="form-field-hint" style="background: var(--surface-secondary, rgba(0,0,0,0.03)); border: 1px solid var(--border-color, #e2e8f0); border-radius: var(--radius-sm, 8px); padding: 10px 12px; line-height: 1.45;">
+                  🔒 <strong>Zero-Secret архитектура:</strong> Ключ Gemini API хранится на защищённом сервере в Supabase Vault (секрет <code>gemini_api_key</code>). Клиентскому браузеру не требуется ввод секретных ключей.
+                </div>
               </div>
 
               <div class="form-group">

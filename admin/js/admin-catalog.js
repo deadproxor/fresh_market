@@ -828,6 +828,7 @@ class App {
     // Clean up legacy sensitive keys if present in localStorage (Zero-Secret client architecture)
     localStorage.removeItem('freshmarket_cloudinary_api_secret');
     localStorage.removeItem('freshmarket_cloudinary_secret');
+    localStorage.removeItem('freshmarket_gemini_api_key');
     this.initElements();
     this.initEventListeners();
     this.initAutocomplete();
@@ -1647,14 +1648,12 @@ class App {
   // Settings (Gemini API, Supabase, Cloudinary, Backup)
   // ------------------------------------------------------------------------
   loadSettingsFormValues() {
-    // AI
-    const savedKey = localStorage.getItem('freshmarket_gemini_api_key') || '';
+    // AI (Zero-Secret via Supabase Edge Function)
     const savedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
     const customModel = localStorage.getItem('freshmarket_gemini_custom_model') || '';
 
-    if (this.settingApiKey) this.settingApiKey.value = savedKey;
     if (this.settingModel) {
-      this.settingModel.value = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(savedModel) ? savedModel : 'custom';
+      this.settingModel.value = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(savedModel) ? savedModel : 'custom';
     }
     if (this.settingCustomModel) {
       this.settingCustomModel.value = customModel || (savedModel === 'custom' ? '' : savedModel);
@@ -1663,8 +1662,8 @@ class App {
 
     const aiBadge = document.getElementById('aiStatusBadge');
     if (aiBadge) {
-      aiBadge.textContent = savedKey ? 'API Key: OK' : 'Не задан';
-      aiBadge.className = `badge ${savedKey ? 'badge-success' : 'badge-gray'}`;
+      aiBadge.textContent = 'Edge Function';
+      aiBadge.className = 'badge badge-primary';
     }
 
     // Supabase
@@ -1708,8 +1707,7 @@ class App {
       if (aiSection && aiSection.classList.contains('is-collapsed')) {
         aiSection.classList.remove('is-collapsed');
       }
-      this.showToast('ℹ️ Введите Gemini API Key для автозаполнения по фото');
-      setTimeout(() => this.settingApiKey?.focus(), 150);
+      this.showToast('ℹ️ Проверьте настройки модели Gemini Vision');
     }
   }
 
@@ -1726,12 +1724,11 @@ class App {
   }
 
   async saveSettings() {
-    // 1. AI Settings
-    const apiKey = this.settingApiKey ? this.settingApiKey.value.trim() : '';
+    // 1. AI Settings (Zero-Secret: key managed in Supabase Vault)
+    localStorage.removeItem('freshmarket_gemini_api_key');
     const model = this.settingModel ? this.settingModel.value : 'gemini-2.5-flash';
     const customModel = this.settingCustomModel ? this.settingCustomModel.value.trim() : '';
 
-    if (apiKey) localStorage.setItem('freshmarket_gemini_api_key', apiKey);
     localStorage.setItem('freshmarket_gemini_model', model);
     if (model === 'custom' && customModel) {
       localStorage.setItem('freshmarket_gemini_custom_model', customModel);
@@ -2002,7 +1999,6 @@ class App {
       exportedAt: new Date().toISOString(),
       settings: {
         gemini: {
-          apiKey: (this.settingApiKey?.value || localStorage.getItem('freshmarket_gemini_api_key') || '').trim(),
           model: this.settingModel?.value || localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash',
           customModel: (this.settingCustomModel?.value || localStorage.getItem('freshmarket_gemini_custom_model') || '').trim()
         },
@@ -2105,16 +2101,13 @@ class App {
     }
     const s = parsed.settings || parsed;
 
-    // 1. Gemini
+    // 1. Gemini (Zero-Secret)
     if (s.gemini && typeof s.gemini === 'object') {
-      if (s.gemini.apiKey !== undefined) {
-        localStorage.setItem('freshmarket_gemini_api_key', s.gemini.apiKey || '');
-        if (this.settingApiKey) this.settingApiKey.value = s.gemini.apiKey || '';
-      }
+      localStorage.removeItem('freshmarket_gemini_api_key');
       if (s.gemini.model) {
         localStorage.setItem('freshmarket_gemini_model', s.gemini.model);
         if (this.settingModel) {
-          this.settingModel.value = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(s.gemini.model) ? s.gemini.model : 'custom';
+          this.settingModel.value = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(s.gemini.model) ? s.gemini.model : 'custom';
         }
       }
       if (s.gemini.customModel !== undefined) {
@@ -2200,7 +2193,7 @@ class App {
 
       let parsed = null;
 
-      // 1. Try Supabase Edge Function first (Zero-Secret client architecture)
+      // Invoke Supabase Edge Function (Zero-Secret client architecture)
       const sb = window.supabaseClient || this.sb;
       if (sb && sb.functions) {
         try {
@@ -2215,78 +2208,31 @@ class App {
             console.log('[Admin] Produce recognized via Supabase Edge Function:', data.result);
             parsed = data.result;
           } else if (error) {
-            console.warn('[Admin] Edge Function gemini-vision error, trying client fallback:', error.message || error);
+            let errorDetail = error.message;
+            if (error.context && typeof error.context.json === 'function') {
+              try {
+                const errBody = await error.context.json();
+                if (errBody?.error) errorDetail = errBody.error;
+              } catch (_) {}
+            } else if (error.context && typeof error.context.text === 'function') {
+              try {
+                const errText = await error.context.text();
+                if (errText) errorDetail = errText;
+              } catch (_) {}
+            }
+            console.warn('[Admin] Edge Function gemini-vision returned error:', errorDetail);
+            throw new Error(errorDetail || 'Ошибка Edge Function gemini-vision');
           }
         } catch (efErr) {
           console.warn('[Admin] Edge Function gemini-vision call failed:', efErr);
+          throw efErr;
         }
+      } else {
+        throw new Error('Подключение к Supabase недоступно. Убедитесь, что вы авторизованы как администратор.');
       }
 
-      // 2. Client-side fallback if API key is stored in localStorage
       if (!parsed) {
-        const apiKey = localStorage.getItem('freshmarket_gemini_api_key');
-        if (!apiKey) {
-          this.openSettingsModal(true);
-          throw new Error('API ключ Gemini не настроен ни в Supabase Edge Function, ни локально');
-        }
-
-        const prompt = `You are an expert botanist, food specialist, and market produce expert specializing in fresh produce, ingredients, seafood, meats, herbs, fruits, and mushrooms found in Southeast Asian morning markets.
-Analyze the food product in this image and return a JSON object with:
-- "name_en": Clear English name of the product (e.g. "Chicken Drumsticks", "Lemongrass", "Garlic", "Crab", "Bitter Gourd").
-- "name_ru": Clear Russian name of the product (e.g. "Куриные голени", "Лемонграсс", "Чеснок", "Краб", "Горькая тыква").
-- "name_kh": Authentic Khmer script name followed by pronunciation transcription in English in brackets (e.g. "ភ្លៅមាន់ (Phlov Moan)", "ស្លឹកគ្រៃ (Sloek Krey)", "ខ្ទឹមស (Khtem Sor)").
-- "category": MUST be one of these exact 9 categories:
-  ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Грибы"]
-- "form": The form/state of the item, MUST be one of:
-  ["Целый", "Пучок", "Корень", "Стручок", "Нарезка", "Филе", "Фарш", "Очищенный", "Сушеный", "Молотый", "Паста", "Маринованный", "Замороженный", "Бутылка"]. For bottled/jarred sauces, oils, soy/fish sauce and liquid condiments in "Соусы и бакалея", use "Бутылка" (or "Паста" for thick pastes). NEVER use "Жидкий" or "Соус".
-- "description": Short helpful description in Russian (1-2 sentences about taste, culinary use, or how to pick it at the market).
-
-Return ONLY raw valid JSON, no markdown code block fences.`;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelToUse)}:generateContent`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: prompt },
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data
-                  }
-                }
-              ]
-            }],
-            generationConfig: {
-              temperature: 0.2,
-              response_mime_type: "application/json"
-            }
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errMsg = errorData.error?.message || `Ошибка API Gemini (${response.status})`;
-          throw new Error(errMsg);
-        }
-
-        const result = await response.json();
-        const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!textResponse) {
-          throw new Error('Пустой ответ от Gemini');
-        }
-
-        try {
-          const cleanText = textResponse.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-          parsed = JSON.parse(cleanText);
-        } catch (e) {
-          console.error('Failed to parse Gemini JSON response:', textResponse);
-          throw new Error('Не удалось разобрать ответ ИИ');
-        }
+        throw new Error('Не удалось получить результат от Edge Function gemini-vision');
       }
 
       // Check against local dictionary for exact authentic names if matching (Dictionary has top priority)
