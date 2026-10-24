@@ -10,31 +10,6 @@
 const APP_VERSION = '1.5.5';
 window.APP_VERSION = APP_VERSION;
 
-// Defensive fallbacks for sanitizeUrl and generateUUID (provided by js/shared/utils.js)
-if (typeof sanitizeUrl !== 'function') {
-  window.sanitizeUrl = function (url) {
-    if (!url || typeof url !== 'string') return '';
-    const clean = url.trim();
-    if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
-      return clean.replace(/"/g, '&quot;');
-    }
-    return '';
-  };
-}
-
-if (typeof generateUUID !== 'function') {
-  window.generateUUID = function () {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      try { return crypto.randomUUID(); } catch (e) {}
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-      const r = (Math.random() * 16) | 0;
-      const v = c === 'x' ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  };
-}
-
 // Shared product categories from categories.js (excluding 'all' used only for storefront filtering)
 const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESHMARKET_CATEGORIES.length > 0)
   ? window.FRESHMARKET_CATEGORIES.filter(c => c.id !== 'all')
@@ -577,8 +552,8 @@ function isValidSupabaseUrl(url) {
 }
 
 function getActiveStorage() {
-  const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL || '';
-  const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY || '';
+  const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
+  const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
   const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
   const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
   const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;

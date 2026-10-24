@@ -12,8 +12,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-window.DEFAULT_SUPABASE_URL = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL;
-window.DEFAULT_SUPABASE_KEY = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY;
+
 
 class AdminAuth {
   constructor() {
@@ -41,8 +40,8 @@ class AdminAuth {
   }
 
   initSupabase() {
-    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || window.DEFAULT_SUPABASE_URL;
-    const sbKey = localStorage.getItem('freshmarket_supabase_key') || window.DEFAULT_SUPABASE_KEY;
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || window.FreshMarketConfig?.SUPABASE_URL || '';
+    const sbKey = localStorage.getItem('freshmarket_supabase_key') || window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
     if (sbUrl && sbKey && window.supabase) {
       try {
         this.sb = window.supabase.createClient(sbUrl, sbKey, {

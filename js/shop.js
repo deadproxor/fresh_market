@@ -127,8 +127,8 @@ class ShopApp {
   // 1. Supabase Initialization
   // ------------------------------------------------------------------------
   initSupabase() {
-    const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || window.DEFAULT_SUPABASE_URL || '';
-    const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || window.DEFAULT_SUPABASE_KEY || '';
+    const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
+    const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
     const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
     const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
     if (sbUrl && sbKey && window.supabase) {
@@ -4396,12 +4396,7 @@ class ShopApp {
     if (typeof window.sanitizeUrl === 'function') {
       return window.sanitizeUrl(url);
     }
-    if (!url || typeof url !== 'string') return '';
-    const clean = url.trim();
-    if (/^(https?:\/\/|\/|\.\/|\.\.\/|data:image\/)/i.test(clean)) {
-      return clean.replace(/"/g, '&quot;');
-    }
-    return '';
+    return (url && typeof url === 'string') ? url.trim().replace(/"/g, '&quot;') : '';
   }
 
   declension(number, titles) {
