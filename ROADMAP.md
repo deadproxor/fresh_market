@@ -1185,6 +1185,7 @@ flowchart TD
   * Полный переход на Zero-Secret клиентскую архитектуру для AI Vision: удаление поля `settingApiKey` из панели настроек, самоочистка `freshmarket_gemini_api_key` из `localStorage`, исключение ключей из экспорта/импорта бэкапов и удаление рудиментного клиентского fallback-кода (ключ хранится строго в Supabase Vault).
   * Ужесточение CORS-политики Edge Functions (`supabase/functions/_shared/cors.ts`): полная ликвидация wildcard `*.github.io` и `*`, строгий белый список (`http://localhost:3030`, `http://127.0.0.1:3030`, `https://deadproxor.github.io`).
   * Безопасность CI/CD (`.github/workflows/deploy-edge-functions.yml`): пиннинг Actions по неизменяемым commit SHA (`actions/checkout@11bd7190...`, `supabase/setup-cli@1dedf2c6...`), нулевые глобальные права `permissions: {}` с точечным `contents: read`, закрепление версии CLI через `env.SUPABASE_CLI_VERSION`.
+  * Полная очистка персональных данных при выходе (Privacy Logout): удаление имени, телефона, мессенджера, адреса, недавних гео-точек и истории локальных заказов из `localStorage` с очисткой полей ввода и сбросом корзины.
   * Обновление Service Worker cache до `freshmarket-shop-v1.5.5` / `freshmarket-admin-v1.5.5` и версионирования скриптов.
 * [ ] **Telegram Bot Webhook:** мгновенные уведомления закупщику о новых заказах.
 * [ ] **Аналитика и учет цен:** графики динамики цен на утреннем рынке по сезонам, расчет маржинальности.

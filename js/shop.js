@@ -620,15 +620,7 @@ class ShopApp {
     }
 
     if (this.btnShopHeaderLogout) {
-      this.btnShopHeaderLogout.addEventListener('click', async () => {
-        localStorage.removeItem('freshmarket_cart_synced_user');
-        localStorage.removeItem('freshmarket_user_profile');
-        if (this.sb) await this.sb.auth.signOut();
-        this.currentUser = null;
-        this.userProfile = null;
-        this.updateUserAvatar();
-        this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
-      });
+      this.btnShopHeaderLogout.addEventListener('click', () => this.handleCustomerLogout());
     }
 
     // Product Bottom Sheet & Floating Bar listeners
@@ -3672,21 +3664,8 @@ class ShopApp {
     });
 
     // Logout click handler
-    document.getElementById('btnLogout')?.addEventListener('click', async () => {
-      localStorage.removeItem('freshmarket_cart_synced_user');
-      localStorage.removeItem('freshmarket_user_profile');
-      if (this.profileMap) {
-        try { this.profileMap.remove(); } catch (_) {}
-        this.profileMap = null;
-        this.profileCustomerMarker = null;
-        this.profileRoutePolyline = null;
-      }
-      if (this.sb) await this.sb.auth.signOut();
-      this.currentUser = null;
-      this.userProfile = null;
-      this.updateUserAvatar();
-      this.renderProfileView();
-      this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
+    document.getElementById('btnLogout')?.addEventListener('click', () => {
+      this.handleCustomerLogout();
     });
 
     // OAuth Login click handlers
@@ -3722,6 +3701,114 @@ class ShopApp {
       this.initProfileMiniMap();
       this.setupProfileLocationHandlers();
     }
+  }
+
+  async handleCustomerLogout() {
+    // 1. Sign out from Supabase Auth
+    if (this.sb) {
+      try {
+        await this.sb.auth.signOut();
+      } catch (err) {
+        console.warn('[FreshMarket Shop] SignOut error:', err);
+      }
+    }
+
+    // 2. Clear all customer personal data, session tokens and order history from localStorage
+    const customerKeysToRemove = [
+      'freshmarket_customer_auth',
+      'freshmarket_user_profile',
+      'freshmarket_cart_synced_user',
+      'freshmarket_customer_phone',
+      'freshmarket_customer_messenger',
+      'freshmarket_customer_address',
+      'freshmarket_customer_address_name',
+      'freshmarket_default_address',
+      'freshmarket_recent_addresses',
+      'freshmarket_my_orders',
+      'freshmarket_cart',
+      'freshmarket_cart_updated_at',
+      'freshmarket_pending_sync_orders',
+      'freshmarket_last_order_timestamp'
+    ];
+    customerKeysToRemove.forEach((k) => localStorage.removeItem(k));
+
+    // 3. Reset in-memory application state
+    this.currentUser = null;
+    this.userProfile = null;
+    this.cart = [];
+    this.deliveryDistanceKm = 0;
+    this.deliveryFee = 0;
+    this.currentDeliveryZone = null;
+    this.currentDeliveryFee = null;
+    this.isCartAddressCustomized = false;
+    this._lastCheckoutCoordsKey = null;
+    this._lastProfileCoordsKey = null;
+
+    // 4. Reset Profile Map & Leaflet Markers
+    if (this.profileMap) {
+      try { this.profileMap.remove(); } catch (_) {}
+      this.profileMap = null;
+      this.profileCustomerMarker = null;
+      this.profileRoutePolyline = null;
+    }
+    if (this.checkoutCustomerMarker && this.checkoutMap) {
+      try {
+        this.checkoutMap.removeLayer(this.checkoutCustomerMarker);
+      } catch (_) {}
+      this.checkoutCustomerMarker = null;
+    }
+    if (this.checkoutRoutePolyline && this.checkoutMap) {
+      try {
+        this.checkoutMap.removeLayer(this.checkoutRoutePolyline);
+      } catch (_) {}
+      this.checkoutRoutePolyline = null;
+    }
+    if (this.checkoutMap) {
+      const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+      try {
+        this.checkoutMap.setView([marketCoords.lat, marketCoords.lng], 13);
+      } catch (_) {}
+    }
+
+    // 5. Reset inputs in Cart and Profile DOM
+    const inputIdsToClear = [
+      'cartPhone',
+      'cartAddress',
+      'cartAddressName',
+      'cartComment',
+      'profilePhone',
+      'profileAddress',
+      'profileAddressName'
+    ];
+    inputIdsToClear.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    // 6. Reset UI components
+    this.syncCartAddressPresetPills('');
+    const recentContainer = document.getElementById('recentLocationsContainer');
+    if (recentContainer) recentContainer.style.display = 'none';
+    const recentList = document.getElementById('recentLocationsList');
+    if (recentList) recentList.innerHTML = '';
+
+    // 7. Update Cart, Orders and Header UI
+    this.updateCartCountBadge();
+    this.updateFloatingCartBar();
+    this.updateHeaderUi();
+
+    if (this.currentView === 'orders') {
+      this.switchView('catalog');
+    } else if (this.currentView === 'cart') {
+      this.renderCartModalList();
+      this.prefillCheckoutData();
+    } else if (this.currentView === 'profile') {
+      this.renderProfileView();
+    } else {
+      this.renderProfileView();
+    }
+
+    this.showToast(window.i18n ? window.i18n.t('toasts.logged_out') : 'Вы вышли из профиля');
   }
 
   initProfileMiniMap() {
