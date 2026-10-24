@@ -130,7 +130,7 @@
     "price_usd_placeholder": "ឧ. 1.50",
     "unit_field_placeholder": "ឧ. ១ គីឡូ, ១ ផ្លែ",
     "price_field_placeholder": "ឧ. 6000 (ទុកនៅទំនេរសម្រាប់ n/a)",
-    "price_rate_hint": "≈ ${usd} (អត្រាប្តូរប្រាក់ 1 USD = {rate} KHR)",
+    "price_rate_hint": "≈ {khr} ៛ (អត្រាប្តូរប្រាក់ 1 USD = {rate} KHR)",
     "sheet_title": "ការជ្រើសរើសទំនិញ",
     "comment_label": "បំណងប្រាថ្នាសម្រាប់អ្នកទិញ",
     "comment_placeholder": "ឧ. ទុំល្អ ទំហំមធ្យម ធ្វើស្អាត",

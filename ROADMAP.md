@@ -1187,7 +1187,10 @@ flowchart TD
   * Безопасность CI/CD (`.github/workflows/deploy-edge-functions.yml`): пиннинг Actions по неизменяемым commit SHA (`actions/checkout@11bd7190...`, `supabase/setup-cli@1dedf2c6...`), нулевые глобальные права `permissions: {}` с точечным `contents: read`, закрепление версии CLI через `env.SUPABASE_CLI_VERSION`.
   * Полная очистка персональных данных при выходе (Privacy Logout): удаление имени, телефона, мессенджера, адреса, недавних гео-точек и истории локальных заказов из `localStorage` с очисткой полей ввода и сбросом корзины.
   * Ликвидация защитных дубликатов (Deduplication): удаление повторных объявлений `sanitizeUrl`, `generateUUID` и `DEFAULT_SUPABASE_*` из `admin-catalog.js`, `admin-auth.js` и `shop.js` с прямым использованием канонических функций из `js/shared/utils.js`.
-  * Обновление Service Worker cache до `freshmarket-shop-v1.5.5` / `freshmarket-admin-v1.5.5` и версионирования скриптов.
+  * Выравнивание локализации цен: синхронизация плейсхолдера `{khr}` в ключе `product.price_rate_hint` по всем 5 локалям (`en.json`, `fr.json`, `km.json`, `ru.json`, `ua.json`) для корректного отображения суммы в риелях.
+  * Переход на языконезависимые категории в БД (Language-Agnostic Categories): автоматическая нормализация категорий товаров в английские slug-и (`vegetables`, `fruits`, `herbs`, etc.) при сохранении в админке, поддержка обоих форматов в интерфейсах и SQL-миграция (`20261024000000_normalize_product_categories_to_slugs.sql`).
+  * Надежное удаление товара в БД по ID: подключен `FreshMarketConfig` fallback в `deleteProductEverywhere()`, удаление в Supabase сделано первоочередным и строгим (Fail-Fast) с верификацией затронутых строк по первичному ключу ID (удаляется строго выбранный экземпляр).
+  * Обновление Service Worker cache до `freshmarket-shop-v1.5.5` / `freshmarket-admin-v1.5.6` и версионирования скриптов.
 * [ ] **Telegram Bot Webhook:** мгновенные уведомления закупщику о новых заказах.
 * [ ] **Аналитика и учет цен:** графики динамики цен на утреннем рынке по сезонам, расчет маржинальности.
 

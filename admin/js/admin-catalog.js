@@ -23,8 +23,14 @@ const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESH
     { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
     { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
     { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
-    { id: 'other', name: 'Другое', icon: '📦' }
   ];
+
+function normalizeCategoryToSlug(cat) {
+  if (!cat || typeof cat !== 'string') return 'other';
+  const trimmed = cat.trim();
+  const found = CATEGORIES.find(c => c.id === trimmed || c.name.toLowerCase() === trimmed.toLowerCase());
+  return found ? found.id : 'other';
+}
 
 const FORMS = (window.FRESHMARKET_FORMS ? [...window.FRESHMARKET_FORMS] : [
   { id: 'whole', label: 'Целый' },
@@ -528,6 +534,11 @@ class SupabaseAdapter {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || `Supabase error: ${res.statusText}`);
     }
+    const data = await res.json().catch(() => null);
+    if (Array.isArray(data) && data.length === 0) {
+      throw new Error('Товар не найден в базе данных или недостаточно прав для удаления (требуется сессия администратора)');
+    }
+    return data;
   }
 
   async testConnection() {
@@ -2762,7 +2773,7 @@ class App {
       name_en: nameEn,
       name_ru: nameRu,
       name_kh: nameKh,
-      category: category,
+      category: normalizeCategoryToSlug(category),
       form: form,
       price: finalKhrPrice,
       unit: unit,
@@ -2858,18 +2869,11 @@ class App {
   async deleteProductEverywhere(id, product = null) {
     const errors = [];
 
-    // 1. Always delete from LocalStorage
-    try {
-      const localAdapter = new LocalStorageAdapter();
-      await localAdapter.delete(id);
-    } catch (localErr) {
-      console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
-      errors.push(`LocalStorage: ${localErr.message || localErr}`);
-    }
-
-    // 2. If Supabase credentials are configured, delete from Supabase strictly by primary key ID
-    const sbUrl = localStorage.getItem('freshmarket_supabase_url');
-    const sbKey = localStorage.getItem('freshmarket_supabase_key');
+    // 1. Delete from Supabase FIRST strictly by primary key ID
+    const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
+    const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
+    const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
+    const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
     if (sbUrl && sbKey) {
       try {
         const sb = new SupabaseAdapter(sbUrl, sbKey);
@@ -2880,9 +2884,18 @@ class App {
       }
     }
 
-    // If database or storage deletion failed, abort before deleting media assets
+    // If database deletion failed, abort immediately before deleting locally or from media
     if (errors.length > 0) {
       throw new Error(errors.join('; '));
+    }
+
+    // 2. Delete from LocalStorage
+    try {
+      const localAdapter = new LocalStorageAdapter();
+      await localAdapter.delete(id);
+    } catch (localErr) {
+      console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
+      errors.push(`LocalStorage: ${localErr.message || localErr}`);
     }
 
     // 3. If product has an image hosted on Cloudinary, delete it from Cloudinary ONLY if no other product uses it
@@ -3072,7 +3085,7 @@ class App {
     });
 
     CATEGORIES.forEach(cat => {
-      const count = countMap[cat.name] || 0;
+      const count = (countMap[cat.name] || 0) + (countMap[cat.id] || 0);
       const pill = document.createElement('div');
       pill.className = 'category-stat-pill';
       pill.innerHTML = `
@@ -3110,7 +3123,11 @@ class App {
         <div class="recent-info">
           <div class="recent-name-en">${this.escapeHtml(item.name_en)}</div>
           ${item.name_kh ? `<div class="recent-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
-          <div class="recent-name-ru">${this.escapeHtml(item.name_ru)} • <span class="recent-cat">${this.escapeHtml(item.category)}</span></div>
+          ${(() => {
+            const catObj = CATEGORIES.find(c => c.name === item.category || c.id === item.category);
+            const catDisplayName = catObj ? catObj.name : (item.category || '');
+            return `<div class="recent-name-ru">${this.escapeHtml(item.name_ru)} • <span class="recent-cat">${this.escapeHtml(catDisplayName)}</span></div>`;
+          })()}
         </div>
         ${item.img_url ? `<img src="${sanitizeUrl(item.img_url)}" class="recent-img" alt="${this.escapeHtml(item.name_en)}" />` : ''}
       `;
@@ -3151,7 +3168,12 @@ class App {
 
     // Filter by Category
     if (this.activeFilterCategory !== 'all') {
-      list = list.filter(p => p.category === this.activeFilterCategory);
+      const selectedCatObj = CATEGORIES.find(c => c.name === this.activeFilterCategory || c.id === this.activeFilterCategory);
+      if (selectedCatObj) {
+        list = list.filter(p => p.category === selectedCatObj.name || p.category === selectedCatObj.id);
+      } else {
+        list = list.filter(p => p.category === this.activeFilterCategory);
+      }
     }
 
     // Filter by Search Query
@@ -3178,7 +3200,7 @@ class App {
       container.className = 'swipe-container';
       container.setAttribute('data-id', item.id);
 
-      const catObj = CATEGORIES.find(c => c.name === item.category);
+      const catObj = CATEGORIES.find(c => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
 
       container.innerHTML = `
@@ -3212,7 +3234,7 @@ class App {
           <div class="card-collapsible-body">
             <!-- Badges (Category & Form - hidden in collapsed state) -->
             <div class="card-badges">
-              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}"><span class="badge-cat-icon">${catIcon}</span> <span class="badge-cat-name">${this.escapeHtml(item.category)}</span></span>
+              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}"><span class="badge-cat-icon">${catIcon}</span> <span class="badge-cat-name">${this.escapeHtml(catObj ? catObj.name : item.category)}</span></span>
               ${(() => {
                 const fInfo = getFormInfo(item.form);
                 if (!fInfo || !fInfo.label) return '';
@@ -3504,7 +3526,7 @@ class App {
         <div class="form-group">
           <label class="field-label">3. Категория <span class="req-star">*</span></label>
           <select id="editCategory" class="text-input select-input" required>
-            ${CATEGORIES.map(c => `<option value="${c.name}" ${c.name === item.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+            ${CATEGORIES.map(c => `<option value="${c.name}" ${c.name === item.category || c.id === item.category ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
           </select>
         </div>
 
@@ -3734,7 +3756,7 @@ class App {
       const finalUnit = editUnitInput ? editUnitInput.value.trim() : '';
 
       const updatedData = {
-        category: finalCat,
+        category: normalizeCategoryToSlug(finalCat),
         name_en: nameEn,
         name_ru: nameRu,
         name_kh: finalNameKh,

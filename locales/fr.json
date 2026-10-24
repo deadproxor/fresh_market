@@ -130,7 +130,7 @@
     "price_usd_placeholder": "ex. : 1.50",
     "unit_field_placeholder": "ex. : 1 kg, 1 pc",
     "price_field_placeholder": "ex. : 6000 (laisser vide si n/d)",
-    "price_rate_hint": "≈ {usd} $ (taux de change 1 USD = {rate} KHR)",
+    "price_rate_hint": "≈ {khr} ៛ (taux de change 1 USD = {rate} KHR)",
     "sheet_title": "Sélection du produit",
     "comment_label": "Note pour l'acheteur",
     "comment_placeholder": "Ex. mûr, taille moyenne, nettoyé",

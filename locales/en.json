@@ -130,7 +130,7 @@
     "price_usd_placeholder": "e.g. 1.50",
     "unit_field_placeholder": "e.g. 1 kg, 1 pc",
     "price_field_placeholder": "e.g. 6000 (leave empty for n/a)",
-    "price_rate_hint": "≈ ${usd} (exchange rate 1 USD = {rate} KHR)",
+    "price_rate_hint": "≈ {khr} ៛ (exchange rate 1 USD = {rate} KHR)",
     "sheet_title": "Product Options",
     "comment_label": "Note for picker",
     "comment_placeholder": "e.g. ripe, medium size, cleaned",
