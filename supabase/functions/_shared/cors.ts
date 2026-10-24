@@ -7,18 +7,16 @@ const ALLOWED_ORIGINS = [
 
 export function getCorsHeaders(req?: Request): Record<string, string> {
   const origin = req?.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.github.io');
-  const allowOrigin = isAllowed ? origin : (ALLOWED_ORIGINS[0] || '*');
+  const isAllowed = ALLOWED_ORIGINS.includes(origin);
 
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
+  const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
-}
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
-};
+  if (isAllowed) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+
+  return headers;
+}
