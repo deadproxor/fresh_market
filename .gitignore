@@ -10,3 +10,6 @@ branding/
 sync_tool/
 components.html
 
+# Internal security audits and reviews
+*audit*.md
+FreshMarket-audit-*.md

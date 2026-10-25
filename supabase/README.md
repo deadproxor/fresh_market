@@ -50,7 +50,7 @@ supabase functions deploy gemini-vision --project-ref qifazsptdgcskrchfocc
 
 ### Способ Б. Автоматическое развертывание через GitHub Actions:
 
-В репозитории настроен workflow [`.github/workflows/deploy-edge-functions.yml`](file:///.github/workflows/deploy-edge-functions.yml), который автоматически деплоит функции при пуше в ветки `feature/beta` и `main` при изменении файлов в каталоге `supabase/functions/`.
+В репозитории настроен workflow [`.github/workflows/deploy-edge-functions.yml`](../.github/workflows/deploy-edge-functions.yml), который автоматически деплоит функции при пуше в ветки `feature/beta` и `main` при изменении файлов в каталоге `supabase/functions/`.
 
 Для работы деплоя добавьте в репозитории GitHub (*Settings -> Secrets and variables -> Actions*):
 * `SUPABASE_ACCESS_TOKEN` — персональный токен из [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens).
@@ -62,7 +62,7 @@ supabase functions deploy gemini-vision --project-ref qifazsptdgcskrchfocc
 
 ## 3. Обратная совместимость клиента (Graceful Fallback)
 
-Клиентский код админки ([admin/js/admin-catalog.js](file:///Users/elwis/dev/FreshMarket/admin/js/admin-catalog.js)) настроен по принципу **Edge Function First**:
+Клиентский код админки ([admin/js/admin-catalog.js](../admin/js/admin-catalog.js)) настроен по принципу **Edge Function First**:
 - Сначала отправляется запрос в Supabase Edge Function (`this.sb.functions.invoke(...)`).
 - Если функция еще не развернута или возвращает ошибку, админка мягко использует локальные настройки из `localStorage` (если они заданы закупщиком вручную).
 - После развертывания функций ввод секретов в браузере больше не требуется.
@@ -80,7 +80,8 @@ supabase/migrations/
 ├── 20261020000000_hardening_v4.sql           # Rate Limiting, таймзона UTC+7, cart_updated_at, Realtime, зачистка RLS
 ├── 20261023000000_idempotent_order_creation.sql # Идемпотентность create_order(), возврат существующего заказа до rate limit
 ├── 20261023010000_protect_profile_role_on_insert.sql # Защита роли profiles.role при INSERT и UPDATE, аудит прав
-└── 20261023020000_server_side_delivery_zone_calculation.sql # Серверный расчет зоны доставки по координатам, защита тарифов
+├── 20261023020000_server_side_delivery_zone_calculation.sql # Серверный расчет зоны доставки по координатам, защита тарифов
+└── 20261024000000_normalize_product_categories_to_slugs.sql # Нормализация категорий товаров в языконезависимые slug-и
 ```
 
 ### Применение миграций:
@@ -99,5 +100,5 @@ supabase db push
 1. Выполнить `20261017000000_initial_schema.sql` (создание таблиц, типов и триггеров).
 2. Выполнить `20261018000000_security_hardening.sql` (активация RLS, ограничение прямого INSERT, RPC `create_order`).
 
-Подробное руководство по бизнес-логике и настройке авторизации сохранено в [SUPABASE_SETUP.md](file:///Users/elwis/dev/FreshMarket/SUPABASE_SETUP.md).
+Подробное руководство по бизнес-логике и настройке авторизации сохранено в [SUPABASE_SETUP.md](../SUPABASE_SETUP.md).
 

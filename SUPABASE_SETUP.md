@@ -25,14 +25,15 @@
 ## 2. Структура миграций и SQL Скрипты
 
 > 💡 **Рекомендуемый способ управления базой данных (v1.5.0+):**  
-> Все изменения схемы базы данных и политик RLS версионируются в каталоге [`supabase/migrations/`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/):
-> * [`supabase/migrations/20261017000000_initial_schema.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261017000000_initial_schema.sql) — базовые таблицы (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры нумерации и создания профилей.
-> * [`supabase/migrations/20261018000000_security_hardening.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261018000000_security_hardening.sql) — активация RLS, функции `is_admin()`, триггер защиты ролей `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, очистка устаревших политик.
-> * [`supabase/migrations/20261020000000_hardening_v4.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261020000000_hardening_v4.sql) — комплексное усиление по Аудиту v4: динамическая зачистка политик, унификация роли `admin`, Rate Limiting в `create_order()`, таймзона UTC+7, колонка `cart_updated_at` и Realtime публикация.
-> * [`supabase/migrations/20261023000000_idempotent_order_creation.sql`](file:///Users/elwis/dev/FreshMarket/supabase/migrations/20261023000000_idempotent_order_creation.sql) — идемпотентность `create_order()`: проверка и немедленный возврат существующего заказа по `p_order_id` до проверок rate limit и лимита pending.
+> Все изменения схемы базы данных и политик RLS версионируются в каталоге [`supabase/migrations/`](supabase/migrations/):
+> * [`supabase/migrations/20261017000000_initial_schema.sql`](supabase/migrations/20261017000000_initial_schema.sql) — базовые таблицы (`products`, `orders`, `order_items`, `profiles`), индексы, триггеры нумерации и создания профилей.
+> * [`supabase/migrations/20261018000000_security_hardening.sql`](supabase/migrations/20261018000000_security_hardening.sql) — активация RLS, функции `is_admin()`, триггер защиты ролей `protect_profile_role()`, защищенная транзакционная RPC `create_order()`, очистка устаревших политик.
+> * [`supabase/migrations/20261020000000_hardening_v4.sql`](supabase/migrations/20261020000000_hardening_v4.sql) — комплексное усиление по Аудиту v4: динамическая зачистка политик, унификация роли `admin`, Rate Limiting в `create_order()`, таймзона UTC+7, колонка `cart_updated_at` и Realtime публикация.
+> * [`supabase/migrations/20261023000000_idempotent_order_creation.sql`](supabase/migrations/20261023000000_idempotent_order_creation.sql) — идемпотентность `create_order()`: проверка и немедленный возврат существующего заказа по `p_order_id` до проверок rate limit и лимита pending.
+> * [`supabase/migrations/20261024000000_normalize_product_categories_to_slugs.sql`](supabase/migrations/20261024000000_normalize_product_categories_to_slugs.sql) — нормализация категорий товаров в языконезависимые slug-и.
 >
 > 🔍 **Диагностический скрипт верификации базы данных:**  
-> Файл [`scripts/verify_database.sql`](file:///Users/elwis/dev/FreshMarket/scripts/verify_database.sql) содержит готовые запросы для SQL Editor для мгновенной проверки соответствия живой базы миграциям.
+> Файл [`scripts/verify_database.sql`](scripts/verify_database.sql) содержит готовые запросы для SQL Editor для мгновенной проверки соответствия живой базы миграциям.
 >
 > Миграции могут применяться автоматически через Supabase CLI (`supabase db push`) либо копированием содержимого файлов в **SQL Editor** консоли Supabase.
 
