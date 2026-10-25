@@ -1210,11 +1210,11 @@ class ShopApp {
         const catName = window.i18n ? window.i18n.t(`categories.${cat.id}`) : cat.name;
         return `
           <div class="category-card ${isActive}" data-category="${cat.id}">
-            <div class="cat-card-left">
+            ${count > 0 ? `<span class="cat-card-count">${count}</span>` : ''}
+            <div class="cat-card-icon-wrap">
               <span class="cat-card-icon">${cat.icon}</span>
-              <span class="cat-card-name">${catName}</span>
             </div>
-            <span class="cat-card-count">${count}</span>
+            <span class="cat-card-name">${catName}</span>
           </div>
         `;
       }).join('');

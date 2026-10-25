@@ -835,14 +835,130 @@ body {
 }
 
 /* Category Cards Grid & Tiles */
-.categories-grid,
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
 .categories-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
-.category-card,
+.category-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.category-card:hover {
+  border-color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.15);
+}
+
+.category-card:hover .cat-card-icon-wrap {
+  transform: scale(1.08);
+}
+
+.category-card:active {
+  transform: scale(0.96);
+}
+
+.category-card.active {
+  border-color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.14);
+  box-shadow: 0 0 0 1.5px var(--accent-emerald);
+}
+
+.cat-card-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  /*background: rgba(16, 185, 129, 0.08);*/
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.cat-card-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.cat-card-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+  text-align: center;
+  word-break: break-word;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cat-card-count {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  line-height: 1.4;
+}
+
+@media (max-width: 360px) {
+  .categories-grid {
+    gap: 6px;
+  }
+
+  .category-card {
+    padding: 8px 4px;
+    border-radius: var(--radius-md);
+  }
+
+  .cat-card-icon-wrap {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+  }
+
+  .cat-card-icon {
+    font-size: 24px;
+  }
+
+  .cat-card-name {
+    font-size: 11px;
+  }
+}
+
+/* Category Stat Pill (Admin) */
 .category-stat-pill {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -858,7 +974,6 @@ body {
   text-decoration: none;
 }
 
-.category-card:hover,
 .category-stat-pill:hover {
   border-color: var(--accent-emerald);
   background: rgba(16, 185, 129, 0.08);
@@ -866,12 +981,10 @@ body {
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.15);
 }
 
-.category-card:active,
 .category-stat-pill:active {
   transform: scale(0.97);
 }
 
-.category-card.active,
 .category-stat-pill.active {
   border-color: var(--accent-emerald);
   background: rgba(16, 185, 129, 0.14);
@@ -886,14 +999,12 @@ body {
   overflow: hidden;
 }
 
-.cat-card-icon,
 .cat-pill-icon {
   font-size: 28px;
   line-height: 1;
   flex-shrink: 0;
 }
 
-.cat-card-name,
 .cat-pill-name {
   font-size: 13.5px;
   font-weight: 700;
@@ -903,7 +1014,6 @@ body {
   text-overflow: ellipsis;
 }
 
-.cat-card-count,
 .cat-pill-count {
   font-size: 12px;
   font-weight: 700;
@@ -2922,6 +3032,7 @@ body.modal-open {
     transform: scale(0.92);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;

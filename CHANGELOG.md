@@ -1180,4 +1180,5 @@ flowchart TD
   * Выравнивание локализации цен: синхронизация плейсхолдера `{khr}` в ключе `product.price_rate_hint` по всем 5 локалям (`en.json`, `fr.json`, `km.json`, `ru.json`, `ua.json`) для корректного отображения суммы в риелях.
   * Переход на языконезависимые категории в БД (Language-Agnostic Categories): автоматическая нормализация категорий товаров в английские slug-и (`vegetables`, `fruits`, `herbs`, etc.) при сохранении в админке, поддержка обоих форматов в интерфейсах и SQL-миграция (`20261024000000_normalize_product_categories_to_slugs.sql`).
   * Надежное удаление товара в БД по ID: подключен `FreshMarketConfig` fallback в `deleteProductEverywhere()`, удаление в Supabase сделано первоочередным и строгим (Fail-Fast) с верификацией затронутых строк по первичному ключу ID (удаляется строго выбранный экземпляр).
-  * Обновление Service Worker cache до `freshmarket-shop-v1.5.5` / `freshmarket-admin-v1.5.6` и версионирования скриптов.
+  * 3-колоночные квадратные карточки категорий витрины (`shop.html`): адаптивная сетка `repeat(3, 1fr)`, строгие квадратные пропорции `aspect-ratio: 1 / 1`, крупные иконки в скругленных контейнерах `cat-card-icon-wrap` (30px), текстовые подписи снизу и аккуратный бейдж количества товаров.
+  * Обновление Service Worker cache до `freshmarket-shop-v1.5.6` / `freshmarket-admin-v1.5.6` и версионирования скриптов.
