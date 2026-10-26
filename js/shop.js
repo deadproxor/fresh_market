@@ -550,6 +550,8 @@ class ShopApp {
     this.viewProfile = document.getElementById('viewProfile');
 
     // Cart View Elements
+    this.cartEmptyState = document.getElementById('cartEmptyState');
+    this.cartSectionItems = document.getElementById('cartSectionItems');
     this.cartItemsList = document.getElementById('cartItemsList');
     this.checkoutForm = document.getElementById('checkoutForm');
     this.cartAuthGate = document.getElementById('cartAuthGate');
@@ -1999,28 +2001,30 @@ class ShopApp {
   }
 
   renderCartModalList() {
-    if (!this.cartItemsList) return;
     const items = Object.values(this.cart);
+    const emptyState = this.cartEmptyState || document.getElementById('cartEmptyState');
+    const itemsSection = this.cartSectionItems || document.getElementById('cartSectionItems');
 
     if (items.length === 0) {
-      const emptyTitle = window.i18n ? window.i18n.t('cart.empty_title') : 'Корзина пуста';
-      const emptyDesc = window.i18n ? window.i18n.t('cart.empty_desc') : 'Выберите свежие продукты на витрине';
-      const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
-      this.cartItemsList.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">🛒</div>
-          <div class="empty-title">${emptyTitle}</div>
-          <div class="empty-desc">${emptyDesc}</div>
-          <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog">${toCatalogBtn}</button>
-        </div>
-      `;
-      document.getElementById('btnCartEmptyToCatalog')?.addEventListener('click', () => {
-        this.switchView('catalog');
-      });
+      if (emptyState) {
+        emptyState.style.display = 'flex';
+        const btn = document.getElementById('btnCartEmptyToCatalog');
+        if (btn && !btn._hasClickListener) {
+          btn.addEventListener('click', () => {
+            this.switchView('catalog');
+          });
+          btn._hasClickListener = true;
+        }
+      }
+      if (itemsSection) itemsSection.style.display = 'none';
+      if (this.cartItemsList) this.cartItemsList.innerHTML = '';
       if (this.checkoutForm) this.checkoutForm.style.display = 'none';
       if (this.cartAuthGate) this.cartAuthGate.style.display = 'none';
       return;
     }
+
+    if (emptyState) emptyState.style.display = 'none';
+    if (itemsSection) itemsSection.style.display = '';
 
     const isAuth = this.isUserAuthenticated();
     if (!isAuth) {

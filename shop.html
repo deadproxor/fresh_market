@@ -38,8 +38,8 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.5.10" />
-  <link rel="stylesheet" href="css/shop.css?v=1.5.10" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.11" />
+  <link rel="stylesheet" href="css/shop.css?v=1.5.11" />
   <script src="js/shared/utils.js?v=1.5.7"></script>
   <script src="js/shared/categories.js?v=1.5.10"></script>
   <script src="js/shared/forms.js?v=1.5.0"></script>
@@ -227,6 +227,14 @@
       <section class="shop-view-page" id="viewCart" style="display: none;">
         <div class="view-page-header">
           <h2 class="view-page-title" data-i18n="cart.modal_title">Корзина заказа</h2>
+        </div>
+
+        <!-- 0. Standalone Cart Empty State (Shown when cart is empty, avoiding nested card) -->
+        <div id="cartEmptyState" class="empty-state" style="display: none;">
+          <div class="empty-icon">🛒</div>
+          <div class="empty-title" data-i18n="cart.empty_title">Корзина пока пуста</div>
+          <div class="empty-desc" data-i18n="cart.empty_desc">Выберите свежие продукты на витрине</div>
+          <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog" data-i18n="nav.catalog">Перейти в каталог 🛍️</button>
         </div>
 
         <!-- 1. Cart Auth Gate (Shown when NOT logged in, placed FIRST above items) -->
@@ -591,7 +599,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.5.10"></script>
+  <script src="js/shop.js?v=1.5.11"></script>
 </body>
 
 </html>

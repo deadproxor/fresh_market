@@ -2392,6 +2392,17 @@ body {
   margin-top: 18px;
 }
 
+/* Seamless integration when placed inside container cards */
+.settings-section .empty-state,
+.card .empty-state,
+.component-box .empty-state {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 24px 16px;
+}
+
 /* ==========================================================================
    8. BOTTOM NAVIGATION BAR (FLOATING ISLAND DOCK)
    ========================================================================== */
