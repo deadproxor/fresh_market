@@ -467,3 +467,27 @@
 .cat-card-count {
   display: none !important;
 }
+
+/* Category Cards Icon Constraints (Safety Fallback) */
+.cat-card-brand-img {
+  width: 50px !important;
+  height: 50px !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  display: block !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+.cat-card-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}

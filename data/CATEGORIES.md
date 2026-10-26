@@ -1,4 +1,4 @@
-# Каталог продуктов Samaki Market (Кампот, Камбоджа)
+# Каталог продуктов FreshMarket
 
 Справочник свежих рыночных продуктов с аутентичными кхмерскими названиями, английской транскрипцией и категориями для FreshMarket.
 
@@ -49,7 +49,7 @@
 * **Джекфрут** — *Jackfruit* — **ខ្នុរ (Khnor)**
 * **Папайя спелая** — *Ripe Papaya* — **ល្ហុងទុំ (Lhong Tum)**
 * **Папайя зеленая** — *Green Papaya* — **ល្ហុងខ្ចី (Lhong Kchey)**
-* **Ананас (кампотский сорт)** — *Pineapple* — **ម្នាស់ (Mnoas)**
+* **Ананас сладкий** — *Pineapple* — **ម្នាស់ (Mnoas)**
 * **Сахарное яблоко / Нойна** — *Sugar Apple / Sweetsop* — **ផ្លែទៀប (Plae Tieb)**
 * **Помело** — *Pomelo* — **ក្រូចថ្លុង (Kroch Thlong)**
 * **Гуава** — *Guava* — **ត្របែក (Trobaek)**
@@ -127,7 +127,7 @@
 * **Паста карри Амок / Крёнг** — *Amok Curry Paste / Kroeung* — **គ្រឿងអាម៉ុក (Kreung Amok)**
 * **Тамаринд паста / мякоть** — *Tamarind Paste* — **សាច់អំពិល (Sach Ampil)**
 * **Пальмовый сахар камбоджийский** — *Cambodian Palm Sugar* — **ស្ករត្នោត (Skor Thnot)**
-* **Морская соль Кампот** — *Kampot Sea Salt* — **អំបិលកំពត (Ambel Kampot)**
+* **Морская соль натуральная** — *Natural Sea Salt* — **អំបិលសមុទ្រ (Ambel Samut)**
 * **Рыбный соус** — *Fish Sauce* — **ទឹកត្រី (Teuk Trei)**
 * **Соевый соус** — *Soy Sauce* — **ទឹកស៊ីអ៊ីវ (Teuk Si Iv)**
 * **Устричный соус** — *Oyster Sauce* — **ប្រេងខ្យង (Preng Khyang)**
@@ -145,3 +145,19 @@
 
 ## 🍄 9. Грибы (Mushrooms)
 * **Грибы соломенные / вешенки** — *Straw Mushrooms / Oyster Mushrooms* — **ផ្សិតចំបើង (Pset Chamboeng)**
+
+---
+
+## 🍯 10. Домашние продукты (Homemade Products)
+* **Домашняя паста Крёнг / Карри** — *Homemade Kroeung Curry Paste* — **គ្រឿងបុកនៅផ្ទះ (Kroeung Bok Nov Phteah)**
+* **Вяленые бананы домашней сушки** — *Sun-Dried Homemade Bananas* — **ចេកហាល (Chek Hal)**
+* **Маринованные огурцы / овощи по-домашнему** — *Homemade Pickled Vegetables* — **ជ្រក់ត្រសក់ / ជ្រក់បន្លែ (Chrouk Trosork / Chrouk Banlae)**
+* **Домашний чесночный чили-соус** — *Homemade Garlic Chili Sauce* — **ទឹកម្ទេសខ្ទឹម (Teuk Mtes Khtem)**
+* **Домашние маринованные перепелиные яйца** — *Pickled Quail Eggs* — **ពងក្រួចជ្រក់ (Pong Krouch Chrouk)**
+* **Варенье / Джем из манго** — *Homemade Mango Jam* — **ដំណាប់ស្វាយ (Damnab Svay)**
+* **Кокосовые чипсы домашние** — *Homemade Coconut Chips* — **ដូងលីង (Doung Leng)**
+
+---
+
+## 📦 11. Другое (Other)
+* **Упаковка / Хозтовары / Сопутствующее** — *Packaging & Household Essentials* — **ផ្សេងៗ (Psen Psen)**

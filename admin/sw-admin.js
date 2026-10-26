@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline market resilience
  */
 
-const CACHE_NAME = 'freshmarket-admin-v1.5.6';
+const CACHE_NAME = 'freshmarket-admin-v1.5.10';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
@@ -18,7 +18,19 @@ const STATIC_ASSETS = [
   '../data/forms.json',
   '../data/products_dictionary.json',
   '../assets/icon-192.svg',
-  '../assets/icon-512.svg'
+  '../assets/icon-512.svg',
+  '../assets/categories/all.png',
+  '../assets/categories/vegetables.png',
+  '../assets/categories/roots_tubers.png',
+  '../assets/categories/fruits.png',
+  '../assets/categories/herbs.png',
+  '../assets/categories/spices_roots.png',
+  '../assets/categories/seafood.png',
+  '../assets/categories/meat.png',
+  '../assets/categories/sauces.png',
+  '../assets/categories/mushrooms.png',
+  '../assets/categories/homemade.png',
+  '../assets/categories/other.png'
 ];
 
 self.addEventListener('install', (event) => {

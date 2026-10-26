@@ -14,20 +14,23 @@ const FAB_ICONS = {
   trash: `<svg class="fab-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`
 };
 
-// Categories Configuration with Emojis (synced with app.js)
-const CATEGORIES = [
-  { id: 'all', name: 'Все', icon: '🧺' },
-  { id: 'vegetables', name: 'Овощи', icon: '🥦' },
-  { id: 'roots_tubers', name: 'Корнеплоды', icon: '🥔' },
-  { id: 'fruits', name: 'Фрукты', icon: '🥭' },
-  { id: 'herbs', name: 'Зелень и травы', icon: '🌿' },
-  { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚' },
-  { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟' },
-  { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
-  { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
-  { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
-  { id: 'other', name: 'Другое', icon: '📦' }
-];
+// Categories Configuration (inherits from shared categories.js or falls back)
+const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESHMARKET_CATEGORIES.length > 0)
+  ? window.FRESHMARKET_CATEGORIES
+  : [
+    { id: 'all', name: 'Все', icon: '🧺', img: 'assets/categories/all.png' },
+    { id: 'vegetables', name: 'Овощи', icon: '🥦', img: 'assets/categories/vegetables.png' },
+    { id: 'roots_tubers', name: 'Корнеплоды', icon: '🥔', img: 'assets/categories/roots_tubers.png' },
+    { id: 'fruits', name: 'Фрукты', icon: '🥭', img: 'assets/categories/fruits.png' },
+    { id: 'herbs', name: 'Зелень и травы', icon: '🌿', img: 'assets/categories/herbs.png' },
+    { id: 'spices_roots', name: 'Корни и пряности', icon: '🫚', img: 'assets/categories/spices_roots.png' },
+    { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟', img: 'assets/categories/seafood.png' },
+    { id: 'meat', name: 'Мясо и птица', icon: '🥩', img: 'assets/categories/meat.png' },
+    { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫', img: 'assets/categories/sauces.png' },
+    { id: 'mushrooms', name: 'Грибы', icon: '🍄', img: 'assets/categories/mushrooms.png' },
+    { id: 'homemade', name: 'Домашние продукты', icon: '🍯', img: 'assets/categories/homemade.png' },
+    { id: 'other', name: 'Другое', icon: '📦', img: 'assets/categories/other.png' }
+  ];
 
 function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -1247,7 +1250,6 @@ class ShopApp {
       const catName = window.i18n ? window.i18n.t(`categories.${cat.id}`) : cat.name;
       return `
         <button type="button" class="filter-pill ${isActive}" data-category="${cat.id}">
-          <span class="category-icon">${cat.icon}</span>
           <span class="category-name">${catName}</span>
           <span class="category-count">${count}</span>
         </button>
@@ -1273,7 +1275,11 @@ class ShopApp {
           <div class="category-card ${isActive}" data-category="${cat.id}">
             ${count > 0 ? `<span class="cat-card-count">${count}</span>` : ''}
             <div class="cat-card-icon-wrap">
-              <span class="cat-card-icon">${cat.icon}</span>
+              ${cat.img ? `
+                <img src="${cat.img}" class="cat-card-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />
+              ` : `
+                <span class="cat-card-icon">${cat.icon}</span>
+              `}
             </div>
             <span class="cat-card-name">${catName}</span>
           </div>
@@ -1533,6 +1539,7 @@ class ShopApp {
       const qtyText = cartItem ? cartItem.qty : '';
       const catObj = CATEGORIES.find((c) => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
+      const catImg = catObj ? catObj.img : null;
       const catId = catObj ? catObj.id : (item.category || 'other');
       const catName = catObj ? (window.i18n ? window.i18n.t(`categories.${catObj.id}`) : catObj.name) : (item.category || (window.i18n ? window.i18n.t('common.product') : 'Продукт'));
       const optionsConfig = this.getProductOptions(item);
@@ -1550,7 +1557,7 @@ class ShopApp {
               <img src="${this.sanitizeUrl(item.img_url)}" class="card-photo-full" alt="${this.escapeHtml(primaryName)}" loading="lazy" />
             ` : `
               <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px;" title="${inCart ? editOrderTitle : addToCartTitle}">
-                ${catIcon}
+                ${catImg ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />` : catIcon}
               </div>
             `}
             ${inCart ? `<span class="badge-in-cart" id="badge_${item.id}">✓ ${this.escapeHtml(qtyText)}${cartItem.comment ? ' 💬' : ''}</span>` : `<span class="badge-in-cart" id="badge_${item.id}" style="display: none;"></span>`}
@@ -1578,7 +1585,11 @@ class ShopApp {
       const badgesBlock = `
         <div class="card-badges">
           <span class="badge badge-category" data-cat-id="${this.escapeHtml(catId)}" title="${this.escapeHtml(catName)}" aria-label="${this.escapeHtml(catName)}">
-            <span class="badge-cat-icon">${catIcon}</span>
+            ${catImg ? `
+              <img src="${catImg}" class="badge-cat-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />
+            ` : `
+              <span class="badge-cat-icon">${catIcon}</span>
+            `}
           </span>
           ${formInfo ? `
             <span class="badge badge-form" ${formInfo.key ? `data-form-id="${this.escapeHtml(formInfo.key)}" data-i18n="forms.${this.escapeHtml(formInfo.key)}"` : ''}>${this.escapeHtml(formInfo.label)}</span>
@@ -1633,7 +1644,10 @@ class ShopApp {
       if (product.img_url) {
         this.sheetProductMedia.innerHTML = `<img src="${this.sanitizeUrl(product.img_url)}" alt="${this.escapeHtml(primaryName)}" />`;
       } else {
-        this.sheetProductMedia.innerHTML = catIcon;
+        const catImg = catObj ? catObj.img : null;
+        this.sheetProductMedia.innerHTML = catImg
+          ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(primaryName)}" />`
+          : catIcon;
       }
     }
 

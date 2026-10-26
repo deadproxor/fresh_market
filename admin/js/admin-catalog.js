@@ -23,6 +23,8 @@ const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESH
     { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
     { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
     { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
+    { id: 'homemade', name: 'Домашние продукты', icon: '🍯' },
+    { id: 'other', name: 'Другое', icon: '📦' }
   ];
 
 function normalizeCategoryToSlug(cat) {
@@ -1429,11 +1431,15 @@ class App {
       const isActive = this.activeFilterCategory === cat.name ? 'active' : '';
       return `
         <div class="category-card ${isActive}" data-category="${cat.name}">
-          <div class="cat-card-left">
-            <span class="cat-card-icon">${cat.icon}</span>
-            <span class="cat-card-name">${cat.name}</span>
+          ${count > 0 ? `<span class="cat-card-count">${count}</span>` : ''}
+          <div class="cat-card-icon-wrap">
+            ${cat.img ? `
+              <img src="../${cat.img}" class="cat-card-brand-img" alt="${this.escapeHtml(cat.name)}" loading="lazy" />
+            ` : `
+              <span class="cat-card-icon">${cat.icon}</span>
+            `}
           </div>
-          <span class="cat-card-count">${count}</span>
+          <span class="cat-card-name">${this.escapeHtml(cat.name)}</span>
         </div>
       `;
     }).join('');
@@ -1499,7 +1505,7 @@ class App {
       btn.className = `chip-btn ${index === 0 ? 'active' : ''}`;
       btn.dataset.category = cat.name;
       btn.dataset.id = cat.id;
-      btn.innerHTML = `${cat.icon} <span>${cat.name}</span>`;
+      btn.innerHTML = `${cat.img ? `<img src="../${cat.img}" class="chip-brand-img" alt="${this.escapeHtml(cat.name)}" loading="lazy" />` : cat.icon} <span>${cat.name}</span>`;
       btn.addEventListener('click', () => {
         this.categoryChips.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -1562,7 +1568,6 @@ class App {
     allPill.className = `filter-pill ${this.activeFilterCategory === 'all' ? 'active' : ''}`;
     allPill.dataset.category = 'all';
     allPill.innerHTML = `
-      <span class="category-icon">🌟</span>
       <span class="category-name">Все</span>
       <span class="category-count">${totalCount}</span>
     `;
@@ -1581,7 +1586,6 @@ class App {
       pill.className = `filter-pill ${this.activeFilterCategory === cat.name ? 'active' : ''}`;
       pill.dataset.category = cat.name;
       pill.innerHTML = `
-        <span class="category-icon">${cat.icon}</span>
         <span class="category-name">${this.escapeHtml(cat.name)}</span>
         <span class="category-count">${count}</span>
       `;
@@ -3090,7 +3094,9 @@ class App {
       pill.className = 'category-stat-pill';
       pill.innerHTML = `
         <div class="cat-pill-left">
-          <span class="cat-pill-icon">${cat.icon}</span>
+          <span class="cat-pill-icon">
+            ${cat.img ? `<img src="../${cat.img}" class="cat-pill-brand-img" alt="${this.escapeHtml(cat.name)}" loading="lazy" />` : cat.icon}
+          </span>
           <span class="cat-pill-name">${this.escapeHtml(cat.name)}</span>
         </div>
         <span class="cat-pill-count" style="${count === 0 ? 'opacity:0.4;' : ''}">${count}</span>
@@ -3202,6 +3208,7 @@ class App {
 
       const catObj = CATEGORIES.find(c => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
+      const catImg = catObj && catObj.img ? `../${catObj.img}` : null;
 
       container.innerHTML = `
         <!-- Underlay Action Buttons (Revealed on Swipe Left) -->
@@ -3234,7 +3241,10 @@ class App {
           <div class="card-collapsible-body">
             <!-- Badges (Category & Form - hidden in collapsed state) -->
             <div class="card-badges">
-              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}"><span class="badge-cat-icon">${catIcon}</span> <span class="badge-cat-name">${this.escapeHtml(catObj ? catObj.name : item.category)}</span></span>
+              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}">
+                ${catImg ? `<img src="${catImg}" class="badge-cat-brand-img" alt="${this.escapeHtml(catObj ? catObj.name : item.category)}" loading="lazy" />` : `<span class="badge-cat-icon">${catIcon}</span>`}
+                <span class="badge-cat-name">${this.escapeHtml(catObj ? catObj.name : item.category)}</span>
+              </span>
               ${(() => {
                 const fInfo = getFormInfo(item.form);
                 if (!fInfo || !fInfo.label) return '';
@@ -3249,7 +3259,7 @@ class App {
               </div>
             ` : `
               <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
-                ${catIcon}
+                ${catImg ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(catObj ? catObj.name : item.category)}" loading="lazy" />` : catIcon}
                 ${this.renderPriceBadge(item.price, item.unit)}
               </div>
             `}

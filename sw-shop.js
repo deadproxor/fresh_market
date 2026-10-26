@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.8';
+const CACHE_NAME = 'freshmarket-shop-v1.5.10';
 const STATIC_ASSETS = [
   './shop.html',
   './privacy-geodata.html',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   './css/components.css',
   './css/shop.css',
   './js/shared/utils.js',
+  './js/shared/categories.js',
   './js/shared/forms.js',
   './js/shared/i18n.js',
   './js/shop.js',
@@ -25,7 +26,19 @@ const STATIC_ASSETS = [
   './assets/icon-512.svg',
   './assets/onboarding/slide-1-market.png',
   './assets/onboarding/slide-2-receipt.png',
-  './assets/onboarding/slide-3-delivery.png'
+  './assets/onboarding/slide-3-delivery.png',
+  './assets/categories/all.png',
+  './assets/categories/vegetables.png',
+  './assets/categories/roots_tubers.png',
+  './assets/categories/fruits.png',
+  './assets/categories/herbs.png',
+  './assets/categories/spices_roots.png',
+  './assets/categories/seafood.png',
+  './assets/categories/meat.png',
+  './assets/categories/sauces.png',
+  './assets/categories/mushrooms.png',
+  './assets/categories/homemade.png',
+  './assets/categories/other.png'
 ];
 
 self.addEventListener('install', (event) => {
