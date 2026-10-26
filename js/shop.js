@@ -1232,15 +1232,18 @@ class ShopApp {
   renderCategories() {
     if (!this.shopCategoriesContainer) return;
 
-    // Calculate count per category
+    // Calculate count per category (case-insensitive & slug resilient)
     const counts = {};
     CATEGORIES.forEach((cat) => {
       if (cat.id === 'all') {
         counts[cat.id] = this.products.length;
       } else {
-        counts[cat.id] = this.products.filter(
-          (p) => p.category === cat.name || p.category === cat.id
-        ).length;
+        const catNorm = (cat.name || '').toLowerCase().trim();
+        const idNorm = (cat.id || '').toLowerCase().trim();
+        counts[cat.id] = this.products.filter((p) => {
+          const pCat = (p.category || '').toLowerCase().trim();
+          return pCat === catNorm || pCat === idNorm;
+        }).length;
       }
     });
 
@@ -1263,6 +1266,12 @@ class ShopApp {
         this.renderProducts();
       });
     });
+
+    // Auto-scroll active pill into view within horizontal container
+    const activePill = this.shopCategoriesContainer.querySelector('.filter-pill.active');
+    if (activePill && typeof activePill.scrollIntoView === 'function') {
+      activePill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    }
 
     // Render Category Cards Grid on Home Screen
     if (this.shopCategoryGrid) {
@@ -1294,6 +1303,12 @@ class ShopApp {
           this.renderCategories();
           this.renderProducts();
           window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => {
+            const currentActivePill = this.shopCategoriesContainer?.querySelector('.filter-pill.active');
+            if (currentActivePill && typeof currentActivePill.scrollIntoView === 'function') {
+              currentActivePill.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+            }
+          }, 60);
         });
       });
     }
@@ -1474,14 +1489,14 @@ class ShopApp {
 
     let filtered = this.products;
 
-    // Filter by Category
+    // Filter by Category (case-insensitive & slug resilient)
     if (this.selectedCategory !== 'all') {
       const selectedCatObj = CATEGORIES.find((c) => c.id === this.selectedCategory);
+      const catNorm = (selectedCatObj?.name || '').toLowerCase().trim();
+      const idNorm = (selectedCatObj?.id || this.selectedCategory || '').toLowerCase().trim();
       filtered = filtered.filter((p) => {
-        if (selectedCatObj) {
-          return p.category === selectedCatObj.name || p.category === selectedCatObj.id;
-        }
-        return p.category === this.selectedCategory;
+        const pCat = (p.category || '').toLowerCase().trim();
+        return pCat === catNorm || pCat === idNorm;
       });
     }
 
