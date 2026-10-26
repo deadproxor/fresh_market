@@ -110,15 +110,40 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
  */
 function getDeliveryZoneByDistance(distanceKm) {
   const dist = Number(distanceKm) || 0;
+  let zoneId = 'zone_1';
+  let fee = 1.00;
+  let isOutside = false;
+  let zoneKey = 'zone_1_name';
+  let defaultName = 'Зона 1: Центр';
+
   if (dist <= 1.0) {
-    return { zoneId: 'zone_1', fee: 1.00, distanceKm: dist, name: 'Зона 1: Центр' };
+    zoneId = 'zone_1';
+    fee = 1.00;
+    zoneKey = 'zone_1_name';
+    defaultName = 'Зона 1: Центр';
   } else if (dist <= 3.0) {
-    return { zoneId: 'zone_2', fee: 2.00, distanceKm: dist, name: 'Зона 2: Средние районы' };
+    zoneId = 'zone_2';
+    fee = 2.00;
+    zoneKey = 'zone_2_name';
+    defaultName = 'Зона 2: Средние районы';
   } else if (dist <= 6.0) {
-    return { zoneId: 'zone_3', fee: 3.50, distanceKm: dist, name: 'Зона 3: Дальние районы' };
+    zoneId = 'zone_3';
+    fee = 3.50;
+    zoneKey = 'zone_3_name';
+    defaultName = 'Зона 3: Дальние районы';
   } else {
-    return { zoneId: 'zone_3', fee: 3.50, distanceKm: dist, isOutside: true, name: 'Вне стандартной зоны' };
+    zoneId = 'zone_3';
+    fee = 3.50;
+    isOutside = true;
+    zoneKey = 'zone_outside_name';
+    defaultName = 'Вне стандартной зоны';
   }
+
+  const name = (typeof window !== 'undefined' && window.i18n && typeof window.i18n.t === 'function')
+    ? window.i18n.t(`cart.${zoneKey}`)
+    : defaultName;
+
+  return { zoneId, fee, distanceKm: dist, isOutside, zoneKey, name };
 }
 
 /**

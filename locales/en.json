@@ -22,7 +22,9 @@
     "customer": "Customer",
     "khr_rate_title": "Exchange Rate (USD → KHR)",
     "khr_rate_desc": "Cambodian Riel per 1 US Dollar",
-    "khr_rate_save": "Save rate"
+    "khr_rate_save": "Save rate",
+    "product": "Product",
+    "unit_km": "km"
   },
   "splash": {
     "title": "FreshMarket",
@@ -201,7 +203,12 @@
     "auth_required_hint": "Please sign in with Google to confirm your order",
     "floating_items": "items",
     "floating_to_cart": "To Order →",
-    "item_wish_prefix": "Note:"
+    "item_wish_prefix": "Note:",
+    "specify_contact": "Please specify contact information",
+    "zone_1_name": "Zone 1: Center",
+    "zone_2_name": "Zone 2: Mid-range areas",
+    "zone_3_name": "Zone 3: Outer areas",
+    "zone_outside_name": "Outside standard zone"
   },
   "orders": {
     "modal_title": "My Orders",
@@ -219,7 +226,8 @@
     "receipt_title": "View QR vendor receipt",
     "market_label": "Market:",
     "fee_delivery_label": "Service + Delivery:",
-    "total_label": "Total:"
+    "total_label": "Total:",
+    "saved_offline_warning": "⚠️ Order {orderNumber} saved locally, but not synced to database: {error}"
   },
   "profile": {
     "title": "Profile & Settings",
@@ -300,7 +308,8 @@
     "cart_is_empty": "Cart is empty",
     "app_installed": "🎉 FreshMarket app installed successfully!",
     "install_hint": "ℹ️ To install: tap 'Share / Menu' in your browser and select 'Add to Home Screen'",
-    "install_started": "✅ App installation started"
+    "install_started": "✅ App installation started",
+    "settings_saved": "Settings successfully saved"
   },
   "dialogs": {
     "btn_ok": "Got it",

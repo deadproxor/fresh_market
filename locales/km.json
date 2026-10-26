@@ -22,7 +22,9 @@
     "customer": "អតិថិជន",
     "khr_rate_title": "អត្រាប្តូរប្រាក់ (USD → KHR)",
     "khr_rate_desc": "ប្រាក់រៀលខ្មែរក្នុង ១ ដុល្លារអាមេរិក",
-    "khr_rate_save": "រក្សាទុកអត្រា"
+    "khr_rate_save": "រក្សាទុកអត្រា",
+    "product": "ទំនិញ",
+    "unit_km": "គ.ម"
   },
   "splash": {
     "title": "FreshMarket",
@@ -201,7 +203,12 @@
     "auth_required_hint": "សូមចូលតាម Google ដើម្បីបញ្ជាក់ការកុម្ម៉ង់",
     "floating_items": "មុខ",
     "floating_to_cart": "ទៅការកុម្ម៉ង់ →",
-    "item_wish_prefix": "បំណងប្រាថ្នា៖"
+    "item_wish_prefix": "បំណងប្រាថ្នា៖",
+    "specify_contact": "សូមបញ្ជាក់ព័ត៌មានទំនាក់ទំនង",
+    "zone_1_name": "តំបន់ទី ១: កណ្ដាលក្រុង",
+    "zone_2_name": "តំបន់ទី ២: តំបន់មធ្យម",
+    "zone_3_name": "តំបន់ទី ៣: តំបន់ឆ្ងាយ",
+    "zone_outside_name": "ក្រៅតំបន់កំណត់"
   },
   "orders": {
     "modal_title": "ការកុម្ម៉ង់របស់ខ្ញុំ",
@@ -219,7 +226,8 @@
     "receipt_title": "មើលរូបថតវិក្កយបត្រ QR",
     "market_label": "ផ្សារ៖",
     "fee_delivery_label": "សេវា + ដឹកជញ្ជូន៖",
-    "total_label": "សរុប៖"
+    "total_label": "សរុប៖",
+    "saved_offline_warning": "⚠️ ការបញ្ជាទិញ {orderNumber} ត្រូវបានរក្សាទុកក្នុងឧបករណ៍ ប៉ុន្តែមិនទាន់ផ្ញើទៅកាន់ប្រព័ន្ធ៖ {error}"
   },
   "profile": {
     "title": "គណនី និងការកំណត់",
@@ -300,7 +308,8 @@
     "cart_is_empty": "កន្ត្រកទទេ",
     "app_installed": "🎉 កម្មវិធី FreshMarket ត្រូវបានដំឡើងដោយជោគជ័យ!",
     "install_hint": "ℹ️ ដើម្បីដំឡើង៖ ចុច 'Share / Menu' ក្នុង browser ហើយជ្រើស 'Add to Home Screen'",
-    "install_started": "✅ បានចាប់ផ្តើមការដំឡើងកម្មវិធី"
+    "install_started": "✅ បានចាប់ផ្តើមការដំឡើងកម្មវិធី",
+    "settings_saved": "បានរក្សាទុកការកំណត់ដោយជោគជ័យ"
   },
   "dialogs": {
     "btn_ok": "យល់ព្រម",

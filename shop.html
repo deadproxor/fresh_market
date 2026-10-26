@@ -40,9 +40,9 @@
   <!-- Master Design System Components & Shop Dedicated Styles -->
   <link rel="stylesheet" href="css/components.css?v=1.5.6" />
   <link rel="stylesheet" href="css/shop.css?v=1.5.0" />
-  <script src="js/shared/utils.js?v=1.5.0"></script>
+  <script src="js/shared/utils.js?v=1.5.7"></script>
   <script src="js/shared/forms.js?v=1.5.0"></script>
-  <script src="js/shared/i18n.js?v=1.5.0"></script>
+  <script src="js/shared/i18n.js?v=1.5.7"></script>
 </head>
 
 <body>
@@ -142,7 +142,8 @@
         <div id="headerLangPicker" data-lang-picker></div>
 
         <!-- Authorized: Header Cart Button -->
-        <button type="button" class="header-cart-btn" id="headerCartBtn" style="display: none;" title="Корзина" aria-label="Корзина">
+        <button type="button" class="header-cart-btn" id="headerCartBtn" style="display: none;"
+          title="Корзина" aria-label="Корзина" data-i18n-title="header.btn_cart" data-i18n-aria-label="header.btn_cart">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"></circle>
             <circle cx="20" cy="21" r="1"></circle>
@@ -152,7 +153,8 @@
         </button>
 
         <!-- Profile / Avatar Button -->
-        <button type="button" class="header-avatar-btn" id="headerAvatarBtn" title="Профиль" aria-label="Профиль">
+        <button type="button" class="header-avatar-btn" id="headerAvatarBtn"
+          title="Профиль" aria-label="Профиль" data-i18n-title="header.btn_profile" data-i18n-aria-label="header.btn_profile">
           <svg class="header-avatar-silhouette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -245,7 +247,8 @@
             </div>
             <div class="settings-section-header-right">
               <span class="badge badge-primary" id="cartSectionItemsBadge">0</span>
-              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть"
+                data-i18n-title="shop.card_toggle_title" data-i18n-aria-label="shop.card_toggle_title">
                 <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
@@ -269,8 +272,9 @@
                 <span data-i18n="cart.delivery_details_title">Детали доставки</span>
               </div>
               <div class="settings-section-header-right">
-                <span class="badge badge-success" id="cartDeliveryZoneBadge">📍 Зона 1</span>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <span class="badge badge-success" id="cartDeliveryZoneBadge" data-i18n="cart.zone_1_name">📍 Зона 1</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть"
+                  data-i18n-title="shop.card_toggle_title" data-i18n-aria-label="shop.card_toggle_title">
                   <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -311,7 +315,9 @@
                   <input type="text" id="deliveryAddress" class="text-input"
                     placeholder="Улица, дом или ссылка на карту"
                     data-i18n-placeholder="cart.address_placeholder" required />
-                  <button type="button" class="input-trailing-btn" id="btnGetLocation" title="Моё местоположение" aria-label="Моё местоположение">
+                  <button type="button" class="input-trailing-btn" id="btnGetLocation"
+                    title="Моё местоположение" aria-label="Моё местоположение"
+                    data-i18n-title="cart.btn_get_location" data-i18n-aria-label="cart.btn_get_location">
                     📍
                   </button>
                 </div>
@@ -321,7 +327,7 @@
                   <div id="checkoutMiniMap" class="delivery-mini-map"></div>
                   <div class="delivery-map-status-bar" id="deliveryMapStatusBar">
                     <span class="delivery-map-status-badge" id="deliveryMapStatusBadge">
-                      <span>📍</span> <span id="deliveryMapStatusText">Зона 1: Центр ($1.00)</span>
+                      <span>📍</span> <span id="deliveryMapStatusText" data-i18n="cart.zone_1_name">Зона 1: Центр ($1.00)</span>
                     </span>
                     <span class="delivery-map-status-hint" data-i18n="cart.map_hint">Перетащите метку 📍 для выбора точки</span>
                   </div>
@@ -346,8 +352,9 @@
                 <span data-i18n="cart.preferences_title">Замены и пожелания</span>
               </div>
               <div class="settings-section-header-right">
-                <span class="badge badge-gray" id="cartPreferencesBadge">Позвонить</span>
-                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
+                <span class="badge badge-gray" id="cartPreferencesBadge" data-i18n="cart.sub_call_title">Позвонить</span>
+                <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть"
+                  data-i18n-title="shop.card_toggle_title" data-i18n-aria-label="shop.card_toggle_title">
                   <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -549,7 +556,7 @@
           <button type="button" class="btn-sheet-remove" id="sheetBtnRemove" style="display: none;" data-i18n="product.btn_remove_item">
             Убрать из заказа
           </button>
-          <button type="button" class="btn btn-primary btn-sheet-add" id="sheetBtnSubmit">
+          <button type="button" class="btn btn-primary btn-sheet-add" id="sheetBtnSubmit" data-i18n="product.confirm_btn">
             В заказ
           </button>
         </div>
@@ -583,7 +590,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.5.6"></script>
+  <script src="js/shop.js?v=1.5.8"></script>
 </body>
 
 </html>

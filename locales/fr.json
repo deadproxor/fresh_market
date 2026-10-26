@@ -22,7 +22,9 @@
     "customer": "Client",
     "khr_rate_title": "Taux de change (USD → KHR)",
     "khr_rate_desc": "Riel cambodgien pour 1 dollar américain",
-    "khr_rate_save": "Enregistrer le taux"
+    "khr_rate_save": "Enregistrer le taux",
+    "product": "Produit",
+    "unit_km": "km"
   },
   "splash": {
     "title": "FreshMarket",
@@ -201,7 +203,12 @@
     "auth_required_hint": "Veuillez vous connecter avec Google pour confirmer votre commande",
     "floating_items": "articles",
     "floating_to_cart": "Voir la commande →",
-    "item_wish_prefix": "Note :"
+    "item_wish_prefix": "Note :",
+    "specify_contact": "Veuillez préciser un contact",
+    "zone_1_name": "Zone 1 : Centre",
+    "zone_2_name": "Zone 2 : Quartiers intermédiaires",
+    "zone_3_name": "Zone 3 : Quartiers éloignés",
+    "zone_outside_name": "Hors zone standard"
   },
   "orders": {
     "modal_title": "Mes Commandes",
@@ -219,7 +226,8 @@
     "receipt_title": "Voir le ticket avec QR code marchand",
     "market_label": "Marché :",
     "fee_delivery_label": "Service + Livraison :",
-    "total_label": "Total :"
+    "total_label": "Total :",
+    "saved_offline_warning": "⚠️ Commande {orderNumber} enregistrée localement, mais non synchronisée avec la base : {error}"
   },
   "profile": {
     "title": "Profil & Paramètres",
@@ -300,7 +308,8 @@
     "cart_is_empty": "Le panier est vide",
     "app_installed": "🎉 Application FreshMarket installée avec succès !",
     "install_hint": "ℹ️ Pour installer : appuyez sur « Partager / Menu » de votre navigateur et sélectionnez « Ajouter à l'écran d'accueil »",
-    "install_started": "✅ Installation de l'application démarrée"
+    "install_started": "✅ Installation de l'application démarrée",
+    "settings_saved": "Paramètres enregistrés avec succès"
   },
   "dialogs": {
     "btn_ok": "Compris",

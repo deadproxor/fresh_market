@@ -50,6 +50,7 @@ function generateOrderNumber() {
 class ShopApp {
   constructor() {
     this.products = [];
+    this.produceDictionary = [];
     this.selectedCategory = 'all';
     this.searchQuery = '';
     this.activeHomeTab = localStorage.getItem('freshmarket_home_tab') || 'categories';
@@ -682,6 +683,10 @@ class ShopApp {
       if (this.shopProductsCount && window.i18n) {
         this.shopProductsCount.textContent = `${this.products.length} ${window.i18n.t('cart.items_count')}`;
       }
+      if (this.currentDeliveryDistance !== undefined && typeof getDeliveryZoneByDistance === 'function') {
+        const currentZoneInfo = getDeliveryZoneByDistance(this.currentDeliveryDistance);
+        this.updateDeliveryMapBadge(currentZoneInfo, this.currentDeliveryDistance);
+      }
       if (window.i18n) {
         this.showToast(window.i18n.t('toasts.lang_changed'), 'info', 2000);
         if (this.sb && this.currentUser) {
@@ -1064,6 +1069,59 @@ class ShopApp {
   // ------------------------------------------------------------------------
   // 6. Catalog Loading & Rendering
   // ------------------------------------------------------------------------
+  async loadProduceDictionary() {
+    if (this.produceDictionary && this.produceDictionary.length > 0) {
+      return this.produceDictionary;
+    }
+    try {
+      let resp = await fetch('./data/products_dictionary.json');
+      if (!resp.ok) resp = await fetch('../data/products_dictionary.json');
+      if (!resp.ok) resp = await fetch('./products_dictionary.json');
+      if (resp.ok) {
+        const data = await resp.json();
+        const core = Array.isArray(data.core) ? data.core : [];
+        const fromDb = Array.isArray(data.from_database) ? data.from_database : [];
+        this.produceDictionary = Array.isArray(data) ? data : [...core, ...fromDb];
+        return this.produceDictionary;
+      }
+    } catch (e) {
+      console.warn('[FreshMarket Shop] Could not load dictionary:', e);
+    }
+    this.produceDictionary = [];
+    return this.produceDictionary;
+  }
+
+  enrichProductsWithDict(products) {
+    if (!Array.isArray(products) || products.length === 0) return products;
+    if (!this.produceDictionary || this.produceDictionary.length === 0) return products;
+
+    const norm = (s) => (s || '').toLowerCase().trim();
+
+    return products.map((item) => {
+      const enName = norm(item.name_en);
+      const ruName = norm(item.name_ru);
+      const khName = norm(item.name_kh);
+
+      const match = this.produceDictionary.find((d) => {
+        const dEn = norm(d.en);
+        const dRu = norm(d.ru);
+        const dKh = norm(d.kh);
+
+        if (enName && (dEn === enName || dEn.split('/').map(norm).includes(enName))) return true;
+        if (ruName && (dRu === ruName || dRu.split('/').map(norm).includes(ruName))) return true;
+        if (khName && (dKh === khName || dKh.split('(')[0].trim() === khName.split('(')[0].trim())) return true;
+        return false;
+      });
+
+      if (match) {
+        if (!item.name_ua) item.name_ua = match.ua || match.ru || '';
+        if (!item.name_fr) item.name_fr = match.fr || match.en || '';
+        if (!item.desc && match.desc) item.desc = match.desc;
+      }
+      return item;
+    });
+  }
+
   async loadCatalog() {
     this.showLoadingState();
 
@@ -1072,6 +1130,9 @@ class ShopApp {
       this.showOfflineState();
       return;
     }
+
+    // Load Produce Dictionary to enrich products with UA/FR/KH translations
+    await this.loadProduceDictionary();
 
     // 2. Fetch from Supabase
     if (this.sb) {
@@ -1082,7 +1143,7 @@ class ShopApp {
           .order('category', { ascending: true });
 
         if (!error && data && data.length > 0) {
-          this.products = data;
+          this.products = this.enrichProductsWithDict(data);
           this.renderProducts();
           this.renderCategories();
           return;
@@ -1393,8 +1454,12 @@ class ShopApp {
     return item.name_ru || item.ru || item.name_en || item.en || '';
   }
 
-  getKhmerSubtitle(item) {
+  getKhmerSubtitle(item, lang = null) {
     if (!item) return '';
+    const currentLang = (lang || (window.i18n ? window.i18n.currentLang : 'ru')).toLowerCase();
+    if (currentLang === 'km') {
+      return item.name_en || item.en || '';
+    }
     return item.name_kh || item.name_km || item.kh || '';
   }
 
@@ -2223,21 +2288,23 @@ class ShopApp {
     const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
     const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
     const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
+    const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
+    const zoneName = (zoneInfo.zoneKey && window.i18n) ? window.i18n.t(`cart.${zoneInfo.zoneKey}`) : zoneInfo.name;
 
     let infoStr = '';
     if (roadKm !== undefined) {
-      infoStr = ` • ${roadKm} км ${byRoadText}`;
+      infoStr = ` • ${roadKm} ${kmUnit} ${byRoadText}`;
       if (durationMin !== undefined) {
         infoStr += ` (~${durationMin} ${minText})`;
       }
     }
     if (badgeText) {
-      badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+      badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
     }
 
     const cartZoneBadge = document.getElementById('cartDeliveryZoneBadge');
     if (cartZoneBadge) {
-      cartZoneBadge.textContent = `${zoneInfo.name} • ${feeStr}`;
+      cartZoneBadge.textContent = `${zoneName} • ${feeStr}`;
     }
   }
 
@@ -2703,7 +2770,7 @@ class ShopApp {
     };
 
     const orderItemsPayload = items.map(({ product, qty, comment }) => {
-      const title = product.name_ru || product.name_en || 'Товар';
+      const title = this.getLocalizedProductName(product) || (window.i18n ? window.i18n.t('common.product') : 'Товар');
       const numMatch = String(qty || '').match(/^([\d.]+)/);
       const parsedQty = numMatch ? parseFloat(numMatch[1]) : 1;
       const unitMatch = String(qty || '').replace(/^[\d.\s]+/, '').trim();
@@ -2827,11 +2894,10 @@ class ShopApp {
         4000
       );
     } else {
-      this.showToast(
-        `⚠️ Заказ ${finalOrderNumber} сохранен локально, но не передан в базу: ${syncErrorMsg}`,
-        'warning',
-        7000
-      );
+      const warnMsg = window.i18n
+        ? window.i18n.t('orders.saved_offline_warning', { orderNumber: finalOrderNumber, error: syncErrorMsg })
+        : `⚠️ Заказ ${finalOrderNumber} сохранен локально, но не передан в базу: ${syncErrorMsg}`;
+      this.showToast(warnMsg, 'warning', 7000);
     }
     this.openOrdersModal();
   }
@@ -3090,7 +3156,7 @@ class ShopApp {
             <!-- Items preview -->
             <div class="order-card-items">
               ${items.map((item) => {
-                const itemTitle = item.product_title || item.product_name_ru || item.product_name_en || 'Товар';
+                const itemTitle = this.getLocalizedProductName(item) || item.product_title || (window.i18n ? window.i18n.t('common.product') : 'Товар');
                 const itemQty = item.quantity || item.requested_qty || 1;
                 const itemUnit = item.unit || 'кг';
                 return `
@@ -3921,15 +3987,17 @@ class ShopApp {
     const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
     const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
     const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
+    const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
+    const zoneName = (zoneInfo.zoneKey && window.i18n) ? window.i18n.t(`cart.${zoneInfo.zoneKey}`) : zoneInfo.name;
 
     let infoStr = '';
     if (roadKm !== undefined) {
-      infoStr = ` • ${roadKm} км ${byRoadText}`;
+      infoStr = ` • ${roadKm} ${kmUnit} ${byRoadText}`;
       if (durationMin !== undefined) {
         infoStr += ` (~${durationMin} ${minText})`;
       }
     }
-    badgeText.textContent = `${zoneInfo.name} (${feeStr})${infoStr}`;
+    badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
   }
 
   async applyLocationToProfile(lat, lng, panMap = true) {

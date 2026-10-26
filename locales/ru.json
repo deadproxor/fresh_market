@@ -22,7 +22,9 @@
     "customer": "Покупатель",
     "khr_rate_title": "Курс валюты (USD → KHR)",
     "khr_rate_desc": "Камбоджийский риель за 1 доллар США",
-    "khr_rate_save": "Сохранить курс"
+    "khr_rate_save": "Сохранить курс",
+    "product": "Товар",
+    "unit_km": "км"
   },
   "splash": {
     "title": "FreshMarket",
@@ -201,7 +203,12 @@
     "auth_required_hint": "Для подтверждения заказа войдите через Google",
     "floating_items": "позиций",
     "floating_to_cart": "В заказ →",
-    "item_wish_prefix": "Пожелание:"
+    "item_wish_prefix": "Пожелание:",
+    "specify_contact": "Укажите контакт для связи",
+    "zone_1_name": "Зона 1: Центр",
+    "zone_2_name": "Зона 2: Средние районы",
+    "zone_3_name": "Зона 3: Дальние районы",
+    "zone_outside_name": "Вне стандартной зоны"
   },
   "orders": {
     "modal_title": "Мои заказы",
@@ -219,7 +226,8 @@
     "receipt_title": "Посмотреть QR-чек",
     "market_label": "Рынок:",
     "fee_delivery_label": "Услуга + Доставка:",
-    "total_label": "Итого:"
+    "total_label": "Итого:",
+    "saved_offline_warning": "⚠️ Заказ {orderNumber} сохранен локально, но не передан в базу: {error}"
   },
   "profile": {
     "title": "Профиль и Настройки",
@@ -300,7 +308,8 @@
     "cart_is_empty": "Корзина пуста",
     "app_installed": "🎉 Приложение FreshMarket успешно установлено!",
     "install_hint": "ℹ️ Чтобы установить: нажмите «Поделиться / Меню» в браузере и выберите «На экран Домой»",
-    "install_started": "✅ Установка приложения начата"
+    "install_started": "✅ Установка приложения начата",
+    "settings_saved": "Настройки успешно сохранены"
   },
   "dialogs": {
     "btn_ok": "Понятно",
