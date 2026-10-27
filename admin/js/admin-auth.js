@@ -29,12 +29,19 @@ class AdminAuth {
     this.btnLogin = document.getElementById('btnLogin');
     this.btnLogout = document.getElementById('btnLogout');
     this.adminUserEmail = document.getElementById('adminUserEmail');
+    this.adminOrdersBadge = document.getElementById('adminOrdersBadge');
+
+    // Realtime Orders & Notifications
+    this.realtimeOrdersChannel = null;
+    this.audioContext = null;
+    this.unreadOrdersCount = 0;
 
     // Section Tabs
     this.navTabs = document.querySelectorAll('.admin-nav-tab');
     this.sectionViews = document.querySelectorAll('.admin-section-view');
 
     this.initSupabase();
+    this.initAudioUnlock();
     this.initEvents();
     this.checkSession();
   }
@@ -204,9 +211,15 @@ class AdminAuth {
     } else if (window.initAdminCatalog) {
       window.initAdminCatalog();
     }
+
+    // Initialize Realtime Orders Subscription & sync initial count
+    this.setupRealtimeOrdersSync();
+    this.syncInitialPendingOrdersCount();
   }
 
   onSignedOut() {
+    this.teardownRealtimeOrdersSync();
+    this.clearOrdersBadge();
     this.currentUser = null;
     window.adminUser = null;
     this.showLoginGate();
@@ -278,16 +291,20 @@ class AdminAuth {
     }
   }
 
-  async loadAdminOrders() {
+  async loadAdminOrders(isSilent = false) {
     const listEl = document.getElementById('adminOrdersList');
     if (!listEl) return;
+
+    this.clearOrdersBadge();
 
     if (!this.sb) {
       listEl.innerHTML = '<div class="empty-desc">База данных не подключена</div>';
       return;
     }
 
-    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Загрузка заявок...</div>';
+    if (!isSilent) {
+      listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Загрузка заявок...</div>';
+    }
 
     try {
       const { data, error } = await this.sb
@@ -425,6 +442,179 @@ class AdminAuth {
       zone_3: '3–6 км — $3.50'
     };
     return map[zone] || zone || 'Зона 1: Центр ($1.00)';
+  }
+
+  // ------------------------------------------------------------------------
+  // Realtime Orders, Audio Chime & Notifications
+  // ------------------------------------------------------------------------
+  initAudioUnlock() {
+    const unlock = () => {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass && !this.audioContext) {
+          this.audioContext = new AudioContextClass();
+        }
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+      } catch (_) {}
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock, { once: true, passive: true });
+    document.addEventListener('keydown', unlock, { once: true, passive: true });
+    document.addEventListener('touchstart', unlock, { once: true, passive: true });
+  }
+
+  playOrderNotificationSound() {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      if (!this.audioContext) {
+        this.audioContext = new AudioContextClass();
+      }
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+      const now = this.audioContext.currentTime;
+
+      // Note 1 (A5 ~ 880Hz)
+      const osc1 = this.audioContext.createOscillator();
+      const gain1 = this.audioContext.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc1.connect(gain1);
+      gain1.connect(this.audioContext.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.25);
+
+      // Note 2 (D6 ~ 1174.66Hz)
+      const osc2 = this.audioContext.createOscillator();
+      const gain2 = this.audioContext.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1174.66, now + 0.12);
+      gain2.gain.setValueAtTime(0.22, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(this.audioContext.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.45);
+    } catch (e) {
+      console.debug('[AdminAuth] Sound notification skipped:', e);
+    }
+  }
+
+  triggerVibration() {
+    try {
+      if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate([200, 100, 200]);
+      }
+    } catch (_) {}
+  }
+
+  updateOrdersBadge(count) {
+    if (!this.adminOrdersBadge) {
+      this.adminOrdersBadge = document.getElementById('adminOrdersBadge');
+    }
+    if (!this.adminOrdersBadge) return;
+
+    if (count > 0) {
+      this.adminOrdersBadge.textContent = count > 99 ? '99+' : String(count);
+      this.adminOrdersBadge.style.display = 'inline-block';
+    } else {
+      this.adminOrdersBadge.textContent = '0';
+      this.adminOrdersBadge.style.display = 'none';
+    }
+  }
+
+  incrementOrdersBadge() {
+    this.unreadOrdersCount = (this.unreadOrdersCount || 0) + 1;
+    this.updateOrdersBadge(this.unreadOrdersCount);
+  }
+
+  clearOrdersBadge() {
+    this.unreadOrdersCount = 0;
+    this.updateOrdersBadge(0);
+  }
+
+  async syncInitialPendingOrdersCount() {
+    if (!this.sb) return;
+    try {
+      const { count, error } = await this.sb
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (!error && typeof count === 'number') {
+        const currentView = window.app?.currentMainView || 'viewCatalog';
+        if (currentView !== 'viewOrders') {
+          this.unreadOrdersCount = count;
+          this.updateOrdersBadge(count);
+        }
+      }
+    } catch (_) {}
+  }
+
+  setupRealtimeOrdersSync() {
+    if (!this.sb || !this.currentUser) return;
+    this.teardownRealtimeOrdersSync();
+
+    try {
+      this.realtimeOrdersChannel = this.sb.channel('admin-realtime-orders')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        }, (payload) => {
+          this.handleRealtimeOrderEvent(payload);
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[AdminAuth] Realtime orders sync active');
+          }
+        });
+    } catch (err) {
+      console.warn('[AdminAuth] Could not initialize orders realtime channel:', err);
+    }
+  }
+
+  teardownRealtimeOrdersSync() {
+    if (this.realtimeOrdersChannel && this.sb) {
+      try {
+        this.sb.removeChannel(this.realtimeOrdersChannel);
+      } catch (_) {}
+      this.realtimeOrdersChannel = null;
+    }
+  }
+
+  handleRealtimeOrderEvent(payload) {
+    if (!payload) return;
+    const { eventType, new: newRecord } = payload;
+    const currentView = window.app?.currentMainView || 'viewCatalog';
+
+    if (eventType === 'INSERT') {
+      const orderNum = newRecord?.order_number || 'FM-ЗАКАЗ';
+      const custName = newRecord?.customer_name || 'Клиент';
+
+      this.playOrderNotificationSound();
+      this.triggerVibration();
+
+      if (typeof window.showToast === 'function') {
+        window.showToast(`🔔 Новый заказ ${orderNum}: ${custName}`, 'success', 5000);
+      }
+
+      if (currentView === 'viewOrders') {
+        this.loadAdminOrders(true);
+      } else {
+        this.incrementOrdersBadge();
+      }
+    } else if (eventType === 'UPDATE' || eventType === 'DELETE') {
+      if (currentView === 'viewOrders') {
+        this.loadAdminOrders(true);
+      }
+    }
   }
 }
 
