@@ -113,6 +113,8 @@ function getDeliveryZoneByDistance(distanceKm) {
   let zoneId = 'zone_1';
   let fee = 1.00;
   let isOutside = false;
+  let isOutsideCity = false;
+  let isBlocked = false;
   let zoneKey = 'zone_1_name';
   let defaultName = 'Зона 1: Центр';
 
@@ -131,19 +133,27 @@ function getDeliveryZoneByDistance(distanceKm) {
     fee = 3.50;
     zoneKey = 'zone_3_name';
     defaultName = 'Зона 3: Дальние районы';
-  } else {
-    zoneId = 'zone_3';
+  } else if (dist <= 10.0) {
+    zoneId = 'zone_outside';
     fee = 3.50;
-    isOutside = true;
+    isOutsideCity = true;
     zoneKey = 'zone_outside_name';
-    defaultName = 'Вне стандартной зоны';
+    defaultName = 'Вне стандартной зоны (согласование)';
+  } else {
+    zoneId = 'zone_outside';
+    fee = 0.00;
+    isOutside = true;
+    isOutsideCity = true;
+    isBlocked = true;
+    zoneKey = 'zone_blocked_name';
+    defaultName = 'Вне зоны доставки (> 10 км)';
   }
 
   const name = (typeof window !== 'undefined' && window.i18n && typeof window.i18n.t === 'function')
     ? window.i18n.t(`cart.${zoneKey}`)
     : defaultName;
 
-  return { zoneId, fee, distanceKm: dist, isOutside, zoneKey, name };
+  return { zoneId, fee, distanceKm: dist, isOutside, isOutsideCity, isBlocked, zoneKey, name };
 }
 
 /**

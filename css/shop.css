@@ -170,28 +170,50 @@
   color: var(--text-primary);
 }
 
+.order-status-pill.status-pending,
 .order-status-pill.status-new {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-.order-status-pill.status-purchasing {
+.order-status-pill.status-clarify {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
-.order-status-pill.status-delivering {
+.order-status-pill.status-shopping,
+.order-status-pill.status-purchasing {
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
   border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.order-status-pill.status-delivering {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
 }
 
 .order-status-pill.status-completed {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.order-status-pill.status-cancelled {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.delivery-map-status-badge.is-clarify {
+  color: #f59e0b;
+}
+
+.delivery-map-status-badge.is-blocked {
+  color: #ef4444;
 }
 
 .order-card-items {

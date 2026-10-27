@@ -206,10 +206,12 @@
     "floating_to_cart": "To Order →",
     "item_wish_prefix": "Note:",
     "specify_contact": "Please specify contact information",
+    "messenger_phone": "phone call",
     "zone_1_name": "Zone 1: Center",
     "zone_2_name": "Zone 2: Mid-range areas",
     "zone_3_name": "Zone 3: Outer areas",
-    "zone_outside_name": "Outside standard zone"
+    "zone_outside_name": "Outside standard zone (clarify)",
+    "zone_blocked_name": "Outside delivery area (> 10 km)"
   },
   "orders": {
     "modal_title": "My Orders",
@@ -217,6 +219,7 @@
     "empty_title": "You have no orders yet",
     "empty_desc": "Assemble a cart for early morning market shopping",
     "status_new": "🌅 Accepted for morning shopping",
+    "status_clarify": "⚠️ Clarify delivery",
     "status_purchasing": "🥬 Shopping at market (5 AM)",
     "status_delivering": "🛵 Out for delivery",
     "status_completed": "✅ Delivered & Paid",
@@ -320,6 +323,12 @@
     "rate_limit_desc": "You recently placed an order. Please wait 2 minutes before submitting another order.",
     "contacts_required_title": "Contact details required",
     "contacts_required_desc": "Please provide your name, phone number, and delivery address to reach the shopper.",
+    "delivery_clarify_title": "Delivery Clarification",
+    "delivery_clarify_desc": "The selected location is {dist} km from the market (outside standard 6 km zone). The order will be submitted with 'Clarify' status, and our shopper will contact you via {messenger} to confirm delivery details. Submit order?",
+    "btn_clarify_confirm": "Submit for clarification",
+    "btn_clarify_cancel": "Change address",
+    "delivery_too_far_title": "Outside Delivery Area",
+    "delivery_too_far_desc": "The selected location is more than 10 km from the market. Delivery is not available for this distance. Please select a location within 10 km.",
     "generic_error_title": "Notice",
     "generic_error_desc": "Failed to submit order. Please check your internet connection and try again."
   },

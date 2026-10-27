@@ -364,7 +364,7 @@ class AdminAuth {
         <div class="order-admin-card">
           <div class="order-admin-header">
             <span class="order-admin-num">${safeNum}</span>
-            <span class="status-badge status-${safeStatus}">${statusLabel}</span>
+            <span class="badge order-status-pill status-${safeStatus}">${statusLabel}</span>
           </div>
           <div class="order-admin-meta">
             <div>👤 <b>${safeName}</b> (${safePhone}${safeMessenger})</div>
@@ -427,7 +427,10 @@ class AdminAuth {
     const map = {
       pending: '⏳ Новая заявка',
       new: '⏳ Новая заявка',
+      clarify: '⚠️ Уточнить доставку',
+      needs_confirmation: '⚠️ Уточнить доставку',
       shopping: '🛒 Закупка на рынке',
+      purchasing: '🛒 Закупка на рынке',
       delivering: '🛵 В доставке',
       completed: '✅ Доставлен',
       cancelled: '❌ Отменен'
@@ -439,7 +442,8 @@ class AdminAuth {
     const map = {
       zone_1: 'Центр (до 1 км) — $1.00',
       zone_2: '1–3 км — $2.00',
-      zone_3: '3–6 км — $3.50'
+      zone_3: '3–6 км — $3.50',
+      zone_outside: 'Вне стандартной зоны (6–10 км)'
     };
     return map[zone] || zone || 'Зона 1: Центр ($1.00)';
   }
@@ -546,7 +550,7 @@ class AdminAuth {
       const { count, error } = await this.sb
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .in('status', ['pending', 'clarify']);
       if (!error && typeof count === 'number') {
         const currentView = window.app?.currentMainView || 'viewCatalog';
         if (currentView !== 'viewOrders') {

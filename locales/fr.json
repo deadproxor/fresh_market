@@ -206,10 +206,12 @@
     "floating_to_cart": "Voir la commande →",
     "item_wish_prefix": "Note :",
     "specify_contact": "Veuillez préciser un contact",
+    "messenger_phone": "appel téléphonique",
     "zone_1_name": "Zone 1 : Centre",
     "zone_2_name": "Zone 2 : Quartiers intermédiaires",
     "zone_3_name": "Zone 3 : Quartiers éloignés",
-    "zone_outside_name": "Hors zone standard"
+    "zone_outside_name": "Hors zone standard (à préciser)",
+    "zone_blocked_name": "Hors zone de livraison (> 10 km)"
   },
   "orders": {
     "modal_title": "Mes Commandes",
@@ -217,6 +219,7 @@
     "empty_title": "Vous n'avez pas encore de commandes",
     "empty_desc": "Composez un panier pour les achats du marché à l'aube",
     "status_new": "🌅 Acceptée pour les achats du matin",
+    "status_clarify": "⚠️ Préciser la livraison",
     "status_purchasing": "🥬 Achats au marché en cours (5h00)",
     "status_delivering": "🛵 En cours de livraison",
     "status_completed": "✅ Livrée & Payée",
@@ -320,6 +323,12 @@
     "rate_limit_desc": "Vous venez de passer une commande. Veuillez attendre 2 minutes avant de soumettre la suivante.",
     "contacts_required_title": "Coordonnées requises",
     "contacts_required_desc": "Veuillez indiquer votre nom, téléphone et adresse de livraison pour joindre le livreur.",
+    "delivery_clarify_title": "Précision sur la livraison",
+    "delivery_clarify_desc": "Le point sélectionné se trouve à {dist} km du marché (hors de la zone standard de 6 km). La commande sera transmise avec le statut « À préciser » et notre acheteur vous contactera par {messenger} pour convenir des conditions. Envoyer la demande ?",
+    "btn_clarify_confirm": "Envoyer pour précision",
+    "btn_clarify_cancel": "Modifier l'adresse",
+    "delivery_too_far_title": "Hors zone de livraison",
+    "delivery_too_far_desc": "Le point sélectionné est situé à plus de 10 km du marché. La livraison n'est pas possible sur cette distance. Veuillez sélectionner un point situé à moins de 10 km.",
     "generic_error_title": "Attention",
     "generic_error_desc": "Échec de l'envoi de la commande. Veuillez vérifier votre connexion Internet et réessayer."
   },

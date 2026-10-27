@@ -31,6 +31,7 @@
 > * [`supabase/migrations/20261020000000_hardening_v4.sql`](supabase/migrations/20261020000000_hardening_v4.sql) — комплексное усиление по Аудиту v4: динамическая зачистка политик, унификация роли `admin`, Rate Limiting в `create_order()`, таймзона UTC+7, колонка `cart_updated_at` и Realtime публикация.
 > * [`supabase/migrations/20261023000000_idempotent_order_creation.sql`](supabase/migrations/20261023000000_idempotent_order_creation.sql) — идемпотентность `create_order()`: проверка и немедленный возврат существующего заказа по `p_order_id` до проверок rate limit и лимита pending.
 > * [`supabase/migrations/20261024000000_normalize_product_categories_to_slugs.sql`](supabase/migrations/20261024000000_normalize_product_categories_to_slugs.sql) — нормализация категорий товаров в языконезависимые slug-и.
+> * [`supabase/migrations/20261027000002_delivery_radius_limit.sql`](supabase/migrations/20261027000002_delivery_radius_limit.sql) — ограничение радиуса доставки: лимит 10 км (блокировка оформления свыше 10 км), буферная зона 6–10 км со статусом `clarify` (согласование через мессенджер) и серверный расчет зоны в RPC `create_order()`.
 >
 > 🔍 **Диагностический скрипт верификации базы данных:**  
 > Файл [`scripts/verify_database.sql`](scripts/verify_database.sql) содержит готовые запросы для SQL Editor для мгновенной проверки соответствия живой базы миграциям.

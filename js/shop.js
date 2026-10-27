@@ -1517,6 +1517,14 @@ class ShopApp {
     return item.name_kh || item.name_km || item.kh || '';
   }
 
+  getLocalizedMessengerName(messenger) {
+    if (messenger === 'whatsapp') return 'WhatsApp';
+    if (messenger === 'phone') {
+      return window.i18n ? window.i18n.t('cart.messenger_phone') : 'телефонный звонок';
+    }
+    return 'Telegram';
+  }
+
   renderProducts() {
     if (!this.shopProductsGrid) return;
 
@@ -2349,7 +2357,9 @@ class ShopApp {
 
   updateDeliveryMapBadge(zoneInfo, roadKm, durationMin) {
     const badgeText = document.getElementById('deliveryMapStatusText');
-    const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+    const badgeContainer = document.getElementById('deliveryMapStatusBadge');
+    const cartZoneBadge = document.getElementById('cartDeliveryZoneBadge');
+
     const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
     const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
     const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
@@ -2362,13 +2372,36 @@ class ShopApp {
         infoStr += ` (~${durationMin} ${minText})`;
       }
     }
-    if (badgeText) {
-      badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
+
+    if (badgeContainer) {
+      badgeContainer.classList.remove('is-clarify', 'is-blocked');
+      if (zoneInfo.isBlocked) {
+        badgeContainer.classList.add('is-blocked');
+      } else if (zoneInfo.isOutsideCity) {
+        badgeContainer.classList.add('is-clarify');
+      }
     }
 
-    const cartZoneBadge = document.getElementById('cartDeliveryZoneBadge');
+    if (badgeText) {
+      if (zoneInfo.isBlocked) {
+        badgeText.textContent = `${zoneName}${infoStr}`;
+      } else if (zoneInfo.isOutsideCity) {
+        badgeText.textContent = `${zoneName}${infoStr}`;
+      } else {
+        const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+        badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
+      }
+    }
+
     if (cartZoneBadge) {
-      cartZoneBadge.textContent = `${zoneName} • ${feeStr}`;
+      if (zoneInfo.isBlocked) {
+        cartZoneBadge.textContent = zoneName;
+      } else if (zoneInfo.isOutsideCity) {
+        cartZoneBadge.textContent = `${zoneName} • $3.50+`;
+      } else {
+        const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+        cartZoneBadge.textContent = `${zoneName} • ${feeStr}`;
+      }
     }
   }
 
@@ -2758,7 +2791,7 @@ class ShopApp {
           .from('orders')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', this.currentUser.id)
-          .in('status', ['pending', 'new', 'shopping', 'purchasing']);
+          .in('status', ['pending', 'new', 'clarify', 'needs_confirmation', 'shopping', 'purchasing']);
 
         if (!countErr && typeof activeCount === 'number' && activeCount >= 5) {
           const friendly = this.getFriendlyErrorMessage({ message: 'Maximum pending orders limit reached (5 active orders max)' });
@@ -2771,8 +2804,55 @@ class ShopApp {
       }
     }
 
-    // Save order address in recents (does not overwrite profile default if already set)
+    // Coordinates of delivery address
     const pinCoords = this.checkoutCustomerMarker ? this.checkoutCustomerMarker.getLatLng() : null;
+    const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(rawDeliveryAddress) : null;
+    const finalLat = (pinCoords && typeof pinCoords.lat === 'number') ? pinCoords.lat : (coords?.lat || null);
+    const finalLng = (pinCoords && typeof pinCoords.lng === 'number') ? pinCoords.lng : (coords?.lng || null);
+
+    let effectiveDistanceKm = this.currentDeliveryDistance;
+    if ((effectiveDistanceKm === undefined || effectiveDistanceKm === null) && finalLat && finalLng && typeof calculateDistanceKm === 'function') {
+      const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+      effectiveDistanceKm = calculateDistanceKm(finalLat, finalLng, marketCoords.lat, marketCoords.lng) * 1.25;
+    }
+
+    // Hard limit: > 10 km from market
+    if (typeof effectiveDistanceKm === 'number' && effectiveDistanceKm > 10.0) {
+      const friendly = this.getFriendlyErrorMessage({ message: 'Delivery address is outside delivery service radius (exceeds 10 km limit)' });
+      this.showAlertDialog(friendly);
+      if (submitBtn) submitBtn.disabled = false;
+      return;
+    }
+
+    // Buffer zone: 6.0 - 10.0 km -> clarify via selected messenger
+    if (typeof effectiveDistanceKm === 'number' && effectiveDistanceKm > 6.0 && !this._confirmedClarifyOutside) {
+      if (submitBtn) submitBtn.disabled = false;
+      const messengerLabel = this.getLocalizedMessengerName(customerMessenger);
+      const title = window.i18n ? window.i18n.t('dialogs.delivery_clarify_title') : 'Уточнение доставки';
+      const distStr = Number(effectiveDistanceKm).toFixed(1);
+      const rawTemplate = window.i18n ? window.i18n.t('dialogs.delivery_clarify_desc') : 'Выбранная точка находится в {dist} км от рынка (вне стандартной зоны 6 км). Заказ будет отправлен со статусом «Уточнить», и закупщик свяжется с вами через {messenger} для согласования условий. Отправить заявку?';
+      const message = rawTemplate.replace('{dist}', distStr).replace('{messenger}', messengerLabel);
+      const confirmText = window.i18n ? window.i18n.t('dialogs.btn_clarify_confirm') : 'Отправить на уточнение';
+      const cancelText = window.i18n ? window.i18n.t('dialogs.btn_clarify_cancel') : 'Изменить адрес';
+
+      this.showConfirmDialog({
+        title,
+        message,
+        confirmText,
+        cancelText,
+        onConfirm: () => {
+          this._confirmedClarifyOutside = true;
+          this.handleCheckoutSubmit();
+        },
+        onCancel: () => {
+          this._confirmedClarifyOutside = false;
+        }
+      });
+      return;
+    }
+    this._confirmedClarifyOutside = false;
+
+    // Save order address in recents (does not overwrite profile default if already set)
     const effectiveSavedName = customAddrName || (window.i18n ? window.i18n.t('cart.preset_home') : 'Дом');
     this.saveRecentDeliveryAddress(rawDeliveryAddress, pinCoords ? { lat: pinCoords.lat, lng: pinCoords.lng } : null, effectiveSavedName);
     localStorage.setItem('freshmarket_customer_address_name', effectiveSavedName);
@@ -2781,20 +2861,20 @@ class ShopApp {
       localStorage.setItem('freshmarket_customer_address', rawDeliveryAddress);
     }
 
-    // Determine delivery zone & fee automatically (using road distance if available)
+    // Determine delivery zone & fee automatically
     let deliveryZoneId = this.currentDeliveryZone || 'zone_1';
     let deliveryFee = this.currentDeliveryFee || 1.00;
+    let initialStatus = 'pending';
 
-    const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(rawDeliveryAddress) : null;
-    const finalLat = (pinCoords && typeof pinCoords.lat === 'number') ? pinCoords.lat : (coords?.lat || null);
-    const finalLng = (pinCoords && typeof pinCoords.lng === 'number') ? pinCoords.lng : (coords?.lng || null);
-
-    if (coords && !this.currentDeliveryZone && typeof calculateDistanceKm === 'function' && typeof getDeliveryZoneByDistance === 'function') {
-      const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
-      const dist = calculateDistanceKm(coords.lat, coords.lng, marketCoords.lat, marketCoords.lng);
-      const zoneInfo = getDeliveryZoneByDistance(dist * 1.25);
+    if (typeof effectiveDistanceKm === 'number') {
+      const zoneInfo = typeof getDeliveryZoneByDistance === 'function'
+        ? getDeliveryZoneByDistance(effectiveDistanceKm)
+        : { zoneId: 'zone_1', fee: 1.00 };
       deliveryZoneId = zoneInfo.zoneId;
       deliveryFee = zoneInfo.fee;
+      if (zoneInfo.isOutsideCity) {
+        initialStatus = 'clarify';
+      }
     }
 
     const orderNumber = generateOrderNumber();
@@ -2804,6 +2884,12 @@ class ShopApp {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const targetDate = tomorrow.toISOString().slice(0, 10);
+
+    let finalCustomerComment = customerComment;
+    if (initialStatus === 'clarify') {
+      const note = `[⚠️ Доставка вне стандартной зоны (~${Number(effectiveDistanceKm).toFixed(1)} км) — уточнить через ${customerMessenger}]`;
+      finalCustomerComment = customerComment ? `${customerComment}\n${note}` : note;
+    }
 
     const orderPayload = {
       id: orderId,
@@ -2816,12 +2902,12 @@ class ShopApp {
       delivery_zone: deliveryZoneId,
       delivery_lat: finalLat,
       delivery_lng: finalLng,
-      customer_notes: customerComment,
-      customer_comment: customerComment,
+      customer_notes: finalCustomerComment,
+      customer_comment: finalCustomerComment,
       target_delivery_date: targetDate,
       replacement_policy: replacementPolicy,
       replace_rule: replacementPolicy,
-      status: 'pending',
+      status: initialStatus,
       payment_status: 'pending',
       payment_method: 'cash',
       estimated_total: 0.00,
@@ -3166,6 +3252,8 @@ class ShopApp {
     const statusMap = {
       pending: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
       new: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
+      clarify: { label: window.i18n ? window.i18n.t('orders.status_clarify') : '⚠️ Уточнить доставку', class: 'status-clarify' },
+      needs_confirmation: { label: window.i18n ? window.i18n.t('orders.status_clarify') : '⚠️ Уточнить доставку', class: 'status-clarify' },
       shopping: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
       purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
       delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : '🛵 Передан курьеру', class: 'status-delivering' },
@@ -4047,8 +4135,9 @@ class ShopApp {
 
   updateProfileDeliveryMapBadge(zoneInfo, roadKm, durationMin) {
     const badgeText = document.getElementById('profileMapStatusText');
+    const badgeContainer = document.getElementById('profileMapStatusBadge');
     if (!badgeText) return;
-    const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+
     const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
     const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
     const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
@@ -4061,7 +4150,22 @@ class ShopApp {
         infoStr += ` (~${durationMin} ${minText})`;
       }
     }
-    badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
+
+    if (badgeContainer) {
+      badgeContainer.classList.remove('is-clarify', 'is-blocked');
+      if (zoneInfo.isBlocked) {
+        badgeContainer.classList.add('is-blocked');
+      } else if (zoneInfo.isOutsideCity) {
+        badgeContainer.classList.add('is-clarify');
+      }
+    }
+
+    if (zoneInfo.isBlocked || zoneInfo.isOutsideCity) {
+      badgeText.textContent = `${zoneName}${infoStr}`;
+    } else {
+      const feeStr = `$${Number(zoneInfo.fee || 1).toFixed(2)}`;
+      badgeText.textContent = `${zoneName} (${feeStr})${infoStr}`;
+    }
   }
 
   async applyLocationToProfile(lat, lng, panMap = true) {
@@ -4379,6 +4483,13 @@ class ShopApp {
       this.dialogTitle = document.getElementById('dialogTitle');
       this.dialogMessage = document.getElementById('dialogMessage');
       this.dialogBtnOk = document.getElementById('dialogBtnOk');
+      this.dialogBtnCancel = document.getElementById('dialogBtnCancel');
+    }
+    if (!this.dialogBtnCancel) {
+      this.dialogBtnCancel = document.getElementById('dialogBtnCancel');
+    }
+    if (this.dialogBtnCancel) {
+      this.dialogBtnCancel.style.display = 'none';
     }
     if (!this.alertDialog) {
       alert(`${title ? title + '\n\n' : ''}${message || ''}`);
@@ -4424,6 +4535,73 @@ class ShopApp {
     };
   }
 
+  showConfirmDialog({ title, message, confirmText, cancelText, onConfirm, onCancel } = {}) {
+    if (!this.alertDialog) {
+      this.alertDialog = document.getElementById('alertDialog');
+      this.dialogTitle = document.getElementById('dialogTitle');
+      this.dialogMessage = document.getElementById('dialogMessage');
+      this.dialogBtnOk = document.getElementById('dialogBtnOk');
+      this.dialogBtnCancel = document.getElementById('dialogBtnCancel');
+    }
+    if (!this.dialogBtnCancel) {
+      this.dialogBtnCancel = document.getElementById('dialogBtnCancel');
+    }
+
+    const defaultTitle = window.i18n ? window.i18n.t('dialogs.generic_error_title') : 'Внимание';
+    const defaultConfirm = window.i18n ? window.i18n.t('dialogs.btn_clarify_confirm') : 'Отправить на уточнение';
+    const defaultCancel = window.i18n ? window.i18n.t('dialogs.btn_clarify_cancel') : 'Изменить адрес';
+
+    if (this.dialogTitle) this.dialogTitle.textContent = title || defaultTitle;
+    if (this.dialogMessage) this.dialogMessage.textContent = message || '';
+    if (this.dialogBtnOk) this.dialogBtnOk.textContent = confirmText || defaultConfirm;
+    if (this.dialogBtnCancel) {
+      this.dialogBtnCancel.textContent = cancelText || defaultCancel;
+      this.dialogBtnCancel.style.display = 'inline-flex';
+    }
+
+    this.alertDialog.style.display = 'flex';
+    document.body.classList.add('modal-open');
+
+    const handleConfirm = () => {
+      this.closeAlertDialog();
+      if (typeof onConfirm === 'function') onConfirm();
+    };
+
+    const handleCancel = () => {
+      this.closeAlertDialog();
+      if (typeof onCancel === 'function') onCancel();
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        window.removeEventListener('keydown', onKeyDown);
+        handleCancel();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { once: true });
+
+    if (this.dialogBtnOk) {
+      this.dialogBtnOk.onclick = () => {
+        window.removeEventListener('keydown', onKeyDown);
+        handleConfirm();
+      };
+    }
+
+    if (this.dialogBtnCancel) {
+      this.dialogBtnCancel.onclick = () => {
+        window.removeEventListener('keydown', onKeyDown);
+        handleCancel();
+      };
+    }
+
+    this.alertDialog.onclick = (e) => {
+      if (e.target === this.alertDialog) {
+        window.removeEventListener('keydown', onKeyDown);
+        handleCancel();
+      }
+    };
+  }
+
   updateModalOpenState() {
     const isAlertOpen = this.alertDialog && this.alertDialog.style.display === 'flex';
     const isProductSheetOpen = this.productBottomSheet && this.productBottomSheet.style.display === 'flex';
@@ -4440,6 +4618,9 @@ class ShopApp {
   closeAlertDialog() {
     if (this.alertDialog) {
       this.alertDialog.style.display = 'none';
+      if (this.dialogBtnCancel) {
+        this.dialogBtnCancel.style.display = 'none';
+      }
     }
     this.updateModalOpenState();
   }
@@ -4490,6 +4671,12 @@ class ShopApp {
 
   getFriendlyErrorMessage(err) {
     const rawMsg = err?.message || String(err || '');
+    if (/exceeds.*10.*km|outside.*radius|outside.*delivery.*service/i.test(rawMsg)) {
+      return {
+        title: window.i18n ? window.i18n.t('dialogs.delivery_too_far_title') : 'Вне зоны доставки',
+        message: window.i18n ? window.i18n.t('dialogs.delivery_too_far_desc') : 'Выбранная точка находится на расстоянии более 10 км от рынка. Доставка на такое расстояние не осуществляется. Пожалуйста, укажите точку в пределах 10 км.'
+      };
+    }
     if (/maximum.*pending.*orders|pending.*orders.*limit|too many pending|active.*orders/i.test(rawMsg)) {
       return {
         title: window.i18n ? window.i18n.t('dialogs.max_pending_title') : 'Заказы в обработке',
