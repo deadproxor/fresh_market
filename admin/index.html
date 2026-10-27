@@ -283,8 +283,8 @@
                 Используется для пересчета ориентировочных рыночных цен в каталоге, админке и витрине магазина.
               </p>
 
-              <div style="display: flex; gap: 10px; align-items: center;">
-                <div class="input-wrap" style="flex: 1; position: relative;">
+              <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
+                <div class="input-wrap" style="position: relative;">
                   <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">៛</span>
                   <input type="number" id="settingKhrRate" class="text-input" min="1000" max="10000" step="50"
                     value="4000" placeholder="4000" />
@@ -292,12 +292,6 @@
                 <button type="button" class="btn-settings-action" id="btnSaveKhrRate" style="white-space: nowrap;">
                   Сохранить курс
                 </button>
-              </div>
-
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <button type="button" class="filter-pill" id="btnRatePreset4000">4,000 ៛ (Официальный)</button>
-                <button type="button" class="filter-pill" id="btnRatePreset4100">4,100 ៛ (Рыночный)</button>
-                <button type="button" class="filter-pill" id="btnRatePreset4200">4,200 ៛</button>
               </div>
 
             </div>
@@ -530,6 +524,32 @@
                 защищены от удаления.
               </p>
 
+              <!-- Sync & Consistency Action Panel -->
+              <div class="dict-sync-panel" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Синхронизация с базой данных</span>
+                  </div>
+                  <span class="badge badge-primary" id="dictSyncMatchBadge">Сверка не выполнялась</span>
+                </div>
+
+                <div class="settings-buttons-row" style="margin: 0; display: flex; flex-wrap: wrap; gap: 8px;">
+                  <button type="button" class="btn-settings-action" id="btnAuditConsistency" title="Сверить базу Supabase с эталонным словарём">
+                    Сверить консистентность
+                  </button>
+                  <button type="button" class="btn-settings-action" id="btnSyncDbFromDict" title="Обновить категории, транскрипции и описания в Supabase из словаря">
+                    Синхронизировать базу из словаря
+                  </button>
+                  <button type="button" class="btn-settings-action" id="btnExportDictJson" title="Скачать актуальный products_dictionary.json">
+                    Экспорт словаря
+                  </button>
+                </div>
+
+                <div id="dictSyncReportBox" style="display: none; font-size: 12px; line-height: 1.5; border-radius: var(--radius-sm); padding: 10px 12px; border: 1px solid var(--border-subtle); background: var(--bg-card-subtle);">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
               <!-- Search & Filter Pills -->
               <div class="dict-draft-controls" style="display: flex; flex-direction: column; gap: 10px;">
                 <div class="search-box" style="width: 100%;">
@@ -541,12 +561,9 @@
                     style="display: none;">✕</button>
                 </div>
                 <div class="dict-filter-pills" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;">
-                  <button type="button" class="filter-pill active" data-dict-filter="all" id="dictFilterAll">Все
-                    (161)</button>
-                  <button type="button" class="filter-pill" data-dict-filter="core" id="dictFilterCore">Базовые
-                    (152)</button>
-                  <button type="button" class="filter-pill" data-dict-filter="database" id="dictFilterDb">Из базы
-                    (9)</button>
+                  <button type="button" class="filter-pill active" data-dict-filter="all" id="dictFilterAll">Все</button>
+                  <button type="button" class="filter-pill" data-dict-filter="core" id="dictFilterCore">Базовые</button>
+                  <button type="button" class="filter-pill" data-dict-filter="database" id="dictFilterDb">Из базы</button>
                 </div>
               </div>
 
@@ -554,11 +571,6 @@
               <div class="settings-dict-list" id="settingsDictList"
                 style="max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px; background: var(--bg-card-subtle);">
                 <!-- Injected via JS -->
-              </div>
-
-              <div style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                <span>ℹ️</span>
-                <span>Автосинхронизация и удаление дубликатов из базы запланированы на следующий этап.</span>
               </div>
             </div>
           </div>
@@ -843,7 +855,7 @@
   <script src="../js/shared/utils.js?v=1.5.0"></script>
   <script src="../js/shared/categories.js?v=1.5.10"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
-  <script src="js/admin-catalog.js?v=1.5.10"></script>
+  <script src="js/admin-catalog.js?v=1.5.13"></script>
   <script src="js/admin-auth.js?v=1.5.0"></script>
 </body>
 

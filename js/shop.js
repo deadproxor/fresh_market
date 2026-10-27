@@ -108,6 +108,35 @@ class ShopApp {
     return (!isNaN(num) && num > 0) ? num : 4000;
   }
 
+  async loadServiceSettings() {
+    if (!this.sb) return;
+    try {
+      const { data, error } = await this.sb
+        .from('service_settings')
+        .select('key, value')
+        .eq('key', 'khr_rate')
+        .maybeSingle();
+
+      if (!error && data?.value) {
+        const rate = typeof data.value === 'object' ? Number(data.value.rate) : Number(data.value);
+        if (!isNaN(rate) && rate >= 1000 && rate <= 10000) {
+          const oldRate = this.khrRate;
+          this.khrRate = rate;
+          localStorage.setItem('freshmarket_khr_rate', String(rate));
+          if (oldRate !== rate) {
+            this.renderFloatingCart();
+            if (this.currentView === 'cart') {
+              this.renderCartModalList();
+            }
+          }
+          console.log(`[FreshMarket Shop] Active KHR exchange rate from cloud: $1 = ${rate} ៛`);
+        }
+      }
+    } catch (err) {
+      console.debug('[FreshMarket Shop] Could not fetch service_settings:', err);
+    }
+  }
+
   applyShopLayout() {
     if (!this.shopProductsGrid) return;
     this.shopProductsGrid.classList.remove('layout-grid-1', 'layout-grid-2');
@@ -148,6 +177,7 @@ class ShopApp {
 
         // 1. Explicit immediate session check (handles page reload & cached tokens)
         this.checkInitialSession();
+        this.loadServiceSettings();
 
         // 2. Real-time auth state changes (login, logout, token refresh)
         this.sb.auth.onAuthStateChange(async (event, session) => {
@@ -1138,6 +1168,7 @@ class ShopApp {
 
     // Load Produce Dictionary to enrich products with UA/FR/KH translations
     await this.loadProduceDictionary();
+    await this.loadServiceSettings();
 
     // 2. Fetch from Supabase
     if (this.sb) {
