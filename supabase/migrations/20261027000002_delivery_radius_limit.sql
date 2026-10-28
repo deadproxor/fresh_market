@@ -11,6 +11,9 @@
 --   2. Учет статуса 'clarify' в rate limit активных заказов (не более 5)
 -- ============================================================================
 
+-- Обеспечение наличия колонки service_percent в orders
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS service_percent NUMERIC(5, 2) DEFAULT 10.00;
+
 -- Удаление предыдущей сигнатуры create_order (12 параметров)
 DROP FUNCTION IF EXISTS public.create_order(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, DATE, JSONB, NUMERIC, NUMERIC);
 
@@ -247,7 +250,6 @@ BEGIN
     status,
     payment_status,
     payment_method,
-    service_percent,
     estimated_total,
     market_items_total,
     actual_market_total,
@@ -275,7 +277,7 @@ BEGIN
     v_order_status,
     'pending',
     'cash',
-    10.00,
+    0.00,
     0.00,
     0.00,
     0.00,

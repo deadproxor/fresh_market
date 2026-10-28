@@ -1,5 +1,5 @@
 {
-  "version": "1.5.3",
+  "version": "1.5.4",
   "core": [
     {
       "ru": "Баклажан обычный / Баклажан",
@@ -139,7 +139,7 @@
       "kh": "គ្រាប់សាគូ (Kroab Saku)",
       "ua": "Перлини тапіоки / Саго",
       "fr": "Perles de tapioca / Sagou",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Сушеный",
       "desc": "Шарики тапиоки для боба-чая и десертов с кокосовым молоком",
       "img_url": ""
@@ -293,7 +293,7 @@
       "kh": "សណ្តែកកួរ (Sandaek Kuor)",
       "ua": "Спаржева квасоля / Довга квасоля",
       "fr": "Haricots longs / Haricots kilomètres",
-      "cat": "vegetables",
+      "cat": "legumes_nuts",
       "form": "Стручок",
       "desc": "Длинные зеленые хрустящие стручки фасоли",
       "img_url": ""
@@ -304,7 +304,7 @@
       "kh": "សណ្តែកបណ្តុះ (Sandaek Bandoh)",
       "ua": "Паростки сої / Машу",
       "fr": "Pousses de soja / Haricot mungo",
-      "cat": "vegetables",
+      "cat": "legumes_nuts",
       "form": "Пучок",
       "desc": "Хрустящие свежие ростки для супов и лапши",
       "img_url": ""
@@ -392,7 +392,7 @@
       "kh": "សណ្ដែកពួរ (Sandaek Puor) [?]",
       "ua": "Крилата квасоля / Драконячі боби",
       "fr": "Haricot ailé / Pois carré",
-      "cat": "vegetables",
+      "cat": "legumes_nuts",
       "form": "Стручок",
       "desc": "Четырёхгранные стручки с «крылышками» для салатов и жарки",
       "img_url": ""
@@ -601,7 +601,7 @@
       "kh": "កង្កែប (Kangkaep)",
       "ua": "Жаба",
       "fr": "Grenouille",
-      "cat": "meat",
+      "cat": "street_exotic",
       "form": "Целый",
       "desc": "Лягушки для жарки и тушения",
       "img_url": ""
@@ -669,7 +669,7 @@
       "fr": "Crabe bleu nageur / Crabe fleur",
       "cat": "seafood",
       "form": "Целый",
-      "desc": "Кепский или морской краб",
+      "desc": "Голубой или морской краб",
       "img_url": ""
     },
     {
@@ -695,14 +695,14 @@
       "img_url": ""
     },
     {
-      "ru": "Лангуст / Омар",
-      "en": "Lobster",
+      "ru": "Гигантская речная креветка / Лангуст",
+      "en": "Giant River Prawn / Lobster",
       "kh": "បង្កង (Bongkong)",
-      "ua": "Лангуст / Омар",
-      "fr": "Homard / Langouste",
+      "ua": "Гігантська річкова креветка / Лангуст",
+      "fr": "Grosse crevette d'eau douce / Langouste",
       "cat": "seafood",
       "form": "Целый",
-      "desc": "Свежие лангусты с побережья",
+      "desc": "Крупная пресноводная креветка (Macrobrachium rosenbergii) с большими клешнями, обычно жарится на углях; так же называют лангуста",
       "img_url": ""
     },
     {
@@ -744,7 +744,7 @@
       "kh": "ខ្យង (Khyang)",
       "ua": "Равлики",
       "fr": "Escargots",
-      "cat": "seafood",
+      "cat": "street_exotic",
       "form": "Целый",
       "desc": "Речные улитки для жарки и супов",
       "img_url": ""
@@ -1305,7 +1305,7 @@
       "kh": "ពងមាន់ / ស៊ុត (Pong Moan / Sut)",
       "ua": "Яйця курячі / качині",
       "fr": "Œufs (poulet / canard)",
-      "cat": "sauces",
+      "cat": "dairy_eggs",
       "form": "Целый",
       "desc": "Свежие фермерские яйца",
       "img_url": ""
@@ -1360,7 +1360,7 @@
       "kh": "អង្ករផ្កាម្លិះ (Angkor Phka Mlih)",
       "ua": "Рис Жасмин",
       "fr": "Riz jasmin",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Целый",
       "desc": "Ароматный камбоджийский жасминовый рис",
       "img_url": ""
@@ -1371,7 +1371,7 @@
       "kh": "គុយទាវ (Kuyteav)",
       "ua": "Рисова локшина",
       "fr": "Nouilles de riz",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Сушеный",
       "desc": "Свежая или сушеная рисовая лапша",
       "img_url": ""
@@ -1382,7 +1382,7 @@
       "kh": "តៅហ៊ូ (Taohu)",
       "ua": "Свіжий тофу",
       "fr": "Tofu frais",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Целый",
       "desc": "Соевый сыр тофу мягкий или твердый",
       "img_url": ""
@@ -1426,7 +1426,7 @@
       "kh": "អង្ករដំណើប (Angkor Damnaeb)",
       "ua": "Клейкий рис",
       "fr": "Riz gluant",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Целый",
       "desc": "Клейкий рис для десертов с манго и бамбукового риса Кролан",
       "img_url": ""
@@ -1437,7 +1437,7 @@
       "kh": "ពងទាកូន (Pong Tea Koun)",
       "ua": "Балют (качине яйце)",
       "fr": "Balut / Œuf de cane fécondé",
-      "cat": "sauces",
+      "cat": "street_exotic",
       "form": "Целый",
       "desc": "Уличный деликатес, подается со свежим перцем, солью и лаймом",
       "img_url": ""
@@ -1448,7 +1448,7 @@
       "kh": "ពងក្រួច (Pong Kruoch)",
       "ua": "Перепелині яйця",
       "fr": "Œufs de caille",
-      "cat": "sauces",
+      "cat": "dairy_eggs",
       "form": "Целый",
       "desc": "Маленькие пятнистые перепелиные яйца",
       "img_url": ""
@@ -1525,7 +1525,7 @@
       "kh": "ម្សៅ (Msov)",
       "ua": "Борошно",
       "fr": "Farine",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Молотый",
       "desc": "Мука для выпечки и теста",
       "img_url": ""
@@ -1536,7 +1536,7 @@
       "kh": "នំបុ័ង (Nom Pang)",
       "ua": "Хліб / Багет",
       "fr": "Pain / Baguette",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Целый",
       "desc": "Хрустящий багет по-французски",
       "img_url": ""
@@ -1547,7 +1547,7 @@
       "kh": "នំបញ្ចុក (Nom Banchok)",
       "ua": "Рисова вермішель",
       "fr": "Vermicelles de riz",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Целый",
       "desc": "Свежая рисовая лапша для супа и карри",
       "img_url": ""
@@ -1558,7 +1558,7 @@
       "kh": "មី (Mi)",
       "ua": "Яєчна жовта локшина",
       "fr": "Nouilles aux œufs",
-      "cat": "sauces",
+      "cat": "grains_noodles",
       "form": "Целый",
       "desc": "Яичная лапша для супов и жарки",
       "img_url": ""
@@ -1569,7 +1569,7 @@
       "kh": "សណ្តែកដី (Sandaek Dei)",
       "ua": "Арахіс",
       "fr": "Cacahuètes / Arachides",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Целый",
       "desc": "Арахис для закусок и соусов",
       "img_url": ""
@@ -1580,7 +1580,7 @@
       "kh": "ស្វាយចន្ទី (Svay Chantei)",
       "ua": "Кеш'ю",
       "fr": "Noix de cajou",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Целый",
       "desc": "Орехи кешью",
       "img_url": ""
@@ -1591,7 +1591,7 @@
       "kh": "ល្ង (Lngo)",
       "ua": "Кунжут",
       "fr": "Graines de sésame",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Целый",
       "desc": "Семена кунжута",
       "img_url": ""
@@ -1624,8 +1624,8 @@
       "kh": "ទឹកដោះគោ (Teuk Daoh Kou)",
       "ua": "Молоко",
       "fr": "Lait",
-      "cat": "sauces",
-      "form": "Целый",
+      "cat": "dairy_eggs",
+      "form": "Бутылка",
       "desc": "Коровье молоко",
       "img_url": ""
     },
@@ -1738,6 +1738,501 @@
       "form": "Бутылка",
       "desc": "Натуральный острый соус из свежих местных перцев чили и чеснока",
       "img_url": ""
+    },
+    {
+      "ru": "Креветки речные мелкие (стеклянные)",
+      "en": "Tiny River Shrimp (Glass Prawn)",
+      "kh": "កំពឹស (Kampeus)",
+      "ua": "Дрібні річкові креветки (скляні)",
+      "fr": "Petites crevettes de rivière (crevettes de verre)",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Прозрачные мелкие речные креветки для жарки и закусок",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветки мелкие",
+      "en": "Small Shrimp",
+      "kh": "បង្គាតូច (Bongkea Touch)",
+      "ua": "Креветки дрібні",
+      "fr": "Petites crevettes",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Мелкие креветки для супов, жарки и салатов",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветки крупные",
+      "en": "Large Shrimp",
+      "kh": "បង្គាធំ (Bongkea Thum)",
+      "ua": "Креветки великі",
+      "fr": "Grosses crevettes",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Крупные креветки для гриля и жарки",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветки тигровые",
+      "en": "Tiger Prawns",
+      "kh": "បង្គាខ្លា (Bongkea Khla) [?]",
+      "ua": "Креветки тигрові",
+      "fr": "Crevettes tigrées",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Крупные полосатые креветки для гриля и жарки",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветка речная восточная",
+      "en": "Oriental River Prawn",
+      "kh": "ព្រោន (Proun) [?]",
+      "ua": "Креветка річкова східна",
+      "fr": "Crevette de rivière orientale",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Пресноводная креветка среднего размера из прудов и канав",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветки сушёные мелкие",
+      "en": "Small Dried Shrimp",
+      "kh": "បង្គាក្រៀមតូច (Bongkea Kriem Touch)",
+      "ua": "Креветки сушені дрібні",
+      "fr": "Petites crevettes séchées",
+      "cat": "seafood",
+      "form": "Сушеный",
+      "desc": "Мелкие сушёные креветки для бульонов, салатов и жарки",
+      "img_url": ""
+    },
+    {
+      "ru": "Краб голубой плавунец, самец",
+      "en": "Blue Swimmer Crab (Male)",
+      "kh": "ក្តាមសេះ (Kdam Seh)",
+      "ua": "Краб блакитний плавунець, самець",
+      "fr": "Crabe bleu nageur (mâle)",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Голубой краб-плавунец, самцы с голубыми клешнями",
+      "img_url": ""
+    },
+    {
+      "ru": "Краб голубой плавунец, самка",
+      "en": "Blue Swimmer Crab (Female)",
+      "kh": "ក្តាមសេះញី (Kdam Seh Nhi)",
+      "ua": "Краб блакитний плавунець, самка",
+      "fr": "Crabe bleu nageur (femelle)",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Самка голубого краба зеленовато-коричневого цвета с округлым панцирем",
+      "img_url": ""
+    },
+    {
+      "ru": "Краб мангровый (илистый)",
+      "en": "Mud Crab",
+      "kh": "ក្តាមថ្ម (Kdam Thma)",
+      "ua": "Краб мангровий (мулистий)",
+      "fr": "Crabe de palétuvier",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Крупный краб с массивными клешнями для жарки и тушения",
+      "img_url": ""
+    },
+    {
+      "ru": "Краб рисовых полей",
+      "en": "Rice Field Crab",
+      "kh": "ក្តាមស្រែ (Kdam Srae)",
+      "ua": "Краб рисових полів",
+      "fr": "Crabe des rizières",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Мелкий пресноводный краб для супов и паст",
+      "img_url": ""
+    },
+    {
+      "ru": "Краб морской",
+      "en": "Sea Crab",
+      "kh": "ក្តាមសមុទ្រ (Kdam Samot)",
+      "ua": "Краб морський",
+      "fr": "Crabe de mer",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Свежий морской краб общего названия",
+      "img_url": ""
+    },
+    {
+      "ru": "Мясо краба",
+      "en": "Crab Meat",
+      "kh": "សាច់ក្តាម (Sach Kdam)",
+      "ua": "М'ясо краба",
+      "fr": "Chair de crabe",
+      "cat": "seafood",
+      "form": "Нарезка",
+      "desc": "Очищенное мясо краба для жарки и супов",
+      "img_url": ""
+    },
+    {
+      "ru": "Мясо краба консервированное",
+      "en": "Canned Crab Meat",
+      "kh": "សាច់ក្តាមកំប៉ុង (Sach Kdam Kompong)",
+      "ua": "М'ясо краба консервоване",
+      "fr": "Chair de crabe en conserve",
+      "cat": "seafood",
+      "form": "Целый",
+      "desc": "Консервированное крабовое мясо для супов",
+      "img_url": ""
+    },
+    {
+      "ru": "Креветочная паста",
+      "en": "Shrimp Paste",
+      "kh": "កាពិ (Kapi)",
+      "ua": "Креветкова паста",
+      "fr": "Pâte de crevettes",
+      "cat": "sauces",
+      "form": "Паста",
+      "desc": "Ферментированная паста из мелких креветок для соусов и супов",
+      "img_url": ""
+    },
+    {
+      "ru": "Арахис жареный",
+      "en": "Roasted Peanuts",
+      "kh": "សណ្តែកដីលីង (Sandaek Dei Ling)",
+      "ua": "Арахіс смажений",
+      "fr": "Cacahuètes grillées",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Обжаренный арахис для закусок и салатов",
+      "img_url": ""
+    },
+    {
+      "ru": "Арахис варёный",
+      "en": "Boiled Peanuts",
+      "kh": "សណ្តែកដីស្ងោរ (Sandaek Dei Sngao)",
+      "ua": "Арахіс варений",
+      "fr": "Cacahuètes bouillies",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Варёный арахис в скорлупе, популярная закуска",
+      "img_url": ""
+    },
+    {
+      "ru": "Кунжут белый",
+      "en": "White Sesame",
+      "kh": "ល្ងស (Lngo Sor)",
+      "ua": "Кунжут білий",
+      "fr": "Sésame blanc",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Белые семена кунжута для соусов и выпечки",
+      "img_url": ""
+    },
+    {
+      "ru": "Кунжут чёрный",
+      "en": "Black Sesame",
+      "kh": "ល្ងខ្មៅ (Lngo Khmao)",
+      "ua": "Кунжут чорний",
+      "fr": "Sésame noir",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Чёрные семена кунжута для десертов и закусок",
+      "img_url": ""
+    },
+    {
+      "ru": "Семена лотоса",
+      "en": "Lotus Seeds",
+      "kh": "គ្រាប់ឈូក (Kroab Chhuk)",
+      "ua": "Насіння лотоса",
+      "fr": "Graines de lotus",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Свежие или сушёные семена лотоса для супов и десертов",
+      "img_url": ""
+    },
+    {
+      "ru": "Фасоль красная",
+      "en": "Red Beans",
+      "kh": "សណ្តែកក្រហម (Sandaek Krahom)",
+      "ua": "Квасоля червона",
+      "fr": "Haricots rouges",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Красная фасоль для десертов и супов",
+      "img_url": ""
+    },
+    {
+      "ru": "Фасоль чёрная",
+      "en": "Black Beans",
+      "kh": "សណ្តែកខ្មៅ (Sandaek Khmao)",
+      "ua": "Квасоля чорна",
+      "fr": "Haricots noirs",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Чёрная фасоль для десертов и каш",
+      "img_url": ""
+    },
+    {
+      "ru": "Соя",
+      "en": "Soybeans",
+      "kh": "សណ្តែកសៀង (Sandaek Sieng) [?]",
+      "ua": "Соя",
+      "fr": "Soja",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Соевые бобы для тофу, соусов и закусок",
+      "img_url": ""
+    },
+    {
+      "ru": "Маш (зелёная фасоль)",
+      "en": "Mung Beans",
+      "kh": "សណ្តែកបៃតង (Sandaek Baitong) [?]",
+      "ua": "Маш (зелена квасоля)",
+      "fr": "Haricots mungo",
+      "cat": "legumes_nuts",
+      "form": "Целый",
+      "desc": "Зелёные бобы для десертов, супов и ростков",
+      "img_url": ""
+    },
+    {
+      "ru": "Рис сырой",
+      "en": "Uncooked Rice",
+      "kh": "អង្ករ (Angkor)",
+      "ua": "Рис сирий",
+      "fr": "Riz cru",
+      "cat": "grains_noodles",
+      "form": "Целый",
+      "desc": "Неварёный рис, базовая крупа",
+      "img_url": ""
+    },
+    {
+      "ru": "Рис варёный",
+      "en": "Cooked Rice",
+      "kh": "បាយ (Bay)",
+      "ua": "Рис варений",
+      "fr": "Riz cuit",
+      "cat": "grains_noodles",
+      "form": "Целый",
+      "desc": "Готовый варёный рис, основа каждой трапезы",
+      "img_url": ""
+    },
+    {
+      "ru": "Рис красный",
+      "en": "Red Rice",
+      "kh": "អង្ករក្រហម (Angkor Krahom)",
+      "ua": "Рис червоний",
+      "fr": "Riz rouge",
+      "cat": "grains_noodles",
+      "form": "Целый",
+      "desc": "Нешлифованный красный рис с ореховым вкусом",
+      "img_url": ""
+    },
+    {
+      "ru": "Лапша стеклянная",
+      "en": "Glass Noodles",
+      "kh": "មីសួ (Mi Suo) [?]",
+      "ua": "Локшина скляна",
+      "fr": "Vermicelles de verre",
+      "cat": "grains_noodles",
+      "form": "Сушеный",
+      "desc": "Прозрачная лапша для супов и салатов",
+      "img_url": ""
+    },
+    {
+      "ru": "Рисовая мука",
+      "en": "Rice Flour",
+      "kh": "ម្សៅអង្ករ (Msov Angkor)",
+      "ua": "Рисове борошно",
+      "fr": "Farine de riz",
+      "cat": "grains_noodles",
+      "form": "Молотый",
+      "desc": "Мука из риса для блинов, лапши и десертов",
+      "img_url": ""
+    },
+    {
+      "ru": "Мука из клейкого риса",
+      "en": "Glutinous Rice Flour",
+      "kh": "ម្សៅអង្ករដំណើប (Msov Angkor Damnaeb)",
+      "ua": "Борошно з клейкого рису",
+      "fr": "Farine de riz gluant",
+      "cat": "grains_noodles",
+      "form": "Молотый",
+      "desc": "Мука для липких десертов и шариков моти",
+      "img_url": ""
+    },
+    {
+      "ru": "Кукурузный крахмал",
+      "en": "Corn Starch",
+      "kh": "ម្សៅពោត (Msov Pout)",
+      "ua": "Кукурудзяний крохмаль",
+      "fr": "Fécule de maïs",
+      "cat": "grains_noodles",
+      "form": "Молотый",
+      "desc": "Крахмал для загущения соусов и супов",
+      "img_url": ""
+    },
+    {
+      "ru": "Крахмал тапиоки",
+      "en": "Tapioca Starch",
+      "kh": "ម្សៅដំឡូងមី (Msov Domlong Mi)",
+      "ua": "Крохмаль тапіоки",
+      "fr": "Fécule de tapioca",
+      "cat": "grains_noodles",
+      "form": "Молотый",
+      "desc": "Крахмал из маниоки для десертов и теста",
+      "img_url": ""
+    },
+    {
+      "ru": "Мука пшеничная",
+      "en": "Wheat Flour",
+      "kh": "ម្សៅស្រូវសាលី (Msov Srov Sali)",
+      "ua": "Борошно пшеничне",
+      "fr": "Farine de blé",
+      "cat": "grains_noodles",
+      "form": "Молотый",
+      "desc": "Пшеничная мука для выпечки и лапши",
+      "img_url": ""
+    },
+    {
+      "ru": "Яйца утиные",
+      "en": "Duck Eggs",
+      "kh": "ពងទា (Pong Tea)",
+      "ua": "Яйця качині",
+      "fr": "Œufs de canard",
+      "cat": "dairy_eggs",
+      "form": "Целый",
+      "desc": "Крупные утиные яйца для варки и жарки",
+      "img_url": ""
+    },
+    {
+      "ru": "Яйца утиные солёные",
+      "en": "Salted Duck Eggs",
+      "kh": "ពងទាប្រៃ (Pong Tea Pray)",
+      "ua": "Яйця качині солоні",
+      "fr": "Œufs de canard salés",
+      "cat": "dairy_eggs",
+      "form": "Целый",
+      "desc": "Солёные утиные яйца к рису и к жареным блюдам",
+      "img_url": ""
+    },
+    {
+      "ru": "Молоко сгущённое",
+      "en": "Condensed Milk",
+      "kh": "ទឹកដោះគោខាប់ (Teuk Daoh Kou Khap)",
+      "ua": "Молоко згущене",
+      "fr": "Lait concentré",
+      "cat": "dairy_eggs",
+      "form": "Бутылка",
+      "desc": "Сладкое сгущённое молоко для кофе и десертов",
+      "img_url": ""
+    },
+    {
+      "ru": "Молоко сухое",
+      "en": "Powdered Milk",
+      "kh": "ទឹកដោះគោម្សៅ (Teuk Daoh Kou Msov)",
+      "ua": "Молоко сухе",
+      "fr": "Lait en poudre",
+      "cat": "dairy_eggs",
+      "form": "Молотый",
+      "desc": "Сухое молоко для напитков и выпечки",
+      "img_url": ""
+    },
+    {
+      "ru": "Масло сливочное",
+      "en": "Butter",
+      "kh": "ប៊ឺ (Beu)",
+      "ua": "Масло вершкове",
+      "fr": "Beurre",
+      "cat": "dairy_eggs",
+      "form": "Целый",
+      "desc": "Сливочное масло для выпечки и жарки",
+      "img_url": ""
+    },
+    {
+      "ru": "Сыр",
+      "en": "Cheese",
+      "kh": "ឈីស (Chhis)",
+      "ua": "Сир",
+      "fr": "Fromage",
+      "cat": "dairy_eggs",
+      "form": "Нарезка",
+      "desc": "Привозной сыр в нарезке",
+      "img_url": ""
+    },
+    {
+      "ru": "Йогурт",
+      "en": "Yogurt",
+      "kh": "យ៉ាអ៊ួត (Ya-uot) [?]",
+      "ua": "Йогурт",
+      "fr": "Yaourt",
+      "cat": "dairy_eggs",
+      "form": "Бутылка",
+      "desc": "Кисломолочный йогурт",
+      "img_url": ""
+    },
+    {
+      "ru": "Мороженое",
+      "en": "Ice Cream",
+      "kh": "ការ៉េម (Karem)",
+      "ua": "Морозиво",
+      "fr": "Glace",
+      "cat": "dairy_eggs",
+      "form": "Целый",
+      "desc": "Мороженое, популярный десерт на уличных лотках",
+      "img_url": ""
+    },
+    {
+      "ru": "Сверчки жареные",
+      "en": "Fried Crickets",
+      "kh": "ចង្រិតចៀន (Chongret Chien)",
+      "ua": "Цвіркуни смажені",
+      "fr": "Grillons frits",
+      "cat": "street_exotic",
+      "form": "Целый",
+      "desc": "Хрустящие жареные сверчки, классическая уличная закуска",
+      "img_url": ""
+    },
+    {
+      "ru": "Кузнечики",
+      "en": "Grasshoppers",
+      "kh": "កណ្ដូប (Kandoup)",
+      "ua": "Коники",
+      "fr": "Sauterelles",
+      "cat": "street_exotic",
+      "form": "Целый",
+      "desc": "Жареные кузнечики с чесноком",
+      "img_url": ""
+    },
+    {
+      "ru": "Яйца красных муравьёв",
+      "en": "Red Ant Eggs",
+      "kh": "ពងស្រមោច (Pong Sromaoch)",
+      "ua": "Яйця червоних мурах",
+      "fr": "Œufs de fourmis rouges",
+      "cat": "street_exotic",
+      "form": "Целый",
+      "desc": "Яйца муравьёв для салатов и омлетов",
+      "img_url": ""
+    },
+    {
+      "ru": "Мясо змеи",
+      "en": "Snake Meat",
+      "kh": "សាច់ពស់ (Sach Pos)",
+      "ua": "М'ясо змії",
+      "fr": "Viande de serpent",
+      "cat": "street_exotic",
+      "form": "Нарезка",
+      "desc": "Мясо змеи для жарки и тушения",
+      "img_url": ""
+    },
+    {
+      "ru": "Тарантул жареный",
+      "en": "Fried Tarantula",
+      "kh": "ពីងពាងចៀន (Ping Peang Chien) [?]",
+      "ua": "Тарантул смажений",
+      "fr": "Tarentule frite",
+      "cat": "street_exotic",
+      "form": "Целый",
+      "desc": "Жареный тарантул с чесноком и специями, традиционная уличная закуска",
+      "img_url": ""
     }
   ],
   "from_database": [
@@ -1747,7 +2242,7 @@
       "kh": "ផ្លែសំរង (Phlae Samrong)",
       "ua": "Насіння стеркулії (Мальва-нат)",
       "fr": "Graines de malva (Samrong)",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Сушеный",
       "desc": "Сушеные семена мальва-нат для охлаждающих десертов и напитков",
       "img_url": "",
@@ -1771,7 +2266,7 @@
       "kh": "តៅហ៊ូពងមាន់ (Tawhu Pong Moan)",
       "ua": "Яєчний тофу",
       "fr": "Tofu aux œufs",
-      "cat": "sauces",
+      "cat": "legumes_nuts",
       "form": "Целый",
       "desc": "Нежный японский яичный тофу в тубах для супов и обжарки",
       "img_url": "",

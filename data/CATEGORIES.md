@@ -18,8 +18,6 @@
 * **Горькая тыква / Момордика** — *Bitter Gourd / Bitter Melon* — **ម្រះ (Mreah)**
 * **Бамия / Окра** — *Okra / Lady's Finger* — **ពោតបារាំង (Pout Barang)**
 * **Кукуруза** — *Corn* — **ពោត (Pout)**
-* **Спаржевая фасоль / Длинная фасоль** — *Yardlong Beans* — **សណ្តែកកួរ (Sandaek Kou)**
-* **Ростки сои / Маша** — *Bean Sprouts* — **សណ្តែកបណ្តុះ (Sandaek Bandoh)**
 * **Лук репчатый** — *Onion* — **ខ្ទឹមបារាំង (Khtem Barang)**
 
 ---
@@ -81,10 +79,10 @@
 ---
 
 ## 🫚 5. Корни и пряности (Roots & Spices)
-* **Перец Кампот зеленый (свежий)** — *Fresh Green Kampot Pepper* — **ម្រេចកំពតខ្ចី (Mrech Kampot Kchey)**
-* **Перец Кампот черный (сушеный)** — *Kampot Black Pepper* — **ម្រេចកំពតខ្មៅ (Mrech Kampot Khmav)**
-* **Перец Кампот красный** — *Red Kampot Pepper* — **ម្រេចកំពតក្រហម (Mrech Kampot Krahom)**
-* **Перец Кампот белый** — *White Kampot Pepper* — **ម្រេចកំពតស (Mrech Kampot Sor)**
+* **Свежий зеленый перец (гроздья)** — *Fresh Green Pepper (Bunches)* — **ម្រេចខ្ចី (Mrech Khchei)**
+* **Черный перец горошком** — *Black Pepper* — **ម្រេចខ្មៅ (Mrech Khmao)**
+* **Красный перец** — *Red Pepper* — **ម្រេចក្រហម (Mrech Krahom)**
+* **Белый перец** — *White Pepper* — **ម្រេចស (Mrech Sor)**
 * **Галангал** — *Galangal* — **រំដេង (Romdeng)**
 * **Куркума свежая** — *Fresh Turmeric* — **រមៀត (Romieth)**
 * **Имбирь свежий** — *Fresh Ginger* — **ខ្ញី (Khnhei)**
@@ -95,8 +93,11 @@
 ---
 
 ## 🐟 6. Морепродукты и рыба (Seafood & Fish)
-* **Краб Кепский (голубой)** — *Kep Crab / Blue Swimming Crab* — **ក្តាម / ក្តាមសេះ (Kdam / Kdam Seh)**
-* **Креветки свежие** — *Fresh Shrimps / Prawns* — **បង្គាស្រស់ (Bangkaea Sros)**
+* **Голубой краб-плавунец / Краб** — *Blue Swimming Crab / Flower Crab* — **ក្តាម / ក្តាមសេះ (Kdam / Kdam Seh)**
+* **Краб мангровый (илистый)** — *Mud Crab* — **ក្តាមថ្ម (Kdam Thma)**
+* **Краб рисовых полей** — *Rice Field Crab* — **ក្តាមស្រែ (Kdam Srae)**
+* **Гигантская речная креветка / Лангуст** — *Giant River Prawn / Lobster* — **បង្កង (Bongkong)**
+* **Креветки свежие (мелкие, крупные, тигровые)** — *Fresh Shrimps / Prawns* — **បង្គាស្រស់ (Bangkaea Sros)**
 * **Кальмар свежий** — *Fresh Squid* — **មឹក (Meuk)**
 * **Осьминог** — *Octopus* — **មឹកយក្ស (Meuk Yok)**
 * **Мидии / Моллюски** — *Mussels / Clams* — **គ្រុំ / ងាវ (Krum / Ngiav)**
@@ -124,40 +125,79 @@
 
 ## 🥫 8. Соусы и бакалея (Sauces & Groceries)
 * **Прахок (ферментированная рыбная паста)** — *Prahok* — **ប្រហុក (Prahok)**
+* **Креветочная паста** — *Shrimp Paste* — **កាពិ (Kapi)**
 * **Паста карри Амок / Крёнг** — *Amok Curry Paste / Kroeung* — **គ្រឿងអាម៉ុក (Kreung Amok)**
 * **Тамаринд паста / мякоть** — *Tamarind Paste* — **សាច់អំពិល (Sach Ampil)**
-* **Пальмовый сахар камбоджийский** — *Cambodian Palm Sugar* — **ស្ករត្នោត (Skor Thnot)**
+* **Пальмовый сахар** — *Palm Sugar* — **ស្ករត្នោត (Skor Thnot)**
 * **Морская соль натуральная** — *Natural Sea Salt* — **អំបិលសមុទ្រ (Ambel Samut)**
 * **Рыбный соус** — *Fish Sauce* — **ទឹកត្រី (Teuk Trei)**
 * **Соевый соус** — *Soy Sauce* — **ទឹកស៊ីអ៊ីវ (Teuk Si Iv)**
 * **Устричный соус** — *Oyster Sauce* — **ប្រេងខ្យង (Preng Khyang)**
 * **Кокосовое молоко** — *Coconut Milk* — **ខ្ទិះដូង (Khtih Doung)**
-* **Рис Жасмин** — *Jasmine Rice* — **អង្ករផ្កាម្លិះ (Angkor Pka Malis)**
-* **Рис клейкий (белый / черный)** — *Sticky Rice* — **អង្ករដំណើប (Angkor Damnaeb)**
-* **Рисовая лапша** — *Rice Noodles* — **គុយទាវ (Kuyteav)**
-* **Тофу свежий** — *Fresh Tofu* — **តៅហ៊ូ (Tauhu)**
-* **Тапиока (жемчужины / саго)** — *Tapioca Pearls / Sago* — **គ្រាប់សាគូ (Kroab Saku)**
-* **Яйца куриные / утиные** — *Eggs* — **ពងមាន់ / ស៊ុត (Pong Moan / Sut)**
-* **Яйца перепелиные** — *Quail Eggs* — **ពងក្រួច (Pong Krouch)**
-* **Балют (утиное яйцо с зародышем)** — *Balut* — **ពងទាកូន (Pong Tea Kon)**
 
 ---
 
-## 🍄 9. Грибы (Mushrooms)
+## 🥜 9. Бобовые, орехи и тофу (Legumes, Nuts & Tofu) — `legumes_nuts`
+* **Тофу свежий** — *Fresh Tofu* — **តៅហ៊ូ (Taohu)**
+* **Яичный тофу** — *Egg Tofu* — **តៅហ៊ូពងមាន់ (Tawhu Pong Moan)**
+* **Спаржевая фасоль / Длинная фасоль** — *Yardlong Beans* — **សណ្តែកកួរ (Sandaek Kuor)**
+* **Крылатая фасоль / Драконьи бобы** — *Winged Bean / Dragon Bean* — **សណ្ដែកពួរ (Sandaek Puor)**
+* **Ростки сои / Маша** — *Bean Sprouts* — **សណ្តែកបណ្តុះ (Sandaek Bandoh)**
+* **Соя / Маш / Фасоль (красная, чёрная)** — *Soybeans / Mung Beans / Red & Black Beans* — **សណ្តែក (Sandaek)**
+* **Арахис (сырой, жареный, варёный)** — *Peanuts (Raw, Roasted, Boiled)* — **សណ្តែកដី (Sandaek Dei)**
+* **Кешью** — *Cashew Nuts* — **ស្វាយចន្ទី (Svay Chantei)**
+* **Кунжут (белый, чёрный)** — *Sesame Seeds (White, Black)* — **ល្ង (Lngo)**
+* **Семена лотоса** — *Lotus Seeds* — **គ្រាប់ឈូក (Kroab Chhuk)**
+* **Семена стеркулии (Мальва-нат)** — *Malva Nut* — **ផ្លែសំរង (Phlae Samrong)**
+
+---
+
+## 🌾 10. Крупы, мука и лапша (Grains, Flour & Noodles) — `grains_noodles`
+* **Рис Жасмин** — *Jasmine Rice* — **អង្ករផ្កាម្លិះ (Angkor Phka Mlih)**
+* **Рис клейкий (белый / черный)** — *Sticky Rice / Glutinous Rice* — **អង្ករដំណើប (Angkor Damnaeb)**
+* **Рис сырой / варёный / красный** — *Uncooked / Cooked / Red Rice* — **អង្ករ / បាយ / អង្ករក្រហម**
+* **Рисовая лапша / вермишель** — *Rice Noodles / Rice Vermicelli* — **គុយទាវ / នំបញ្ចុក (Kuyteav / Nom Banchok)**
+* **Лапша жёлтая (яичная) / стеклянная** — *Egg Noodles / Glass Noodles* — **មី / មីសួ (Mi / Mi Suo)**
+* **Мука (рисовая, из клейкого риса, пшеничная)** — *Rice / Glutinous Rice / Wheat Flour* — **ម្សៅ (Msov)**
+* **Крахмал (кукурузный, тапиоки)** — *Corn / Tapioca Starch* — **ម្សៅពោត / ម្សៅដំឡូងមី**
+* **Тапиока (жемчужины) / Саго** — *Tapioca Pearls / Sago* — **គ្រាប់សាគូ (Kroab Saku)**
+* **Хлеб / Багет** — *Bread / Baguette* — **នំបុ័ង (Nom Pang)**
+
+---
+
+## 🥚 11. Молочные продукты и яйца (Dairy & Eggs) — `dairy_eggs`
+* **Яйца куриные / утиные / солёные утиные** — *Eggs / Duck Eggs / Salted Duck Eggs* — **ពងមាន់ / ពងទា / ពងទាប្រៃ**
+* **Яйца перепелиные** — *Quail Eggs* — **ពងក្រួច (Pong Kruoch)**
+* **Молоко (свежее, сгущённое, сухое)** — *Milk / Condensed Milk / Powdered Milk* — **ទឹកដោះគោ (Teuk Daoh Kou)**
+* **Масло сливочное / Сыр / Йогурт / Мороженое** — *Butter / Cheese / Yogurt / Ice Cream* — **ប៊ឺ / ឈីស / យ៉ាអ៊ួត / ការ៉េម**
+
+---
+
+## 🍄 12. Грибы (Mushrooms) — `mushrooms`
 * **Грибы соломенные / вешенки** — *Straw Mushrooms / Oyster Mushrooms* — **ផ្សិតចំបើង (Pset Chamboeng)**
+* **Грибы древесные (ухо)** — *Wood Ear Mushrooms* — **ផ្សិតត្រចៀកកណ្ដុរ (Phset Trachiek Kandor)**
 
 ---
 
-## 🍯 10. Домашние продукты (Homemade Products)
-* **Домашняя паста Крёнг / Карри** — *Homemade Kroeung Curry Paste* — **គ្រឿងបុកនៅផ្ទះ (Kroeung Bok Nov Phteah)**
-* **Вяленые бананы домашней сушки** — *Sun-Dried Homemade Bananas* — **ចេកហាល (Chek Hal)**
-* **Маринованные огурцы / овощи по-домашнему** — *Homemade Pickled Vegetables* — **ជ្រក់ត្រសក់ / ជ្រក់បន្លែ (Chrouk Trosork / Chrouk Banlae)**
-* **Домашний чесночный чили-соус** — *Homemade Garlic Chili Sauce* — **ទឹកម្ទេសខ្ទឹម (Teuk Mtes Khtem)**
-* **Домашние маринованные перепелиные яйца** — *Pickled Quail Eggs* — **ពងក្រួចជ្រក់ (Pong Krouch Chrouk)**
-* **Варенье / Джем из манго** — *Homemade Mango Jam* — **ដំណាប់ស្វាយ (Damnab Svay)**
-* **Кокосовые чипсы домашние** — *Homemade Coconut Chips* — **ដូងលីង (Doung Leng)**
+## 🍯 13. Домашние продукты (Homemade Products) — `homemade`
+* **Домашний творог / Свежий сыр** — *Homemade Cottage Cheese* — **ប្រូម៉ាសស្រស់ធ្វើនៅផ្ទះ (Fromage Sros)**
+* **Варенье / Джем из манго** — *Homemade Mango Jam* — **ដំណាប់ស្វាយធ្វើនៅផ្ទះ (Damnab Svay)**
+* **Домашняя комбуча / Чайный квас** — *Homemade Kombucha* — **តែគមប៊ូឆាធ្វើនៅផ្ទះ (Te Kombucha)**
+* **Домашний кимчи / Квашеная капуста** — *Homemade Kimchi* — **គីមឈីធ្វើនៅផ្ទះ (Kimchi)**
+* **Домашний арахис с чесноком и чили** — *Homemade Garlic & Chili Roasted Peanuts* — **សណ្ដែកដីលីងខ្ទឹមស (Sandaek Dei Ling Khtem Sa)**
+* **Домашний острый соус чили** — *Homemade Hot Chili Sauce* — **ទឹកម្ទេសធ្វើនៅផ្ទះ (Teuk Mtes)**
 
 ---
 
-## 📦 11. Другое (Other)
+## 🦗 14. Уличная экзотика (Street Exotic) — `street_exotic`
+* **Лягушка** — *Frog* — **កង្កែប (Kangkaep)**
+* **Улитки** — *Snails* — **ខ្យង (Khyang)**
+* **Балют (утиное яйцо с зародышем)** — *Balut / Fertilized Duck Egg* — **ពងទាកូន (Pong Tea Koun)**
+* **Сверчки жареные / Кузнечики** — *Fried Crickets / Grasshoppers* — **ចង្រិតចៀន / កណ្ដូប**
+* **Яйца красных муравьёв** — *Red Ant Eggs* — **ពងស្រមោច (Pong Sromaoch)**
+* **Мясо змеи / Тарантул жареный** — *Snake Meat / Fried Tarantula* — **សាច់ពស់ / ពីងពាងចៀន**
+
+---
+
+## 📦 15. Другое (Other) — `other`
 * **Упаковка / Хозтовары / Сопутствующее** — *Packaging & Household Essentials* — **ផ្សេងៗ (Psen Psen)**

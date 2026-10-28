@@ -90,8 +90,8 @@ Analyze the food product in this image and return a JSON object with:
 - "name_en": Clear English name of the product (e.g. "Chicken Drumsticks", "Lemongrass", "Garlic", "Crab", "Bitter Gourd").
 - "name_ru": Clear Russian name of the product (e.g. "Куриные голени", "Лемонграсс", "Чеснок", "Краб", "Горькая тыква").
 - "name_kh": Authentic Khmer script name followed by pronunciation transcription in English in brackets (e.g. "ភ្លៅមាន់ (Phlov Moan)", "ស្លឹកគ្រៃ (Sloek Krey)", "ខ្ទឹមស (Khtem Sor)").
-- "category": MUST be one of these exact 10 categories:
-  ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Грибы", "Домашние продукты"]
+- "category": MUST be one of these exact 14 categories:
+  ["Овощи", "Корнеплоды", "Фрукты", "Зелень и травы", "Корни и пряности", "Морепродукты и рыба", "Мясо и птица", "Соусы и бакалея", "Бобовые, орехи и тофу", "Крупы, мука и лапша", "Молочные продукты и яйца", "Грибы", "Домашние продукты", "Уличная экзотика"]
 - "form": The form/state of the item, MUST be one of:
   ["Целый", "Пучок", "Корень", "Стручок", "Нарезка", "Филе", "Фарш", "Очищенный", "Сушеный", "Молотый", "Паста", "Маринованный", "Замороженный", "Бутылка"]. For bottled/jarred sauces, oils, soy/fish sauce and liquid condiments in "Соусы и бакалея", use "Бутылка" (or "Паста" for thick pastes). NEVER use "Жидкий" or "Соус".
 - "description": Short helpful description in Russian (1-2 sentences about taste, culinary use, or how to pick it at the market).

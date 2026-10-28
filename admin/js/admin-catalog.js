@@ -22,8 +22,12 @@ const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESH
     { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟' },
     { id: 'meat', name: 'Мясо и птица', icon: '🥩' },
     { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫' },
+    { id: 'legumes_nuts', name: 'Бобовые, орехи и тофу', icon: '🥜' },
+    { id: 'grains_noodles', name: 'Крупы, мука и лапша', icon: '🌾' },
+    { id: 'dairy_eggs', name: 'Молочные продукты и яйца', icon: '🥚' },
     { id: 'mushrooms', name: 'Грибы', icon: '🍄' },
     { id: 'homemade', name: 'Домашние продукты', icon: '🍯' },
+    { id: 'street_exotic', name: 'Уличная экзотика', icon: '🦗' },
     { id: 'other', name: 'Другое', icon: '📦' }
   ];
 
@@ -3362,7 +3366,9 @@ class App {
         }
       }
 
-      this.renderCatalog();
+      this.renderProductsList();
+      this.renderCategoriesGrid();
+      this.renderCategoryStatsBreakdown();
       this.renderCategoryFilterPills();
       this.renderSettingsDictionary();
 
@@ -3392,7 +3398,7 @@ class App {
     const fromDb = (typeof PRODUCE_DICTIONARY_SECTIONS !== 'undefined' && PRODUCE_DICTIONARY_SECTIONS.from_database) ? PRODUCE_DICTIONARY_SECTIONS.from_database : [];
 
     const exportData = {
-      version: '1.5.3',
+      version: '1.5.4',
       core: core,
       from_database: fromDb
     };
@@ -3402,7 +3408,7 @@ class App {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `products_dictionary_v1.5.3.json`;
+    a.download = `products_dictionary_v1.5.4.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

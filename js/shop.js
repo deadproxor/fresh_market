@@ -27,8 +27,12 @@ const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESH
     { id: 'seafood', name: 'Морепродукты и рыба', icon: '🐟', img: 'assets/categories/seafood.png' },
     { id: 'meat', name: 'Мясо и птица', icon: '🥩', img: 'assets/categories/meat.png' },
     { id: 'sauces', name: 'Соусы и бакалея', icon: '🥫', img: 'assets/categories/sauces.png' },
+    { id: 'legumes_nuts', name: 'Бобовые, орехи и тофу', icon: '🥜', img: 'assets/categories/legumes_nuts.png' },
+    { id: 'grains_noodles', name: 'Крупы, мука и лапша', icon: '🌾', img: 'assets/categories/grains_noodles.png' },
+    { id: 'dairy_eggs', name: 'Молочные продукты и яйца', icon: '🥚', img: 'assets/categories/dairy_eggs.png' },
     { id: 'mushrooms', name: 'Грибы', icon: '🍄', img: 'assets/categories/mushrooms.png' },
     { id: 'homemade', name: 'Домашние продукты', icon: '🍯', img: 'assets/categories/homemade.png' },
+    { id: 'street_exotic', name: 'Уличная экзотика', icon: '🦗', img: 'assets/categories/street_exotic.png' },
     { id: 'other', name: 'Другое', icon: '📦', img: 'assets/categories/other.png' }
   ];
 
@@ -45,7 +49,9 @@ function generateUUID() {
 
 function generateOrderNumber() {
   const now = new Date();
-  const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const marketDate = new Date(utcMs + (7 * 3600000));
+  const dateStr = marketDate.toISOString().slice(2, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(100 + Math.random() * 900);
   return `FM-${dateStr}-${randomSuffix}`;
 }
@@ -70,6 +76,9 @@ class ShopApp {
     this.profileMap = null;
     this.profileCustomerMarker = null;
     this.profileRoutePolyline = null;
+    this.currentOrdersTab = 'current';
+    this.cachedUserOrders = [];
+    this.nightCutoffConfirmed = false;
 
     // 0. Synchronous fast recovery of cached customer session and profile
     this.initCachedUser();
@@ -108,6 +117,63 @@ class ShopApp {
     return (!isNaN(num) && num > 0) ? num : 4000;
   }
 
+  getMarketLocalTime() {
+    // UTC+7 (Asia/Phnom_Penh)
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utcMs + (7 * 3600000));
+  }
+
+  isNightCutoffActive() {
+    const marketNow = this.getMarketLocalTime();
+    const hour = marketNow.getHours();
+    return hour >= 23 || hour < 5;
+  }
+
+  getNextAvailableDeliveryDate() {
+    const marketNow = this.getMarketLocalTime();
+    const hour = marketNow.getHours();
+    const deliveryDate = new Date(marketNow);
+
+    // С 23:00 до 23:59: на утро (завтра) закуп закрыт -> перенос на +2 дня
+    // С 00:00 до 04:59: на утро (сегодня) закуп закрыт -> перенос на +1 день
+    // С 05:00 до 22:59: прием на завтра открыт -> перенос на +1 день
+    if (hour >= 23) {
+      deliveryDate.setDate(deliveryDate.getDate() + 2);
+    } else {
+      deliveryDate.setDate(deliveryDate.getDate() + 1);
+    }
+
+    return deliveryDate.toISOString().slice(0, 10);
+  }
+
+  updateNightCutoffBanner() {
+    const banner = document.getElementById('cartNightCutoffNotice');
+    if (!banner) return;
+    if (this.isNightCutoffActive()) {
+      const nextDate = this.getNextAvailableDeliveryDate();
+      const currentLang = window.i18n?.currentLang || 'ru';
+      const localeCode = currentLang === 'ua' ? 'uk-UA' : currentLang === 'km' ? 'km-KH' : currentLang === 'en' ? 'en-US' : currentLang === 'fr' ? 'fr-FR' : 'ru-RU';
+      const formattedDate = new Date(nextDate + 'T00:00:00').toLocaleDateString(
+        localeCode,
+        { day: 'numeric', month: 'long' }
+      );
+      const titleEl = document.getElementById('cartNightCutoffTitle');
+      const descEl = document.getElementById('cartNightCutoffDesc');
+      if (titleEl) {
+        titleEl.textContent = window.i18n ? window.i18n.t('dialogs.night_cutoff_title') : '🌙 Прием на утренний закуп закрыт';
+      }
+      if (descEl) {
+        descEl.textContent = window.i18n
+          ? window.i18n.t('dialogs.night_cutoff_desc', { date: formattedDate })
+          : `Прием на утренний закуп закрыт в 23:00. Ваш заказ будет оформлен на утро (${formattedDate}) к 05:00.`;
+      }
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
   async loadServiceSettings() {
     if (!this.sb) return;
     try {
@@ -124,7 +190,7 @@ class ShopApp {
           this.khrRate = rate;
           localStorage.setItem('freshmarket_khr_rate', String(rate));
           if (oldRate !== rate) {
-            this.renderFloatingCart();
+            this.updateFloatingCartBar();
             if (this.currentView === 'cart') {
               this.renderCartModalList();
             }
@@ -309,7 +375,7 @@ class ShopApp {
       if (profile.onboarding_completed) {
         localStorage.setItem('freshmarket_hide_onboarding', 'true');
         if (this.onboardingOverlay && this.onboardingOverlay.style.display !== 'none') {
-          this.closeOnboarding();
+          this.finishOnboarding();
         }
       }
 
@@ -710,6 +776,7 @@ class ShopApp {
       if (this.currentView === 'cart') {
         this.renderCartModalList();
         this.prefillCheckoutData();
+        this.updateNightCutoffBanner();
       } else if (this.currentView === 'orders') {
         this.loadOrders();
       } else if (this.currentView === 'profile') {
@@ -874,6 +941,18 @@ class ShopApp {
         this.switchView('orders');
       });
     }
+
+    // Orders view segmented tabs: Current / Upcoming / Archive
+    document.querySelectorAll('#ordersSegmentedTabs [data-orders-tab]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.dataset.ordersTab;
+        if (tab && tab !== this.currentOrdersTab) {
+          this.currentOrdersTab = tab;
+          this.renderOrdersList();
+        }
+      });
+    });
+
     if (this.navProfile) {
       this.navProfile.addEventListener('click', () => {
         this.switchView('profile');
@@ -933,6 +1012,7 @@ class ShopApp {
     if (viewName === 'cart') {
       this.renderCartModalList();
       this.prefillCheckoutData();
+      this.updateNightCutoffBanner();
     } else if (viewName === 'orders') {
       this.loadOrders();
     } else if (viewName === 'profile') {
@@ -2721,6 +2801,46 @@ class ShopApp {
       return;
     }
 
+    // Ночное окно 23:00–05:00 UTC+7: прием на ближайшее утро закрыт, предлагаем выбор:
+    // 1) Заказать на следующее доступное утро
+    // 2) Отменить и очистить корзину
+    if (this.isNightCutoffActive() && !this.nightCutoffConfirmed) {
+      const nextDate = this.getNextAvailableDeliveryDate();
+      const currentLang = window.i18n?.currentLang || 'ru';
+      const localeCode = currentLang === 'ua' ? 'uk-UA' : currentLang === 'km' ? 'km-KH' : currentLang === 'en' ? 'en-US' : currentLang === 'fr' ? 'fr-FR' : 'ru-RU';
+      const formattedDate = new Date(nextDate + 'T00:00:00').toLocaleDateString(
+        localeCode,
+        { day: 'numeric', month: 'long' }
+      );
+
+      const title = window.i18n ? window.i18n.t('dialogs.night_cutoff_title') : 'Прием на утренний закуп закрыт';
+      const desc = window.i18n
+        ? window.i18n.t('dialogs.night_cutoff_desc', { date: formattedDate })
+        : `Прием заявок на сегодняшнее утро завершен в 23:00 (списки закупщика на рынке уже сформированы). Вы можете оформить заказ на следующее доступное утро (${formattedDate}) к 05:00, либо очистить корзину.`;
+      const confirmText = window.i18n ? window.i18n.t('dialogs.btn_order_next_day', { date: formattedDate }) : `Заказать на ${formattedDate}`;
+      const cancelText = window.i18n ? window.i18n.t('dialogs.btn_clear_cart') : 'Очистить корзину';
+
+      this.showConfirmDialog({
+        title,
+        message: desc,
+        confirmText,
+        cancelText,
+        onConfirm: () => {
+          this.nightCutoffConfirmed = true;
+          this.handleCheckoutSubmit();
+        },
+        onCancel: () => {
+          this.nightCutoffConfirmed = false;
+          this.cart = {};
+          this.saveCart(true);
+          this.renderProducts();
+          this.closeCartModal();
+          this.showToast(window.i18n ? window.i18n.t('toasts.cart_is_empty') : 'Корзина очищена', 'info', 3000);
+        }
+      });
+      return;
+    }
+
     const { name: customerName, messenger: customerMessenger, phone: customerPhone } = this.getCurrentCustomerInfo();
 
     const trimmedName = (customerName || '').trim();
@@ -2880,10 +3000,8 @@ class ShopApp {
     const orderNumber = generateOrderNumber();
     const orderId = generateUUID();
 
-    // Target delivery date: Tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const targetDate = tomorrow.toISOString().slice(0, 10);
+    // Target delivery date (с учетом ночного дедлайна 23:00 UTC+7)
+    const targetDate = this.getNextAvailableDeliveryDate();
 
     let finalCustomerComment = customerComment;
     if (initialStatus === 'clarify') {
@@ -2983,6 +3101,12 @@ class ShopApp {
           if (typeof rpcData.delivery_fee === 'number') {
             orderPayload.delivery_fee = rpcData.delivery_fee;
           }
+          if (rpcData.status) {
+            orderPayload.status = rpcData.status;
+          }
+          if (rpcData.target_delivery_date) {
+            orderPayload.target_delivery_date = rpcData.target_delivery_date;
+          }
         } else {
           if (rpcErr?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(rpcErr?.message || '')) {
             businessError = rpcErr;
@@ -3002,6 +3126,7 @@ class ShopApp {
       }
     } finally {
       if (submitBtn) submitBtn.disabled = false;
+      this.nightCutoffConfirmed = false;
     }
 
     // If server actively rejected the order (e.g. rate limit or 5 max pending orders)
@@ -3112,8 +3237,10 @@ class ShopApp {
         if (!error && data && data.length > 0) {
           orders = data.map((o) => ({
             ...o,
-            items: o.order_items || []
+            items: o.order_items || [],
+            sync_status: 'synced'
           }));
+          localStorage.setItem('freshmarket_my_orders', JSON.stringify(orders.slice(0, 30)));
         }
       } catch (err) {
         console.warn('Supabase fetch orders error:', err);
@@ -3196,6 +3323,18 @@ class ShopApp {
             if (rpcData.order_number) {
               order.order_number = rpcData.order_number;
             }
+            if (rpcData.status) {
+              order.status = rpcData.status;
+            }
+            if (rpcData.delivery_zone) {
+              order.delivery_zone = rpcData.delivery_zone;
+            }
+            if (typeof rpcData.delivery_fee === 'number') {
+              order.delivery_fee = rpcData.delivery_fee;
+            }
+            if (rpcData.target_delivery_date) {
+              order.target_delivery_date = rpcData.target_delivery_date;
+            }
           } else {
             order.sync_error = rpcErr?.message || 'RPC create_order failed';
             const isLimit = /limit|reached|wait|exceeded/i.test(rpcErr?.message || '') || rpcErr?.code === 'P0001';
@@ -3231,15 +3370,56 @@ class ShopApp {
   renderOrdersList(orders) {
     if (!this.ordersModalBody) return;
 
-    if (!orders || orders.length === 0) {
-      const emptyOrdersTitle = window.i18n ? window.i18n.t('orders.empty_title') : 'У вас пока нет заказов';
-      const emptyOrdersDesc = window.i18n ? window.i18n.t('orders.empty_desc') : 'Соберите корзину на утренний закуп продуктов';
+    if (Array.isArray(orders)) {
+      this.cachedUserOrders = orders;
+    } else {
+      orders = this.cachedUserOrders || [];
+    }
+
+    const activeTab = this.currentOrdersTab || 'current';
+    document.querySelectorAll('#ordersSegmentedTabs [data-orders-tab]').forEach((btn) => {
+      const isActive = btn.dataset.ordersTab === activeTab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    const marketNow = this.getMarketLocalTime();
+    const todayStr = marketNow.toISOString().slice(0, 10);
+
+    const filteredOrders = (orders || []).filter((order) => {
+      const targetDate = order.target_delivery_date || (order.created_at ? order.created_at.slice(0, 10) : todayStr);
+      const isTerminal = order.status === 'completed' || order.status === 'cancelled';
+
+      if (activeTab === 'current') {
+        return !isTerminal && targetDate <= todayStr;
+      }
+      if (activeTab === 'upcoming') {
+        return !isTerminal && targetDate > todayStr;
+      }
+      if (activeTab === 'archive') {
+        return isTerminal || targetDate < todayStr;
+      }
+      return true;
+    });
+
+    if (filteredOrders.length === 0) {
+      let emptyTitle, emptyDesc;
+      if (activeTab === 'current') {
+        emptyTitle = window.i18n ? window.i18n.t('orders.empty_current_title') : 'Нет активных утренних заказов';
+        emptyDesc = window.i18n ? window.i18n.t('orders.empty_current_desc') : 'Заказы, закупаемые на рынке сегодня утром, отображаются здесь.';
+      } else if (activeTab === 'upcoming') {
+        emptyTitle = window.i18n ? window.i18n.t('orders.empty_upcoming_title') : 'Нет будущих предзаказов';
+        emptyDesc = window.i18n ? window.i18n.t('orders.empty_upcoming_desc') : 'Оформите заказ на завтра или последующие дни.';
+      } else {
+        emptyTitle = window.i18n ? window.i18n.t('orders.empty_archive_title') : 'Архив заказов пуст';
+        emptyDesc = window.i18n ? window.i18n.t('orders.empty_archive_desc') : 'Здесь сохраняется история выполненных и закрытых доставок.';
+      }
       const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.ordersModalBody.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state" style="padding: 36px 0;">
           <div class="empty-icon">📋</div>
-          <div class="empty-title">${emptyOrdersTitle}</div>
-          <div class="empty-desc">${emptyOrdersDesc}</div>
+          <div class="empty-title">${this.escapeHtml(emptyTitle)}</div>
+          <div class="empty-desc">${this.escapeHtml(emptyDesc)}</div>
           <button type="button" class="btn btn-primary" id="btnOrdersEmptyToCatalog">${toCatalogBtn}</button>
         </div>
       `;
@@ -3264,6 +3444,7 @@ class ShopApp {
 
     const deliveryPrefix = window.i18n ? window.i18n.t('orders.delivery_prefix') : 'Доставка:';
     const tomorrowLabel = window.i18n ? window.i18n.t('orders.delivery_tomorrow') : 'Завтра';
+    const todayLabel = window.i18n ? window.i18n.t('orders.delivery_today') : 'Сегодня';
     const receiptBtnText = window.i18n ? window.i18n.t('orders.receipt_btn') : '🧾 Чек';
     const receiptTitleText = window.i18n ? window.i18n.t('orders.receipt_title') : 'Посмотреть QR-чек';
     const marketLabel = window.i18n ? window.i18n.t('orders.market_label') : 'Рынок:';
@@ -3272,7 +3453,7 @@ class ShopApp {
     const currentLocale = window.i18n?.currentLang || 'ru';
     const localeCode = currentLocale === 'ua' ? 'uk-UA' : currentLocale === 'km' ? 'km-KH' : currentLocale === 'en' ? 'en-US' : 'ru-RU';
 
-    this.ordersModalBody.innerHTML = orders.map((order) => {
+    this.ordersModalBody.innerHTML = filteredOrders.map((order) => {
       const st = statusMap[order.status] || { label: order.status, class: '' };
       const items = order.items || [];
       const dateStr = new Date(order.created_at).toLocaleDateString(localeCode, {
@@ -3282,12 +3463,15 @@ class ShopApp {
         minute: '2-digit'
       });
 
+      const orderTarget = order.target_delivery_date;
+      const targetDisplay = orderTarget === todayStr ? todayLabel : (orderTarget || tomorrowLabel);
+
       return `
         <div class="settings-section order-card" id="order-${this.escapeHtml(order.order_number)}">
           <div class="settings-section-header">
             <div class="settings-section-title" style="flex-direction: column; align-items: flex-start; gap: 2px;">
               <span class="order-card-number">${this.escapeHtml(order.order_number)}</span>
-              <span class="order-card-date">${dateStr} • ${deliveryPrefix} ${order.target_delivery_date || tomorrowLabel}</span>
+              <span class="order-card-date">${dateStr} • ${deliveryPrefix} ${targetDisplay}</span>
             </div>
             <div class="settings-section-header-right">
               <span class="order-status-pill ${st.class}">${st.label}</span>
@@ -3953,7 +4137,7 @@ class ShopApp {
     // 3. Reset in-memory application state
     this.currentUser = null;
     this.userProfile = null;
-    this.cart = [];
+    this.cart = {};
     this.deliveryDistanceKm = 0;
     this.deliveryFee = 0;
     this.currentDeliveryZone = null;
@@ -4011,8 +4195,8 @@ class ShopApp {
     if (recentList) recentList.innerHTML = '';
 
     // 7. Update Cart, Orders and Header UI
-    this.updateCartCountBadge();
-    this.updateFloatingCartBar();
+    this.updateCartUi();
+    this.renderProducts();
     this.updateHeaderUi();
 
     if (this.currentView === 'orders') {
