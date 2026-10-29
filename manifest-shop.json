@@ -1,7 +1,7 @@
 {
   "id": "freshmarket-client-shop",
-  "name": "FreshMarket — Свежие продукты с рынка",
-  "short_name": "FreshMarket",
+  "name": "FreshBuddy — Свежие продукты с рынка",
+  "short_name": "FreshBuddy",
   "description": "Заказ и доставка свежих продуктов с рынка",
   "start_url": "./shop.html",
   "scope": "./shop.html",

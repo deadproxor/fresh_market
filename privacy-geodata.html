@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title data-i18n="privacy_geodata.page_title">Политика конфиденциальности и защита данных — FreshMarket</title>
+  <title data-i18n="privacy_geodata.page_title">Политика конфиденциальности и защита данных — FreshBuddy</title>
 
   <!-- Strict Content-Security-Policy (Zero 'unsafe-inline' in script-src) -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
@@ -189,8 +189,8 @@
   <header class="landing-header">
     <div class="header-inner" style="max-width: 1000px;">
       <a href="index.html" class="landing-brand">
-        <span class="brand-glyph">🌱</span>
-        <span class="brand-name">FreshMarket</span>
+        <span class="brand-glyph" data-brand-logo="privacy">🌱</span>
+        <span class="brand-name" data-brand-name>FreshBuddy</span>
       </a>
 
       <div class="landing-header-controls">
@@ -217,7 +217,7 @@
         Политика конфиденциальности и защита данных
       </h1>
       <p class="privacy-subtitle" data-i18n="privacy_geodata.subtitle">
-        Полная прозрачность: как FreshMarket обрабатывает координаты, использует внешние сервисы и защищает персональную информацию
+        Полная прозрачность: как <span data-brand-name>FreshBuddy</span> обрабатывает координаты, использует внешние сервисы и защищает персональную информацию
       </p>
 
       <!-- Section 1: Geodata & Mapping Providers -->
@@ -277,7 +277,7 @@
           </h2>
         </div>
         <p class="privacy-text" data-i18n="privacy_geodata.storage_desc">
-          FreshMarket не использует сторонние отслеживающие рекламные cookie. В локальном хранилище вашего браузера (localStorage) сохраняются данные, необходимые для непрерывной работы PWA и офлайн-доступа:
+          <span data-brand-name>FreshBuddy</span> не использует сторонние отслеживающие рекламные cookie. В локальном хранилище вашего браузера (localStorage) сохраняются данные, необходимые для непрерывной работы PWA и офлайн-доступа:
         </p>
         <ul class="privacy-list">
           <li data-i18n="privacy_geodata.storage_bullet_profile">
@@ -349,7 +349,7 @@
           Вы имеете право в любой момент запросить полный экспорт или безвозвратное удаление вашего профиля, контактных данных и истории заказов из облачной базы данных.
         </p>
         <p class="privacy-text" data-i18n="privacy_geodata.rights_contact_intro">
-          Для запроса на удаление данных свяжитесь со службой поддержки FreshMarket по удобному каналу:
+          Для запроса на удаление данных свяжитесь со службой поддержки <span data-brand-name>FreshBuddy</span> по удобному каналу:
         </p>
         <div class="privacy-contacts-grid">
           <a href="https://t.me/freshmarket_support" class="privacy-contact-badge" target="_blank" rel="noopener noreferrer">
@@ -372,13 +372,14 @@
           ← Вернуться в магазин
         </a>
         <span style="font-size: 13px; color: var(--text-muted, #94a3b8);" data-i18n="privacy_geodata.footer_note">
-          FreshMarket • Консьерж-доставка свежих продуктов со свежего утреннего рынка
+          FreshBuddy • Консьерж-доставка свежих продуктов со свежего утреннего рынка
         </span>
       </div>
     </div>
   </main>
 
-  <script src="js/shared/i18n.js?v=1.5.10"></script>
+  <script src="js/shared/branding.js?v=1.5.19"></script>
+  <script src="js/shared/i18n.js?v=1.5.19"></script>
 </body>
 
 </html>

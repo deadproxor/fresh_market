@@ -27,11 +27,11 @@
     "unit_km": "km"
   },
   "splash": {
-    "title": "FreshMarket",
+    "title": "{brand}",
     "subtitle": "Livraison de produits frais du marché"
   },
   "header": {
-    "brand_title": "FreshMarket",
+    "brand_title": "{brand}",
     "search_placeholder": "Rechercher des produits frais (nom, khmer)...",
     "btn_to_shop": "Vers la boutique",
     "btn_profile": "Profil",
@@ -250,9 +250,9 @@
     "title": "Profil & Paramètres",
     "contacts_title": "Contacts & Livraison",
     "lang_title": "Langue de l'interface",
-    "app_title": "Application FreshMarket",
+    "app_title": "Application {brand}",
     "app_offline_hint": "Accès instantané au catalogue et aux contacts enregistrés même avec une connexion instable.",
-    "about_title": "À propos du service FreshMarket",
+    "about_title": "À propos du service {brand}",
     "rules_schedule": "⏰ Commandes avant 23h00 la veille • Livraison 9h00 – 12h00",
     "rules_pricing": "🧾 Tarification : Tickets réels + 10% de frais de service + livraison (1 $ / 2 $ / 3 $). Espèces ou virement à la livraison",
     "account_title": "Compte & Connexion",
@@ -272,7 +272,7 @@
     "address_placeholder": "Rue, villa, appartement, repère",
     "save_contacts_btn": "Enregistrer les coordonnées",
     "install_app_btn": "Installer l'application",
-    "how_it_works_btn": "Comment fonctionne FreshMarket",
+    "how_it_works_btn": "Comment fonctionne {brand}",
     "logout_btn": "Se déconnecter",
     "layout_title": "Affichage de la vitrine :",
     "layout_2_cols": "2 colonnes",
@@ -323,7 +323,7 @@
     "location_error": "Impossible de déterminer la position. Veuillez entrer l'adresse manuellement",
     "auth_required": "Veuillez vous connecter avec Google ou Facebook pour commander",
     "cart_is_empty": "Le panier est vide",
-    "app_installed": "🎉 Application FreshMarket installée avec succès !",
+    "app_installed": "🎉 Application {brand} installée avec succès !",
     "install_hint": "ℹ️ Pour installer : appuyez sur « Partager / Menu » de votre navigateur et sélectionnez « Ajouter à l'écran d'accueil »",
     "install_started": "✅ Installation de l'application démarrée",
     "settings_saved": "Paramètres enregistrés avec succès"
@@ -466,10 +466,10 @@
     }
   },
   "privacy_geodata": {
-    "page_title": "Politique de confidentialité et protection des données — FreshMarket",
+    "page_title": "Politique de confidentialité et protection des données — {brand}",
     "back_to_shop": "← Retour à la boutique",
     "title": "Politique de confidentialité et protection des données",
-    "subtitle": "Transparence totale : comment FreshMarket traite les coordonnées, utilise les services externes et protège vos informations personnelles",
+    "subtitle": "Transparence totale : comment {brand} traite les coordonnées, utilise les services externes et protège vos informations personnelles",
     "badge_secure": "Protection 100% sécurisée",
     "section_coords_title": "1. Géodonnées et services cartographiques",
     "section_coords_desc": "Lors de la sélection interactive d'une adresse sur la carte, l'application transmet les coordonnées numériques (latitude et longitude) et l'adresse IP réseau de votre appareil aux fournisseurs cartographiques tiers :",
@@ -483,7 +483,7 @@
     "thirdparty_bullet_cloudinary": "Cloudinary Inc. : réseau mondial CDN pour la distribution optimisée et rapide des photos du catalogue (traite l'adresse IP lors des requêtes d'images).",
     "thirdparty_bullet_fonts": "Google Fonts : chargement sécurisé des polices d'interface (Plus Jakarta Sans, Inter). Les serveurs Google traitent les en-têtes HTTP standards.",
     "section_storage_title": "3. Stockage local du navigateur (localStorage)",
-    "storage_desc": "FreshMarket n'utilise aucun cookie publicitaire tiers ni traqueur intersite. Le stockage local de votre navigateur (localStorage) ne conserve que les éléments indispensables au fonctionnement de la PWA et à l'accès hors ligne :",
+    "storage_desc": "{brand} n'utilise aucun cookie publicitaire tiers ni traqueur intersite. Le stockage local de votre navigateur (localStorage) ne conserve que les éléments indispensables au fonctionnement de la PWA et à l'accès hors ligne :",
     "storage_bullet_profile": "Contacts et profil : votre nom, numéro de téléphone, messagerie préférée (Telegram, WhatsApp ou appel) et adresse de livraison par défaut.",
     "storage_bullet_auth": "Session d'authentification : jeton de session Supabase Auth pour maintenir votre connexion entre deux visites.",
     "storage_bullet_cart": "Panier d'achats : produits sélectionnés, quantités, instructions de remplacement et horodatages de synchronisation entre appareils.",
@@ -499,10 +499,10 @@
     "retention_bullet_cloud": "Dans la base de données cloud : le profil est conservé jusqu'à la demande de suppression du compte ; les commandes finalisées sont conservées pour le suivi de livraison, les reçus et la comptabilité, ou jusqu'à demande de suppression.",
     "section_rights_title": "6. Vos droits et suppression des données (Droit à l'oubli)",
     "rights_desc": "Vous pouvez demander à tout moment l'exportation complète ou la suppression définitive de votre compte, de vos coordonnées et de votre historique de commandes de notre base de données.",
-    "rights_contact_intro": "Pour demander la suppression de vos données, veuillez contacter l'assistance FreshMarket via l'un des canaux suivants :",
+    "rights_contact_intro": "Pour demander la suppression de vos données, veuillez contacter l'assistance {brand} via l'un des canaux suivants :",
     "rights_contact_tg": "Telegram :",
     "rights_contact_wa": "WhatsApp :",
     "rights_contact_email": "E-mail :",
-    "footer_note": "FreshMarket • Conciergerie matinale de produits frais livrés à votre porte"
+    "footer_note": "{brand} • Conciergerie matinale de produits frais livrés à votre porte"
   }
 }

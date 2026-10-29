@@ -10,6 +10,12 @@
 const APP_VERSION = '1.5.5';
 window.APP_VERSION = APP_VERSION;
 
+function getBrandLogPrefix(scope = '') {
+  return window.FreshMarketBrand && typeof window.FreshMarketBrand.getLogPrefix === 'function'
+    ? window.FreshMarketBrand.getLogPrefix(scope)
+    : (scope ? `[FreshBuddy ${scope}]` : '[FreshBuddy]');
+}
+
 // Shared product categories from categories.js (excluding 'all' used only for storefront filtering)
 const CATEGORIES = (Array.isArray(window.FRESHMARKET_CATEGORIES) && window.FRESHMARKET_CATEGORIES.length > 0)
   ? window.FRESHMARKET_CATEGORIES.filter(c => c.id !== 'all')
@@ -161,7 +167,7 @@ async function loadProduceDictionary() {
       window.PRODUCE_DICTIONARY_SECTIONS = PRODUCE_DICTIONARY_SECTIONS;
     }
   } catch (err) {
-    console.warn('[FreshMarket Admin] Could not load external products_dictionary.json, using fallback', err);
+    console.warn(getBrandLogPrefix('Admin'), 'Could not load external products_dictionary.json, using fallback', err);
   }
 
   // Merge custom user-added items from localStorage
@@ -185,7 +191,7 @@ async function loadProduceDictionary() {
     console.error('Error loading custom dictionary items', err);
   }
 
-  console.log(`[FreshMarket] Loaded ${PRODUCE_DICTIONARY.length} produce definitions (${PRODUCE_DICTIONARY_SECTIONS.core.length} core, ${PRODUCE_DICTIONARY_SECTIONS.from_database.length} from db)`);
+  console.log(`${getBrandLogPrefix()} Loaded ${PRODUCE_DICTIONARY.length} produce definitions (${PRODUCE_DICTIONARY_SECTIONS.core.length} core, ${PRODUCE_DICTIONARY_SECTIONS.from_database.length} from db)`);
   if (window.app) {
     if (typeof window.app.updateStats === 'function') {
       window.app.updateStats();
@@ -225,7 +231,7 @@ function saveCustomProduceToDictionary(product) {
       const customItems = savedCustom ? JSON.parse(savedCustom) : [];
       customItems.unshift(newItem);
       localStorage.setItem(CUSTOM_DICT_KEY, JSON.stringify(customItems));
-      console.log(`[FreshMarket] Saved new product «${en}» to custom dictionary`);
+      console.log(`${getBrandLogPrefix()} Saved new product «${en}» to custom dictionary`);
     } catch (e) {
       console.error('Failed to persist custom dictionary item', e);
     }
@@ -2052,7 +2058,7 @@ class App {
 
   collectSettingsPayload() {
     return {
-      app: 'FreshMarket',
+      app: window.FreshMarketBrand?.current?.name || 'FreshBuddy',
       version: APP_VERSION,
       exportedAt: new Date().toISOString(),
       settings: {
@@ -2931,7 +2937,7 @@ class App {
           return true;
         }
       } catch (err) {
-        console.warn('[FreshMarket] Error checking image references in Supabase:', err);
+        console.warn(getBrandLogPrefix(), 'Error checking image references in Supabase:', err);
         return true; // Fail-safe: preserve image if check fails
       }
     }
@@ -2952,7 +2958,7 @@ class App {
         const sb = new SupabaseAdapter(sbUrl, sbKey);
         await sb.delete(id);
       } catch (sbErr) {
-        console.error('[FreshMarket] Error deleting from Supabase:', sbErr);
+        console.error(getBrandLogPrefix(), 'Error deleting from Supabase:', sbErr);
         errors.push(`База данных (Supabase): ${sbErr.message || sbErr}`);
       }
     }
@@ -2967,7 +2973,7 @@ class App {
       const localAdapter = new LocalStorageAdapter();
       await localAdapter.delete(id);
     } catch (localErr) {
-      console.warn('[FreshMarket] Error deleting from LocalStorage:', localErr);
+      console.warn(getBrandLogPrefix(), 'Error deleting from LocalStorage:', localErr);
       errors.push(`LocalStorage: ${localErr.message || localErr}`);
     }
 
@@ -2975,12 +2981,12 @@ class App {
     if (product && product.img_url && (product.img_url.includes('cloudinary.com') || product.img_url.includes('res.cloudinary'))) {
       const isShared = await this.isImageShared(product.img_url, id);
       if (isShared) {
-        console.log('[FreshMarket] Изображение используется в других товарах. Удаление из Cloudinary пропущено во избежание битых ссылок.');
+        console.log(getBrandLogPrefix(), 'Изображение используется в других товарах. Удаление из Cloudinary пропущено во избежание битых ссылок.');
       } else {
         try {
           await CloudinaryService.delete(product.img_url);
         } catch (cloudErr) {
-          console.warn('[FreshMarket] Error deleting image from Cloudinary:', cloudErr);
+          console.warn(getBrandLogPrefix(), 'Error deleting image from Cloudinary:', cloudErr);
         }
       }
     }
@@ -4241,10 +4247,10 @@ class App {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw-admin.js', { scope: './' })
           .then((reg) => {
-            console.log('[FreshMarket Admin] Service Worker active with scope:', reg.scope);
+            console.log(getBrandLogPrefix('Admin'), 'Service Worker active with scope:', reg.scope);
           })
           .catch((err) => {
-            console.warn('[FreshMarket Admin] Service Worker registration failed:', err);
+            console.warn(getBrandLogPrefix('Admin'), 'Service Worker registration failed:', err);
           });
       });
     }

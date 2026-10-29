@@ -1286,5 +1286,25 @@ flowchart TD
   * **Фоновая синхронизация курса и онбординга (`js/shop.js`):** в `loadServiceSettings()` вызов `this.renderFloatingCart()` заменён на `this.updateFloatingCartBar()`; при синхронизации флага `onboarding_completed` из профиля вызов `this.closeOnboarding()` заменён на `this.finishOnboarding()`.
   * **Синхронизация каталога со словарём (`admin/js/admin-catalog.js`):** в `syncDatabaseFromDictionary()` вызов несуществующего `this.renderCatalog()` заменён на `this.renderProductsList()`, `this.renderCategoriesGrid()` и `this.renderCategoryStatsBreakdown()`.
   * **Кэширование:** Service Worker витрины повышен до `freshmarket-shop-v1.5.18` (`shop.js?v=1.5.18`), админки — до `freshmarket-admin-v1.5.16` (`admin-catalog.js?v=1.5.16`).
+* [x] **Единая система брендинга и айдентики приложения (`Fresh Buddy` по умолчанию, v1.5.19 Shop / v1.5.17 Admin):**
+  * **Централизованный модуль брендинга (`js/shared/branding.js`):**
+    * Создан класс `BrandManager` (`window.FreshMarketBrand`) — единая точка управления неймингом (`name`, `shortName`, `adminTitle`, `orderPrefix`), режимом логотипа (`mode: 'image' | 'svg' | 'emoji'`), слоганами (`slogans`), подзаголовками (`taglines`), ключевыми словами (`keywords`) и базовыми аспектами сервиса (`cutoffTime: '23:00'`, `dawnTime: '05:00'`, `deliveryWindow: '09:00–12:00'`, `serviceFee: '10%'`).
+    * Установлен активный бренд по умолчанию **`Fresh Buddy`** (`id: 'fresh_buddy'`, `orderPrefix: 'FB'`), а также добавлены готовые пресеты `freshmarket` и `riper` с возможностью мгновенного переключения через `FreshMarketBrand.setBrandPreset(presetId)` и `FreshMarketBrand.setLogoMode(mode)`.
+  * **Оптимизированные логотипы (`assets/brand/` и `css/components.css`):**
+    * Подготовлены прозрачные PNG-логотипы 160×160 px (`assets/brand/logo-default.png`, `logo-freshmarket.png`, `logo-riper.png`) и мастер-стили `.brand-logo-img`, `.brand-logo-splash`, `.brand-logo-login` в `css/components.css`.
+  * **Интеграция с локализацией (`js/shared/i18n.js` и `locales/*.json`):**
+    * Метод `i18n.t()` автоматически подставляет брендовые токены `{brand}`, `{brand_short}`, `{brand_admin}`, `{brand_slogan}`, `{brand_tagline}`, `{cutoff_time}`, `{dawn_time}`, `{delivery_window}`, `{service_fee}`.
+    * Во всех 5 языковых словарях (`ru`, `en`, `km`, `fr`, `ua`) хардкод названия заменён на динамический плейсхолдер `{brand}`.
+  * **Применение во всех интерфейсах и манифестах:**
+    * Добавлены декларативные атрибуты `data-brand-name`, `data-brand-logo`, `data-brand-slogan`, `data-brand-admin-title`, `data-brand-email-placeholder` в `shop.html`, `admin/index.html`, `index.html`, `privacy-geodata.html` и `components.html` (включая интерактивный переключатель пресетов и логотипов в UI Kit).
+    * Генерация номеров заказов в `js/shop.js` (`generateOrderNumber`) переведена на динамический префикс бренда (`FB-XXXXX`).
+    * Обновлены `manifest-shop.json`, `admin/manifest.json` и Service Workers (`freshmarket-shop-v1.5.19`, `freshmarket-admin-v1.5.17`).
+  * **Исправление ошибки Leaflet `Invalid LatLng object: (NaN, NaN)` при входе в корзину (`js/shop.js`):**
+    * Убраны лишние/дублирующиеся вызовы `prefillCheckoutData()` в `switchView('cart')`, `onAuthStateChange` и `handleCustomerLogout`, которые запускали инициализацию карты даже при пустой корзине или неавторизованном пользователе (`#checkoutForm` с `display: none`).
+    * Добавлен защитный метод `safelyPositionMiniMap()` с проверкой видимости и размеров контейнера (`offsetWidth >= 64 && offsetHeight >= 64`), валидности координат и заменой уязвимого к делению на ноль `flyToBounds`/`flyTo` на безопасные `fitBounds`/`setView`.
+    * Синхронизировано заполнение поля названия точки доставки (`#profileAddressName` и `#deliveryAddressName`) с активной по умолчанию пилюлей пресета («Дом / Home») в `renderProfileView()` и `prefillCheckoutData()`.
+
+
+
 
 

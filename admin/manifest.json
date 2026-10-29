@@ -1,8 +1,8 @@
 {
   "id": "freshmarket-admin-workspace",
-  "name": "FreshMarket Закупщик",
-  "short_name": "FM Закупщик",
-  "description": "Служебная панель закупщика FreshMarket (Каталог, Сканер, Заказы)",
+  "name": "FreshBuddy Закупщик",
+  "short_name": "FB Закупщик",
+  "description": "Служебная панель закупщика FreshBuddy (Каталог, Сканер, Заказы)",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -173,11 +173,22 @@
         return keyPath;
       }
 
-      // Interpolate parameters {paramName}
-      if (params && typeof params === 'object' && typeof val === 'string') {
-        return val.replace(/\{(\w+)\}/g, (match, pName) => {
-          return params[pName] !== undefined ? params[pName] : match;
+      // Interpolate brand tokens + caller parameters {paramName}
+      if (typeof val === 'string') {
+        const brandTokens = (window.FreshMarketBrand && typeof window.FreshMarketBrand.getInterpolationTokens === 'function')
+          ? window.FreshMarketBrand.getInterpolationTokens(this.currentLang)
+          : { brand: 'Fresh Buddy' };
+        const mergedParams = params && typeof params === 'object'
+          ? { ...brandTokens, ...params }
+          : brandTokens;
+
+        val = val.replace(/\{(\w+)\}/g, (match, pName) => {
+          return mergedParams[pName] !== undefined ? mergedParams[pName] : match;
         });
+
+        if (brandTokens.brand && val.includes('FreshMarket')) {
+          val = val.replace(/\bFreshMarket\b/g, brandTokens.brand);
+        }
       }
 
       return val;
@@ -281,6 +292,11 @@
           el.setAttribute('aria-label', translated);
         }
       });
+
+      // Sync centralized brand elements if branding module is loaded
+      if (window.FreshMarketBrand && typeof window.FreshMarketBrand.applyToDOM === 'function') {
+        window.FreshMarketBrand.applyToDOM(root);
+      }
     }
 
     /**

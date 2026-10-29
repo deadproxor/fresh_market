@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FreshMarket — Панель закупщика (Admin)</title>
+  <title>FreshBuddy — Панель закупщика (Admin)</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="robots" content="noindex, nofollow" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.supabase.co https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com https://generativelanguage.googleapis.com https://cdn.jsdelivr.net; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
@@ -24,19 +24,20 @@
     rel="stylesheet" />
 
   <!-- Master Design System, Catalog & Admin Styles -->
-  <link rel="stylesheet" href="../css/components.css?v=1.5.10" />
+  <link rel="stylesheet" href="../css/components.css?v=1.5.19" />
   <link rel="stylesheet" href="../css/products.css?v=1.5.0" />
   <link rel="stylesheet" href="../css/admin.css?v=1.5.10" />
+  <script src="../js/shared/branding.js?v=1.5.19"></script>
 </head>
 
 <body>
   <!-- PWA Startup Splash Screen -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <div class="splash-icon-wrap">
+      <div class="splash-icon-wrap" data-brand-logo="splash-admin">
         <span class="splash-icon">🌱</span>
       </div>
-      <div class="splash-title">FreshMarket Admin</div>
+      <div class="splash-title" data-brand-admin-title>FreshBuddy Admin</div>
       <div class="splash-version" id="splashVersion">v1.5.0</div>
     </div>
   </div>
@@ -46,16 +47,16 @@
   <!-- ========================================================================= -->
   <div id="loginGate" class="login-gate-container active">
     <div class="login-card">
-      <div class="login-logo-wrap">🌱</div>
+      <div class="login-logo-wrap" data-brand-logo="login">🌱</div>
       <h2 class="login-title">Панель закупщика</h2>
-      <p class="login-subtitle">Вход в служебную зону управления каталогом и закупками FreshMarket</p>
+      <p class="login-subtitle">Вход в служебную зону управления каталогом и закупками <span data-brand-name>FreshBuddy</span></p>
 
       <div class="login-error-box" id="loginErrorBox"></div>
 
       <form id="loginForm" class="login-form">
         <div class="login-field">
           <label class="login-label" for="loginEmail">Email администратора</label>
-          <input type="email" id="loginEmail" class="login-input" placeholder="admin@freshmarket.com" required
+          <input type="email" id="loginEmail" class="login-input" placeholder="admin@freshbuddy.app" data-brand-email-placeholder required
             autocomplete="username" />
         </div>
 
@@ -80,10 +81,10 @@
     <!-- Top Minimal Bar with User status -->
     <header class="app-header">
       <div class="brand">
-        <div class="brand-icon">🌱</div>
+        <div class="brand-icon" data-brand-logo="admin">🌱</div>
         <div class="brand-text">
           <div style="display: flex; align-items: center; gap: 6px;">
-            <span class="brand-title">FreshMarket</span>
+            <span class="brand-title" data-brand-name>FreshBuddy</span>
             <span class="admin-badge">Admin</span>
           </div>
           <span class="brand-subtitle" id="adminUserEmail">закупщик</span>
@@ -245,7 +246,7 @@
       <section id="viewOrders" class="admin-section-view" style="display: none;">
         <div class="orders-header-bar">
           <h3 class="orders-title">Заявки на утренний закуп</h3>
-          <span class="admin-badge">FreshMarket</span>
+          <span class="admin-badge" data-brand-name>FreshBuddy</span>
         </div>
 
         <div id="adminOrdersList">

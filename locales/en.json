@@ -27,11 +27,11 @@
     "unit_km": "km"
   },
   "splash": {
-    "title": "FreshMarket",
+    "title": "{brand}",
     "subtitle": "Fresh Produce Delivery"
   },
   "header": {
-    "brand_title": "FreshMarket",
+    "brand_title": "{brand}",
     "search_placeholder": "Search fresh produce (name, Khmer)...",
     "btn_to_shop": "To Shop",
     "btn_profile": "Profile",
@@ -250,9 +250,9 @@
     "title": "Profile & Settings",
     "contacts_title": "Contacts & Delivery",
     "lang_title": "Interface Language",
-    "app_title": "FreshMarket App",
+    "app_title": "{brand} App",
     "app_offline_hint": "Instant access to catalog and saved contacts even with an unstable connection.",
-    "about_title": "About FreshMarket Service",
+    "about_title": "About {brand} Service",
     "rules_schedule": "⏰ Orders by 11 PM previous evening • Delivery 9 AM – 12 PM",
     "rules_pricing": "🧾 Pricing: Market receipts + 10% service fee + delivery ($1 / $2 / $3). Cash or transfer upon delivery",
     "account_title": "Account & Sign In",
@@ -272,7 +272,7 @@
     "address_placeholder": "Street, villa, apartment, landmark",
     "save_contacts_btn": "Save Contacts",
     "install_app_btn": "Install App",
-    "how_it_works_btn": "How FreshMarket Works",
+    "how_it_works_btn": "How {brand} Works",
     "logout_btn": "Log Out of Account",
     "layout_title": "Showcase layout:",
     "layout_2_cols": "2 columns",
@@ -323,7 +323,7 @@
     "location_error": "Could not detect location. Please enter address manually",
     "auth_required": "Please sign in with Google or Facebook to place an order",
     "cart_is_empty": "Cart is empty",
-    "app_installed": "🎉 FreshMarket app installed successfully!",
+    "app_installed": "🎉 {brand} app installed successfully!",
     "install_hint": "ℹ️ To install: tap 'Share / Menu' in your browser and select 'Add to Home Screen'",
     "install_started": "✅ App installation started",
     "settings_saved": "Settings successfully saved"
@@ -353,7 +353,7 @@
     "common": {
       "btn_to_shop": "To Shop",
       "btn_catalog": "Open Catalog & Order →",
-      "footer_rights": "FreshMarket • Fresh market produce at your doorstep",
+      "footer_rights": "{brand} • Fresh market produce at your doorstep",
       "footer_version": "v1.5.0 • PWA Ready",
       "footer_shop": "Shop",
       "footer_workbench": "UI Workbench",
@@ -466,10 +466,10 @@
     }
   },
   "privacy_geodata": {
-    "page_title": "Privacy Policy & Data Protection — FreshMarket",
+    "page_title": "Privacy Policy & Data Protection — {brand}",
     "back_to_shop": "← Back to Shop",
     "title": "Privacy Policy & Data Protection",
-    "subtitle": "Complete transparency: how FreshMarket processes location data, integrates third-party services, and protects personal information",
+    "subtitle": "Complete transparency: how {brand} processes location data, integrates third-party services, and protects personal information",
     "badge_secure": "100% Data Protection",
     "section_coords_title": "1. Geodata & Mapping Services",
     "section_coords_desc": "When selecting a delivery point on the map, the application transmits numerical coordinates (latitude and longitude) and your network IP address to third-party mapping providers:",
@@ -477,13 +477,13 @@
     "osm_bullet_2": "Project OSRM: calculating road distance and visualizing the courier route from the market to your location.",
     "osm_ip_note": "External mapping servers receive your technical IP address and the selected pin coordinates. Personal contact details (name, phone, messenger, order items) are never transmitted to mapping servers. If you decline map usage or enter an address manually as text, GPS coordinates are never accessed.",
     "section_thirdparty_title": "2. Third-Party Services & Processors",
-    "thirdparty_desc": "To ensure security, performance, and seamless authentication, FreshMarket integrates with trusted cloud providers:",
+    "thirdparty_desc": "To ensure security, performance, and seamless authentication, {brand} integrates with trusted cloud providers:",
     "thirdparty_bullet_supabase": "Supabase Inc.: encrypted cloud PostgreSQL database, authentication session management (Supabase Auth), and real-time cart and order sync across your devices.",
     "thirdparty_bullet_oauth": "Google & Facebook OAuth: when signing in via social accounts, we only receive essential profile data (email, name, and public avatar).",
     "thirdparty_bullet_cloudinary": "Cloudinary Inc.: global media CDN for optimized product image delivery (processes client IP address and user-agent upon image requests).",
     "thirdparty_bullet_fonts": "Google Fonts: fast and secure loading of system typography (Plus Jakarta Sans, Inter). Google servers process standard HTTP headers.",
     "section_storage_title": "3. Local Browser Storage (localStorage)",
-    "storage_desc": "FreshMarket does not use third-party advertising cookies or cross-site tracking trackers. Your browser's local storage (localStorage) only stores data necessary for PWA persistence and offline availability:",
+    "storage_desc": "{brand} does not use third-party advertising cookies or cross-site tracking trackers. Your browser's local storage (localStorage) only stores data necessary for PWA persistence and offline availability:",
     "storage_bullet_profile": "Contacts & profile: your name, phone number, preferred messenger (Telegram, WhatsApp, or phone call), and default delivery address.",
     "storage_bullet_auth": "Authentication session: Supabase Auth session token to keep you securely signed in between visits.",
     "storage_bullet_cart": "Shopping cart: active cart items, replacement preferences, and cross-tab/cross-device sync timestamps.",
@@ -499,10 +499,10 @@
     "retention_bullet_cloud": "In the cloud database: user profiles are kept until account deletion is requested; completed orders are retained for delivery verification, receipt reconciliation, and accounting, or until a deletion request.",
     "section_rights_title": "6. User Rights & Data Deletion (Right to Be Forgotten)",
     "rights_desc": "You have the right to request a full export or permanent deletion of your profile, contact details, and order history from our database at any time.",
-    "rights_contact_intro": "To request account or data deletion, please reach out to FreshMarket support via any preferred channel:",
+    "rights_contact_intro": "To request account or data deletion, please reach out to {brand} support via any preferred channel:",
     "rights_contact_tg": "Telegram:",
     "rights_contact_wa": "WhatsApp:",
     "rights_contact_email": "Email:",
-    "footer_note": "FreshMarket • Honest morning market produce delivered by your personal concierge"
+    "footer_note": "{brand} • Honest morning market produce delivered by your personal concierge"
   }
 }

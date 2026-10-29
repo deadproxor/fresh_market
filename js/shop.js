@@ -53,7 +53,8 @@ function generateOrderNumber() {
   const marketDate = new Date(utcMs + (7 * 3600000));
   const dateStr = marketDate.toISOString().slice(2, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(100 + Math.random() * 900);
-  return `FM-${dateStr}-${randomSuffix}`;
+  const prefix = window.FreshMarketBrand?.current?.orderPrefix || 'FB';
+  return `${prefix}-${dateStr}-${randomSuffix}`;
 }
 
 class ShopApp {
@@ -93,6 +94,12 @@ class ShopApp {
     this.updateCartUi();
     this.updateHeaderUi();
     this.initServiceWorker();
+  }
+
+  get logPrefix() {
+    return window.FreshMarketBrand && typeof window.FreshMarketBrand.getLogPrefix === 'function'
+      ? window.FreshMarketBrand.getLogPrefix('Shop')
+      : '[FreshBuddy Shop]';
   }
 
   initCachedUser() {
@@ -195,11 +202,11 @@ class ShopApp {
               this.renderCartModalList();
             }
           }
-          console.log(`[FreshMarket Shop] Active KHR exchange rate from cloud: $1 = ${rate} ៛`);
+          console.log(`${this.logPrefix} Active KHR exchange rate from cloud: $1 = ${rate} ៛`);
         }
       }
     } catch (err) {
-      console.debug('[FreshMarket Shop] Could not fetch service_settings:', err);
+      console.debug(this.logPrefix, 'Could not fetch service_settings:', err);
     }
   }
 
@@ -263,11 +270,10 @@ class ShopApp {
             this.renderProfileView();
           } else if (this.currentView === 'cart') {
             this.renderCartModalList();
-            this.prefillCheckoutData();
           }
         });
       } catch (err) {
-        console.warn('[FreshMarket Shop] Supabase client init error:', err);
+        console.warn(this.logPrefix, 'Supabase client init error:', err);
       }
     }
   }
@@ -293,7 +299,7 @@ class ShopApp {
         }
       }
     } catch (err) {
-      console.warn('[FreshMarket Shop] Initial session check error:', err);
+      console.warn(this.logPrefix, 'Initial session check error:', err);
     }
   }
 
@@ -313,7 +319,7 @@ class ShopApp {
         .maybeSingle();
 
       if (error) {
-        console.warn('[FreshMarket Shop] Error fetching profile:', error);
+        console.warn(this.logPrefix, 'Error fetching profile:', error);
         this.updateUserAvatar();
         return;
       }
@@ -465,7 +471,7 @@ class ShopApp {
       localStorage.setItem(syncedUserKey, this.currentUser.id);
       this.updateUserAvatar();
     } catch (err) {
-      console.warn('[FreshMarket Shop] Error syncing profile & cart:', err);
+      console.warn(this.logPrefix, 'Error syncing profile & cart:', err);
     } finally {
       this.isSyncingAuthCart = false;
     }
@@ -482,7 +488,7 @@ class ShopApp {
         Object.assign(this.userProfile, fields);
       }
     } catch (err) {
-      console.warn('[FreshMarket Shop] Error updating profile fields:', err);
+      console.warn(this.logPrefix, 'Error updating profile fields:', err);
     }
   }
 
@@ -520,7 +526,7 @@ class ShopApp {
               updated_at: nowIso
             }, { onConflict: 'id' });
           if (upsertErr) {
-            console.warn('[FreshMarket Shop] Failed to sync cart to cloud:', upsertErr);
+            console.warn(this.logPrefix, 'Failed to sync cart to cloud:', upsertErr);
           } else {
             localStorage.setItem('freshmarket_cart_updated_at', String(nowMs));
           }
@@ -528,7 +534,7 @@ class ShopApp {
           localStorage.setItem('freshmarket_cart_updated_at', String(nowMs));
         }
       } catch (err) {
-        console.warn('[FreshMarket Shop] Error syncing cart to cloud:', err);
+        console.warn(this.logPrefix, 'Error syncing cart to cloud:', err);
       }
     };
 
@@ -562,11 +568,11 @@ class ShopApp {
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('[FreshMarket Shop] Realtime profile sync active');
+            console.log(this.logPrefix, 'Realtime profile sync active');
           }
         });
     } catch (err) {
-      console.warn('[FreshMarket Shop] Could not initialize realtime channel:', err);
+      console.warn(this.logPrefix, 'Could not initialize realtime channel:', err);
     }
   }
 
@@ -1011,7 +1017,6 @@ class ShopApp {
     // Render contents on demand
     if (viewName === 'cart') {
       this.renderCartModalList();
-      this.prefillCheckoutData();
       this.updateNightCutoffBanner();
     } else if (viewName === 'orders') {
       this.loadOrders();
@@ -1200,7 +1205,7 @@ class ShopApp {
         return this.produceDictionary;
       }
     } catch (e) {
-      console.warn('[FreshMarket Shop] Could not load dictionary:', e);
+      console.warn(this.logPrefix, 'Could not load dictionary:', e);
     }
     this.produceDictionary = [];
     return this.produceDictionary;
@@ -1264,10 +1269,10 @@ class ShopApp {
           this.renderCategories();
           return;
         } else if (error) {
-          console.warn('[FreshMarket Shop] Supabase fetch error:', error);
+          console.warn(this.logPrefix, 'Supabase fetch error:', error);
         }
       } catch (err) {
-        console.warn('[FreshMarket Shop] Supabase connection error:', err);
+        console.warn(this.logPrefix, 'Supabase connection error:', err);
       }
     }
 
@@ -2231,8 +2236,9 @@ class ShopApp {
 
     if (addressNameInput && (!addressNameInput.value || !this.isCartAddressCustomized)) {
       const presetKey = this.resolveAddressPresetKey(addressName);
-      if (presetKey && ['home', 'office', 'villa'].includes(presetKey)) {
-        addressNameInput.value = window.i18n ? window.i18n.t(`cart.preset_${presetKey}`) : addressName;
+      const effectivePreset = presetKey || 'home';
+      if (['home', 'office', 'villa'].includes(effectivePreset)) {
+        addressNameInput.value = window.i18n ? window.i18n.t(`cart.preset_${effectivePreset}`) : (addressName || 'Дом');
       } else {
         addressNameInput.value = addressName || '';
       }
@@ -2253,7 +2259,16 @@ class ShopApp {
           section.classList.toggle('is-collapsed');
           if (section.id === 'cartSectionDelivery' && !section.classList.contains('is-collapsed')) {
             setTimeout(() => {
-              if (this.checkoutMap) this.checkoutMap.invalidateSize({ pan: false });
+              if (this.checkoutMap) {
+                this.checkoutMap.invalidateSize({ pan: false });
+                const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+                const pos = this.checkoutCustomerMarker ? this.checkoutCustomerMarker.getLatLng() : null;
+                if (pos) {
+                  this.safelyPositionMiniMap(this.checkoutMap, marketCoords, pos.lat, pos.lng, Boolean(this.checkoutRoutePolyline));
+                }
+              } else {
+                this.initCheckoutMiniMap();
+              }
             }, 340);
           }
         }
@@ -2330,105 +2345,163 @@ class ShopApp {
     }
   }
 
+  safelyPositionMiniMap(map, marketCoords, targetLat, targetLng, hasRoute = false) {
+    if (!map || typeof map.getContainer !== 'function') return false;
+    const container = map.getContainer();
+    if (!container || container.offsetWidth < 64 || container.offsetHeight < 64) {
+      return false;
+    }
+
+    const mLat = Number(marketCoords?.lat);
+    const mLng = Number(marketCoords?.lng);
+    const lat = Number(targetLat);
+    const lng = Number(targetLng);
+    if (!Number.isFinite(mLat) || !Number.isFinite(mLng) || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return false;
+    }
+
+    try {
+      if (typeof map.stop === 'function') map.stop();
+      map.invalidateSize({ pan: false });
+      const size = map.getSize();
+      if (!size || size.x < 64 || size.y < 64 || !Number.isFinite(size.x) || !Number.isFinite(size.y)) {
+        return false;
+      }
+
+      const isSamePoint = Math.abs(lat - mLat) < 0.0002 && Math.abs(lng - mLng) < 0.0002;
+      if (hasRoute && !isSamePoint) {
+        map.fitBounds([[mLat, mLng], [lat, lng]], {
+          padding: [28, 28],
+          maxZoom: 15,
+          animate: false
+        });
+      } else {
+        map.setView([lat, lng], 14, { animate: false });
+      }
+      return true;
+    } catch (err) {
+      console.warn(this.logPrefix, 'Mini-map positioning skipped:', err);
+      return false;
+    }
+  }
+
   initCheckoutMiniMap() {
     const mapContainer = document.getElementById('checkoutMiniMap');
     if (!mapContainer || typeof L === 'undefined') return;
 
-    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
-
-    if (!this.checkoutMap) {
-      this.checkoutMap = L.map('checkoutMiniMap', {
-        center: [marketCoords.lat, marketCoords.lng],
-        zoom: 14.2,
-        zoomControl: false,
-        attributionControl: false
-      });
-
-      // OpenStreetMap HOT (Humanitarian): high contrast roads, buildings, and landmarks without API key
-      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        subdomains: 'abc',
-        maxZoom: 19
-      }).addTo(this.checkoutMap);
-
-      // Market Hub Marker (Icon only, no text label)
-      const hubIcon = L.divIcon({
-        className: 'checkout-hub-pin',
-        html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-      L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.checkoutMap);
-
-      // Concentric Delivery Circles: Zone 3 (6km), Zone 2 (3km), Zone 1 (1km)
-      L.circle([marketCoords.lat, marketCoords.lng], {
-        radius: 6000,
-        color: '#10b981',
-        fillColor: '#10b981',
-        fillOpacity: 0.04,
-        weight: 1,
-        dashArray: '3, 6'
-      }).addTo(this.checkoutMap);
-
-      L.circle([marketCoords.lat, marketCoords.lng], {
-        radius: 3000,
-        color: '#10b981',
-        fillColor: '#10b981',
-        fillOpacity: 0.08,
-        weight: 1.2
-      }).addTo(this.checkoutMap);
-
-      L.circle([marketCoords.lat, marketCoords.lng], {
-        radius: 1000,
-        color: '#059669',
-        fillColor: '#10b981',
-        fillOpacity: 0.16,
-        weight: 1.5
-      }).addTo(this.checkoutMap);
-
-      // Draggable Customer Marker
-      const pinIcon = L.divIcon({
-        className: 'checkout-customer-pin',
-        html: '<span>📍</span>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 26]
-      });
-
-      this.checkoutCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
-        icon: pinIcon,
-        draggable: true
-      }).addTo(this.checkoutMap);
-
-      // Marker drag event
-      this.checkoutCustomerMarker.on('dragend', async (e) => {
-        this.isCartAddressCustomized = true;
-        const pos = e.target.getLatLng();
-        await this.applyLocationToCheckout(pos.lat, pos.lng, false);
-      });
-
-      // Map click event
-      this.checkoutMap.on('click', async (e) => {
-        this.isCartAddressCustomized = true;
-        const pos = e.latlng;
-        this.checkoutCustomerMarker.setLatLng(pos);
-        await this.applyLocationToCheckout(pos.lat, pos.lng, false);
-      });
+    if (this._checkoutMapInitTimer) {
+      clearTimeout(this._checkoutMapInitTimer);
+      this._checkoutMapInitTimer = null;
     }
 
-    setTimeout(() => {
+    const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+
+    this._checkoutMapInitTimer = setTimeout(() => {
+      this._checkoutMapInitTimer = null;
+      const container = document.getElementById('checkoutMiniMap');
+      if (!container || container.offsetWidth < 64 || container.offsetHeight < 64) {
+        return;
+      }
+
+      if (!this.checkoutMap) {
+        this._lastCheckoutCoordsKey = null;
+        this.checkoutRoutePolyline = null;
+        this.checkoutMap = L.map('checkoutMiniMap', {
+          center: [marketCoords.lat, marketCoords.lng],
+          zoom: 14,
+          zoomControl: false,
+          attributionControl: false
+        });
+
+        // OpenStreetMap HOT (Humanitarian): high contrast roads, buildings, and landmarks without API key
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+          subdomains: 'abc',
+          maxZoom: 19
+        }).addTo(this.checkoutMap);
+
+        // Market Hub Marker (Icon only, no text label)
+        const hubIcon = L.divIcon({
+          className: 'checkout-hub-pin',
+          html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+        L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.checkoutMap);
+
+        // Concentric Delivery Circles: Zone 3 (6km), Zone 2 (3km), Zone 1 (1km)
+        L.circle([marketCoords.lat, marketCoords.lng], {
+          radius: 6000,
+          color: '#10b981',
+          fillColor: '#10b981',
+          fillOpacity: 0.04,
+          weight: 1,
+          dashArray: '3, 6'
+        }).addTo(this.checkoutMap);
+
+        L.circle([marketCoords.lat, marketCoords.lng], {
+          radius: 3000,
+          color: '#10b981',
+          fillColor: '#10b981',
+          fillOpacity: 0.08,
+          weight: 1.2
+        }).addTo(this.checkoutMap);
+
+        L.circle([marketCoords.lat, marketCoords.lng], {
+          radius: 1000,
+          color: '#059669',
+          fillColor: '#10b981',
+          fillOpacity: 0.16,
+          weight: 1.5
+        }).addTo(this.checkoutMap);
+
+        // Draggable Customer Marker
+        const pinIcon = L.divIcon({
+          className: 'checkout-customer-pin',
+          html: '<span>📍</span>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 26]
+        });
+
+        this.checkoutCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
+          icon: pinIcon,
+          draggable: true
+        }).addTo(this.checkoutMap);
+
+        // Marker drag event
+        this.checkoutCustomerMarker.on('dragend', async (e) => {
+          this.isCartAddressCustomized = true;
+          const pos = e.target.getLatLng();
+          await this.applyLocationToCheckout(pos.lat, pos.lng, false);
+        });
+
+        // Map click event
+        this.checkoutMap.on('click', async (e) => {
+          this.isCartAddressCustomized = true;
+          const pos = e.latlng;
+          this.checkoutCustomerMarker.setLatLng(pos);
+          await this.applyLocationToCheckout(pos.lat, pos.lng, false);
+        });
+      }
+
       if (this.checkoutMap) {
         this.checkoutMap.invalidateSize({ pan: false });
         const addressInput = document.getElementById('deliveryAddress');
         const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
-        if (coords) {
+        if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
           const coordsKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
-          if (this._lastCheckoutCoordsKey !== coordsKey) {
+          if (this._lastCheckoutCoordsKey !== coordsKey || !this.checkoutRoutePolyline) {
             this._lastCheckoutCoordsKey = coordsKey;
             this.applyLocationToCheckout(coords.lat, coords.lng, true);
+          } else {
+            if (this.checkoutCustomerMarker) {
+              this.checkoutCustomerMarker.setLatLng([coords.lat, coords.lng]);
+            }
+            this.safelyPositionMiniMap(this.checkoutMap, marketCoords, coords.lat, coords.lng, Boolean(this.checkoutRoutePolyline));
           }
         } else {
           if (!this._lastCheckoutCoordsKey) {
             this._lastCheckoutCoordsKey = 'default';
-            this.checkoutMap.setView([marketCoords.lat, marketCoords.lng], 13);
+            this.safelyPositionMiniMap(this.checkoutMap, marketCoords, marketCoords.lat, marketCoords.lng, false);
           }
         }
       }
@@ -2486,20 +2559,24 @@ class ShopApp {
   }
 
   async applyLocationToCheckout(lat, lng, panMap = true) {
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) return;
+
     const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
-    this._lastCheckoutCoordsKey = `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+    this._lastCheckoutCoordsKey = `${numLat.toFixed(5)},${numLng.toFixed(5)}`;
 
     if (this.checkoutCustomerMarker) {
-      this.checkoutCustomerMarker.setLatLng([lat, lng]);
+      this.checkoutCustomerMarker.setLatLng([numLat, numLng]);
     }
 
     // Calculate real road distance and geometry via OSRM
     let routeInfo = null;
     if (typeof window.calculateRoadDistanceAndRoute === 'function') {
-      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, lat, lng);
+      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, numLat, numLng);
     } else {
-      const dist = calculateDistanceKm(lat, lng, marketCoords.lat, marketCoords.lng);
-      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [lat, lng]] };
+      const dist = calculateDistanceKm(numLat, numLng, marketCoords.lat, marketCoords.lng);
+      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [numLat, numLng]] };
     }
 
     // Determine delivery zone & fee based on road distance
@@ -2524,15 +2601,10 @@ class ShopApp {
       }).addTo(this.checkoutMap);
 
       if (panMap) {
-        this.checkoutMap.flyToBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
-          padding: [28, 28],
-          maxZoom: 15.5,
-          duration: 1.1,
-          easeLinearity: 0.25
-        });
+        this.safelyPositionMiniMap(this.checkoutMap, marketCoords, numLat, numLng, true);
       }
     } else if (panMap && this.checkoutMap) {
-      this.checkoutMap.flyTo([lat, lng], 14.5, { duration: 0.9 });
+      this.safelyPositionMiniMap(this.checkoutMap, marketCoords, numLat, numLng, false);
     }
 
     this.updateDeliveryMapBadge(zoneInfo, routeInfo.roadDistanceKm, routeInfo.durationMin);
@@ -2572,7 +2644,8 @@ class ShopApp {
       });
       nameInput.addEventListener('blur', () => {
         if (!nameInput.value.trim()) {
-          this.syncCartAddressPresetPills('');
+          nameInput.value = window.i18n ? window.i18n.t('cart.preset_home') : 'Дом';
+          this.syncCartAddressPresetPills('home');
         }
       });
     }
@@ -2920,7 +2993,7 @@ class ShopApp {
           return;
         }
       } catch (headCheckErr) {
-        console.debug('[FreshMarket Shop] Active orders HEAD pre-check bypassed:', headCheckErr);
+        console.debug(this.logPrefix, 'Active orders HEAD pre-check bypassed:', headCheckErr);
       }
     }
 
@@ -3118,7 +3191,7 @@ class ShopApp {
       }
     } catch (err) {
       if (err?.code !== 'P0001' && !/limit|reached|wait|exceeded/i.test(err?.message || '')) {
-        console.debug('[FreshMarket Shop] Checkout Supabase error:', err);
+        console.debug(this.logPrefix, 'Checkout Supabase error:', err);
       }
       syncErrorMsg = err?.message || 'Сбой соединения с базой';
       if (!businessError && (err?.code === 'P0001' || /limit|reached|wait|exceeded/i.test(err?.message || ''))) {
@@ -3343,14 +3416,14 @@ class ShopApp {
               // НЕ бракуем заказ (он остается в 'pending_sync' для последующей синхронизации)
               localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
               hasUpdates = true;
-              console.debug('[FreshMarket Shop] Sync throttled by server limits:', rpcErr?.message);
+              console.debug(this.logPrefix, 'Sync throttled by server limits:', rpcErr?.message);
               break; // Прерываем синхронизацию следующих заказов до окончания лимита
             } else {
-              console.debug('[FreshMarket Shop] Resync RPC info:', rpcErr);
+              console.debug(this.logPrefix, 'Resync RPC info:', rpcErr);
             }
           }
         } catch (syncItemErr) {
-          console.debug('[FreshMarket Shop] Resync item exception:', syncItemErr);
+          console.debug(this.logPrefix, 'Resync item exception:', syncItemErr);
         }
 
         if (synced) {
@@ -3559,12 +3632,13 @@ class ShopApp {
 
     const t = (key, fallback) => (window.i18n ? window.i18n.t(key) : fallback);
 
+    const brandName = window.FreshMarketBrand?.current?.name || 'FreshBuddy';
     const defaultCustomer = t('common.customer', 'Покупатель');
     const contactsTitle = t('profile.contacts_title', 'Контакты и доставка');
     const langTitle = t('profile.lang_title', 'Язык интерфейса');
-    const appTitle = t('profile.app_title', 'Приложение FreshMarket');
+    const appTitle = t('profile.app_title', `Приложение ${brandName}`);
     const appOfflineHint = t('profile.app_offline_hint', 'Быстрый доступ к каталогу и сохраненным контактам даже при нестабильной связи.');
-    const aboutTitle = t('profile.about_title', 'О сервисе FreshMarket');
+    const aboutTitle = t('profile.about_title', `О сервисе ${brandName}`);
     const rulesSchedule = t('profile.rules_schedule', '⏰ Приём заказов до 23:00 • Доставка 9:00–12:00');
     const rulesPricing = t('profile.rules_pricing', '🧾 Оплата: Чеки с рынка + сервисный сбор 10% + доставка ($1 / $2 / $3)');
     const accountTitle = t('profile.account_title', 'Аккаунт и вход');
@@ -3590,7 +3664,7 @@ class ShopApp {
     const defaultZoneStatusText = t('cart.zone_1_name', 'Зона 1: Центр ($1.00)');
     const saveContactsText = t('profile.save_contacts_btn', 'Сохранить контакты');
     const installAppText = t('profile.install_app_btn', 'Установить приложение');
-    const howItWorksText = t('profile.how_it_works_btn', 'Как работает FreshMarket');
+    const howItWorksText = t('profile.how_it_works_btn', `Как работает ${brandName}`);
     const logoutBtnText = t('profile.logout_btn', 'Выйти из аккаунта');
     const layoutTitle = t('profile.layout_title', 'Вид витрины товаров:');
     const layout2ColsText = t('profile.layout_2_cols', '2 колонки');
@@ -3648,8 +3722,8 @@ class ShopApp {
     const isProfileVillaActive = effectiveProfilePreset === 'villa';
     const isProfileOtherActive = effectiveProfilePreset === 'other';
     let localizedProfileAddrName = addressName || '';
-    if (profilePresetKey && ['home', 'office', 'villa'].includes(profilePresetKey)) {
-      localizedProfileAddrName = window.i18n ? window.i18n.t(`cart.preset_${profilePresetKey}`) : addressName;
+    if (['home', 'office', 'villa'].includes(effectiveProfilePreset)) {
+      localizedProfileAddrName = window.i18n ? window.i18n.t(`cart.preset_${effectiveProfilePreset}`) : (addressName || 'Дом');
     }
 
     this.authModalBody.innerHTML = `
@@ -3879,7 +3953,16 @@ class ShopApp {
           section.classList.toggle('is-collapsed');
           if (section.id === 'profileSectionContacts' && !section.classList.contains('is-collapsed')) {
             setTimeout(() => {
-              if (this.profileMap) this.profileMap.invalidateSize({ pan: false });
+              if (this.profileMap) {
+                this.profileMap.invalidateSize({ pan: false });
+                const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+                const pos = this.profileCustomerMarker ? this.profileCustomerMarker.getLatLng() : null;
+                if (pos) {
+                  this.safelyPositionMiniMap(this.profileMap, marketCoords, pos.lat, pos.lng, Boolean(this.profileRoutePolyline));
+                }
+              } else {
+                this.initProfileMiniMap();
+              }
             }, 340);
           }
         }
@@ -3948,7 +4031,8 @@ class ShopApp {
       });
       profileAddrNameInput.addEventListener('blur', () => {
         if (!profileAddrNameInput.value.trim()) {
-          syncProfilePresetPills('');
+          profileAddrNameInput.value = window.i18n ? window.i18n.t('cart.preset_home') : 'Дом';
+          syncProfilePresetPills('home');
         }
       });
     }
@@ -4032,7 +4116,7 @@ class ShopApp {
             this.userProfile.messenger = currentMessenger;
           }
         } catch (err) {
-          console.warn('[FreshMarket Shop] Error saving profile to Supabase:', err);
+          console.warn(this.logPrefix, 'Error saving profile to Supabase:', err);
         }
       }
 
@@ -4111,7 +4195,7 @@ class ShopApp {
       try {
         await this.sb.auth.signOut();
       } catch (err) {
-        console.warn('[FreshMarket Shop] SignOut error:', err);
+        console.warn(this.logPrefix, 'SignOut error:', err);
       }
     }
 
@@ -4203,7 +4287,6 @@ class ShopApp {
       this.switchView('catalog');
     } else if (this.currentView === 'cart') {
       this.renderCartModalList();
-      this.prefillCheckoutData();
     } else if (this.currentView === 'profile') {
       this.renderProfileView();
     } else {
@@ -4217,6 +4300,11 @@ class ShopApp {
     const mapContainer = document.getElementById('profileMiniMap');
     if (!mapContainer || typeof L === 'undefined') return;
 
+    if (this._profileMapInitTimer) {
+      clearTimeout(this._profileMapInitTimer);
+      this._profileMapInitTimer = null;
+    }
+
     if (this.profileMap) {
       try {
         this.profileMap.remove();
@@ -4224,94 +4312,114 @@ class ShopApp {
       this.profileMap = null;
       this.profileCustomerMarker = null;
       this.profileRoutePolyline = null;
+      this._lastProfileCoordsKey = null;
     }
 
     const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
 
-    this.profileMap = L.map('profileMiniMap', {
-      center: [marketCoords.lat, marketCoords.lng],
-      zoom: 14.2,
-      zoomControl: false,
-      attributionControl: false
-    });
+    this._profileMapInitTimer = setTimeout(() => {
+      this._profileMapInitTimer = null;
+      const container = document.getElementById('profileMiniMap');
+      if (!container || container.offsetWidth < 64 || container.offsetHeight < 64) {
+        return;
+      }
 
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      subdomains: 'abc',
-      maxZoom: 19
-    }).addTo(this.profileMap);
-
-    const hubIcon = L.divIcon({
-      className: 'checkout-hub-pin',
-      html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
-    });
-    L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.profileMap);
-
-    L.circle([marketCoords.lat, marketCoords.lng], {
-      radius: 6000,
-      color: '#10b981',
-      fillColor: '#10b981',
-      fillOpacity: 0.04,
-      weight: 1,
-      dashArray: '3, 6'
-    }).addTo(this.profileMap);
-
-    L.circle([marketCoords.lat, marketCoords.lng], {
-      radius: 3000,
-      color: '#10b981',
-      fillColor: '#10b981',
-      fillOpacity: 0.08,
-      weight: 1.2
-    }).addTo(this.profileMap);
-
-    L.circle([marketCoords.lat, marketCoords.lng], {
-      radius: 1000,
-      color: '#059669',
-      fillColor: '#10b981',
-      fillOpacity: 0.16,
-      weight: 1.5
-    }).addTo(this.profileMap);
-
-    const pinIcon = L.divIcon({
-      className: 'checkout-customer-pin',
-      html: '<span>📍</span>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 26]
-    });
-
-    this.profileCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
-      icon: pinIcon,
-      draggable: true
-    }).addTo(this.profileMap);
-
-    this.profileCustomerMarker.on('dragend', async (e) => {
-      const pos = e.target.getLatLng();
-      await this.applyLocationToProfile(pos.lat, pos.lng, false);
-    });
-
-    this.profileMap.on('click', async (e) => {
-      const pos = e.latlng;
-      this.profileCustomerMarker.setLatLng(pos);
-      await this.applyLocationToProfile(pos.lat, pos.lng, false);
-    });
-
-    setTimeout(() => {
       if (this.profileMap) {
-        this.profileMap.invalidateSize({ pan: false });
-        const addressInput = document.getElementById('profileAddress');
-        const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
-        if (coords) {
-          const coordsKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
-          if (this._lastProfileCoordsKey !== coordsKey) {
-            this._lastProfileCoordsKey = coordsKey;
-            this.applyLocationToProfile(coords.lat, coords.lng, true);
-          }
+        try {
+          this.profileMap.remove();
+        } catch (_) {}
+        this.profileMap = null;
+        this.profileCustomerMarker = null;
+        this.profileRoutePolyline = null;
+        this._lastProfileCoordsKey = null;
+      }
+
+      this.profileMap = L.map('profileMiniMap', {
+        center: [marketCoords.lat, marketCoords.lng],
+        zoom: 14,
+        zoomControl: false,
+        attributionControl: false
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        subdomains: 'abc',
+        maxZoom: 19
+      }).addTo(this.profileMap);
+
+      const hubIcon = L.divIcon({
+        className: 'checkout-hub-pin',
+        html: '<div style="background: var(--accent-emerald, #10b981); width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #ffffff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.45); display: flex; align-items: center; justify-content: center; font-size: 13px;">🛒</div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([marketCoords.lat, marketCoords.lng], { icon: hubIcon }).addTo(this.profileMap);
+
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 6000,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.04,
+        weight: 1,
+        dashArray: '3, 6'
+      }).addTo(this.profileMap);
+
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 3000,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.08,
+        weight: 1.2
+      }).addTo(this.profileMap);
+
+      L.circle([marketCoords.lat, marketCoords.lng], {
+        radius: 1000,
+        color: '#059669',
+        fillColor: '#10b981',
+        fillOpacity: 0.16,
+        weight: 1.5
+      }).addTo(this.profileMap);
+
+      const pinIcon = L.divIcon({
+        className: 'checkout-customer-pin',
+        html: '<span>📍</span>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 26]
+      });
+
+      this.profileCustomerMarker = L.marker([marketCoords.lat, marketCoords.lng], {
+        icon: pinIcon,
+        draggable: true
+      }).addTo(this.profileMap);
+
+      this.profileCustomerMarker.on('dragend', async (e) => {
+        const pos = e.target.getLatLng();
+        await this.applyLocationToProfile(pos.lat, pos.lng, false);
+      });
+
+      this.profileMap.on('click', async (e) => {
+        const pos = e.latlng;
+        this.profileCustomerMarker.setLatLng(pos);
+        await this.applyLocationToProfile(pos.lat, pos.lng, false);
+      });
+
+      this.profileMap.invalidateSize({ pan: false });
+      const addressInput = document.getElementById('profileAddress');
+      const coords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(addressInput?.value) : null;
+      if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+        const coordsKey = `${coords.lat.toFixed(5)},${coords.lng.toFixed(5)}`;
+        if (this._lastProfileCoordsKey !== coordsKey || !this.profileRoutePolyline) {
+          this._lastProfileCoordsKey = coordsKey;
+          this.applyLocationToProfile(coords.lat, coords.lng, true);
         } else {
-          if (!this._lastProfileCoordsKey) {
-            this._lastProfileCoordsKey = 'default';
-            this.profileMap.setView([marketCoords.lat, marketCoords.lng], 13);
+          if (this.profileCustomerMarker) {
+            this.profileCustomerMarker.setLatLng([coords.lat, coords.lng]);
           }
+          this.safelyPositionMiniMap(this.profileMap, marketCoords, coords.lat, coords.lng, Boolean(this.profileRoutePolyline));
+        }
+      } else {
+        if (!this._lastProfileCoordsKey) {
+          this._lastProfileCoordsKey = 'default';
+          this.safelyPositionMiniMap(this.profileMap, marketCoords, marketCoords.lat, marketCoords.lng, false);
         }
       }
     }, 340);
@@ -4353,19 +4461,23 @@ class ShopApp {
   }
 
   async applyLocationToProfile(lat, lng, panMap = true) {
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (!Number.isFinite(numLat) || !Number.isFinite(numLng)) return;
+
     const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
-    this._lastProfileCoordsKey = `${Number(lat).toFixed(5)},${Number(lng).toFixed(5)}`;
+    this._lastProfileCoordsKey = `${numLat.toFixed(5)},${numLng.toFixed(5)}`;
 
     if (this.profileCustomerMarker) {
-      this.profileCustomerMarker.setLatLng([lat, lng]);
+      this.profileCustomerMarker.setLatLng([numLat, numLng]);
     }
 
     let routeInfo = null;
     if (typeof window.calculateRoadDistanceAndRoute === 'function') {
-      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, lat, lng);
+      routeInfo = await window.calculateRoadDistanceAndRoute(marketCoords.lat, marketCoords.lng, numLat, numLng);
     } else {
-      const dist = calculateDistanceKm(lat, lng, marketCoords.lat, marketCoords.lng);
-      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [lat, lng]] };
+      const dist = calculateDistanceKm(numLat, numLng, marketCoords.lat, marketCoords.lng);
+      routeInfo = { roadDistanceKm: dist, durationMin: Math.max(1, Math.round(dist * 2.5)), coordinates: [[marketCoords.lat, marketCoords.lng], [numLat, numLng]] };
     }
 
     const zoneInfo = getDeliveryZoneByDistance(routeInfo.roadDistanceKm);
@@ -4384,15 +4496,10 @@ class ShopApp {
       }).addTo(this.profileMap);
 
       if (panMap) {
-        this.profileMap.flyToBounds([[marketCoords.lat, marketCoords.lng], [lat, lng]], {
-          padding: [28, 28],
-          maxZoom: 15.5,
-          duration: 1.1,
-          easeLinearity: 0.25
-        });
+        this.safelyPositionMiniMap(this.profileMap, marketCoords, numLat, numLng, true);
       }
     } else if (panMap && this.profileMap) {
-      this.profileMap.flyTo([lat, lng], 14.5, { duration: 0.9 });
+      this.safelyPositionMiniMap(this.profileMap, marketCoords, numLat, numLng, false);
     }
 
     this.updateProfileDeliveryMapBadge(zoneInfo, routeInfo.roadDistanceKm, routeInfo.durationMin);
@@ -4545,10 +4652,10 @@ class ShopApp {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw-shop.js', { scope: './shop.html' })
           .then((reg) => {
-            console.log('[FreshMarket Shop] Service Worker active with scope:', reg.scope);
+            console.log(this.logPrefix, 'Service Worker active with scope:', reg.scope);
           })
           .catch((err) => {
-            console.warn('[FreshMarket Shop] Service Worker registration failed:', err);
+            console.warn(this.logPrefix, 'Service Worker registration failed:', err);
           });
       });
     }
@@ -4557,12 +4664,13 @@ class ShopApp {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.deferredInstallPrompt = e;
-      console.log('[FreshMarket Shop] PWA install prompt ready');
+      console.log(this.logPrefix, 'PWA install prompt ready');
     });
 
     window.addEventListener('appinstalled', () => {
       this.deferredInstallPrompt = null;
-      this.showToast(window.i18n ? window.i18n.t('toasts.app_installed') : '🎉 Приложение FreshMarket успешно установлено!');
+      const brandName = window.FreshMarketBrand?.current?.name || 'FreshBuddy';
+      this.showToast(window.i18n ? window.i18n.t('toasts.app_installed') : `🎉 Приложение ${brandName} успешно установлено!`);
     });
   }
 

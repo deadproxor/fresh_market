@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.18';
+const CACHE_NAME = 'freshmarket-shop-v1.5.19';
 const STATIC_ASSETS = [
   './shop.html',
   './privacy-geodata.html',
@@ -11,6 +11,7 @@ const STATIC_ASSETS = [
   './css/components.css',
   './css/shop.css',
   './js/shared/utils.js',
+  './js/shared/branding.js',
   './js/shared/categories.js',
   './js/shared/forms.js',
   './js/shared/i18n.js',
@@ -24,6 +25,7 @@ const STATIC_ASSETS = [
   './data/products_dictionary.json',
   './assets/icon-192.svg',
   './assets/icon-512.svg',
+  './assets/brand/logo-default.png',
   './assets/onboarding/slide-1-market.png',
   './assets/onboarding/slide-2-receipt.png',
   './assets/onboarding/slide-3-delivery.png',
