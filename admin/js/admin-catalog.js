@@ -344,11 +344,24 @@ class LocalStorageAdapter {
  */
 class CloudinaryService {
   static getConfig() {
+    if (window.adminApp && window.adminApp.cachedAdminSettings?.cloudinary) {
+      const c = window.adminApp.cachedAdminSettings.cloudinary;
+      return {
+        cloudName: (c.cloudName || '').trim(),
+        uploadPreset: (c.preset || c.uploadPreset || '').trim(),
+        folder: (c.folder || 'freshmarket').trim(),
+        apiKey: (c.apiKey || '').trim()
+      };
+    }
+    const nameEl = document.getElementById('settingCloudinaryName');
+    const presetEl = document.getElementById('settingCloudinaryPreset');
+    const folderEl = document.getElementById('settingCloudinaryFolder');
+    const keyEl = document.getElementById('settingCloudinaryApiKey');
     return {
-      cloudName: (localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
-      uploadPreset: (localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
-      folder: (localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
-      apiKey: (localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim()
+      cloudName: (nameEl?.value || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '').trim(),
+      uploadPreset: (presetEl?.value || localStorage.getItem('freshmarket_cloudinary_preset') || '').trim(),
+      folder: (folderEl?.value || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket').trim(),
+      apiKey: (keyEl?.value || localStorage.getItem('freshmarket_cloudinary_api_key') || '').trim()
     };
   }
 
@@ -577,7 +590,7 @@ function isValidSupabaseUrl(url) {
 function getActiveStorage() {
   const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
   const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
-  const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
+  const provider = window.adminApp?.cachedAdminSettings?.storage?.provider || localStorage.getItem('freshmarket_storage_provider') || 'supabase';
   const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
   const sbKey = localStorage.getItem('freshmarket_supabase_key') || fallbackKey;
 
@@ -1083,6 +1096,17 @@ class App {
     this.btnSaveKhrRate = document.getElementById('btnSaveKhrRate');
     this.khrRateBadge = document.getElementById('khrRateBadge');
     this.settingModalKhrRate = document.getElementById('settingModalKhrRate');
+
+    // Service & Pricing Rules Elements
+    this.settingServiceFeePercent = document.getElementById('settingServiceFeePercent');
+    this.settingDeliveryFeeZone1 = document.getElementById('settingDeliveryFeeZone1');
+    this.settingDeliveryFeeZone2 = document.getElementById('settingDeliveryFeeZone2');
+    this.settingDeliveryFeeZone3 = document.getElementById('settingDeliveryFeeZone3');
+    this.settingOrderCutoffTime = document.getElementById('settingOrderCutoffTime');
+    this.settingDeliveryStartTime = document.getElementById('settingDeliveryStartTime');
+    this.settingDeliveryEndTime = document.getElementById('settingDeliveryEndTime');
+    this.settingPaymentMethods = document.getElementById('settingPaymentMethods');
+    this.serviceRulesBadge = document.getElementById('serviceRulesBadge');
   }
 
   initEventListeners() {
@@ -1682,9 +1706,13 @@ class App {
   // Settings (Gemini API, Supabase, Cloudinary, Backup)
   // ------------------------------------------------------------------------
   loadSettingsFormValues() {
-    // AI (Zero-Secret via Supabase Edge Function)
-    const savedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
-    const customModel = localStorage.getItem('freshmarket_gemini_custom_model') || '';
+    // 1. Initial defaults from memory/cache or fallback
+    const aiConfig = this.cachedAdminSettings?.ai || {};
+    const storageConfig = this.cachedAdminSettings?.storage || {};
+    const cloudinaryConfig = this.cachedAdminSettings?.cloudinary || {};
+
+    const savedModel = aiConfig.model || localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
+    const customModel = aiConfig.customModel || localStorage.getItem('freshmarket_gemini_custom_model') || '';
 
     if (this.settingModel) {
       this.settingModel.value = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(savedModel) ? savedModel : 'custom';
@@ -1700,8 +1728,8 @@ class App {
       aiBadge.className = 'badge badge-primary';
     }
 
-    // Supabase
-    const provider = localStorage.getItem('freshmarket_storage_provider') || 'supabase';
+    // Storage Provider
+    const provider = storageConfig.provider || localStorage.getItem('freshmarket_storage_provider') || 'supabase';
     const supabaseUrl = localStorage.getItem('freshmarket_supabase_url') || '';
     const supabaseKey = localStorage.getItem('freshmarket_supabase_key') || '';
 
@@ -1717,10 +1745,10 @@ class App {
     }
 
     // Cloudinary
-    const cloudName = localStorage.getItem('freshmarket_cloudinary_cloud_name') || '';
-    const preset = localStorage.getItem('freshmarket_cloudinary_preset') || '';
-    const folder = localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket';
-    const cloudApiKey = localStorage.getItem('freshmarket_cloudinary_api_key') || '';
+    const cloudName = cloudinaryConfig.cloudName || localStorage.getItem('freshmarket_cloudinary_cloud_name') || '';
+    const preset = cloudinaryConfig.preset || cloudinaryConfig.uploadPreset || localStorage.getItem('freshmarket_cloudinary_preset') || '';
+    const folder = cloudinaryConfig.folder || localStorage.getItem('freshmarket_cloudinary_folder') || 'freshmarket';
+    const cloudApiKey = cloudinaryConfig.apiKey || localStorage.getItem('freshmarket_cloudinary_api_key') || '';
 
     if (this.settingCloudinaryName) this.settingCloudinaryName.value = cloudName;
     if (this.settingCloudinaryPreset) this.settingCloudinaryPreset.value = preset;
@@ -1731,6 +1759,8 @@ class App {
     const rateInput = document.getElementById('settingKhrRate');
     if (rateInput) rateInput.value = this.khrRate;
     if (this.khrRateBadge) this.khrRateBadge.textContent = `1$ = ${this.khrRate.toLocaleString('en-US')} ៛`;
+
+    // 2. Load cloud settings (service_settings and admin_settings via Edge Function)
     this.loadCloudServiceSettings();
   }
 
@@ -1738,28 +1768,130 @@ class App {
     const sb = window.supabaseClient || this.sb;
     if (!sb) return;
     try {
-      const { data, error } = await sb
+      // 1. Fetch public service settings (khr_rate, service_rules)
+      const { data: serviceData, error: serviceErr } = await sb
         .from('service_settings')
-        .select('key, value')
-        .eq('key', 'khr_rate')
-        .maybeSingle();
+        .select('key, value');
 
-      if (!error && data?.value) {
-        const rate = typeof data.value === 'object' ? Number(data.value.rate) : Number(data.value);
-        if (!isNaN(rate) && rate >= 1000 && rate <= 10000) {
-          this.khrRate = rate;
-          localStorage.setItem('freshmarket_khr_rate', String(rate));
-          const rateInput = document.getElementById('settingKhrRate');
-          if (rateInput) rateInput.value = rate;
-          if (this.khrRateBadge) this.khrRateBadge.textContent = `1$ = ${rate.toLocaleString('en-US')} ៛`;
-          if (this.fieldPrice && this.priceHint) {
-            this.updatePriceHint(this.fieldCurrency?.value || 'KHR', this.fieldPrice.value.trim(), this.priceHint);
+      if (!serviceErr && Array.isArray(serviceData)) {
+        for (const row of serviceData) {
+          if (row.key === 'khr_rate' && row.value) {
+            const rate = typeof row.value === 'object' ? Number(row.value.rate) : Number(row.value);
+            if (!isNaN(rate) && rate >= 1000 && rate <= 10000) {
+              this.khrRate = rate;
+              localStorage.setItem('freshmarket_khr_rate', String(rate));
+              const rateInput = document.getElementById('settingKhrRate');
+              if (rateInput) rateInput.value = rate;
+              if (this.khrRateBadge) this.khrRateBadge.textContent = `1$ = ${rate.toLocaleString('en-US')} ៛`;
+              if (this.fieldPrice && this.priceHint) {
+                this.updatePriceHint(this.fieldCurrency?.value || 'KHR', this.fieldPrice.value.trim(), this.priceHint);
+              }
+            }
+          } else if (row.key === 'service_rules' && row.value) {
+            const rules = row.value;
+            if (this.settingServiceFeePercent && rules.service_fee_percent !== undefined) {
+              this.settingServiceFeePercent.value = rules.service_fee_percent;
+            }
+            if (rules.zones) {
+              if (this.settingDeliveryFeeZone1 && rules.zones.zone_1 !== undefined) {
+                this.settingDeliveryFeeZone1.value = rules.zones.zone_1;
+              }
+              if (this.settingDeliveryFeeZone2 && rules.zones.zone_2 !== undefined) {
+                this.settingDeliveryFeeZone2.value = rules.zones.zone_2;
+              }
+              if (this.settingDeliveryFeeZone3 && rules.zones.zone_3 !== undefined) {
+                this.settingDeliveryFeeZone3.value = rules.zones.zone_3;
+              }
+            }
+            if (this.settingOrderCutoffTime && rules.cutoff_time) {
+              this.settingOrderCutoffTime.value = rules.cutoff_time;
+            }
+            if (rules.delivery_window) {
+              if (this.settingDeliveryStartTime && rules.delivery_window.start) {
+                this.settingDeliveryStartTime.value = rules.delivery_window.start;
+              }
+              if (this.settingDeliveryEndTime && rules.delivery_window.end) {
+                this.settingDeliveryEndTime.value = rules.delivery_window.end;
+              }
+            }
+            if (this.settingPaymentMethods && rules.payment_methods) {
+              this.settingPaymentMethods.value = rules.payment_methods;
+            }
+            if (this.serviceRulesBadge) {
+              this.serviceRulesBadge.textContent = `${rules.service_fee_percent || 10}% / Зоны`;
+            }
           }
         }
       }
+
+      // 2. Fetch private admin settings directly from admin_settings table (protected by RLS is_admin())
+      let adminSettings = null;
+      try {
+        const { data: tableData, error: tableErr } = await sb
+          .from('admin_settings')
+          .select('key, value');
+        if (!tableErr && Array.isArray(tableData) && tableData.length > 0) {
+          adminSettings = {};
+          for (const r of tableData) {
+            adminSettings[r.key] = r.value;
+          }
+        }
+      } catch (err) {
+        console.debug('[Admin] Could not fetch admin_settings from database:', err);
+      }
+
+      if (adminSettings) {
+        this.cachedAdminSettings = adminSettings;
+        if (adminSettings.ai) {
+          const ai = adminSettings.ai;
+          if (this.settingModel && ai.model) {
+            this.settingModel.value = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.8-flash'].includes(ai.model) ? ai.model : 'custom';
+          }
+          if (this.settingCustomModel && ai.customModel !== undefined) {
+            this.settingCustomModel.value = ai.customModel;
+          }
+          this.toggleCustomModelInput();
+        }
+
+        if (adminSettings.storage) {
+          const prov = adminSettings.storage.provider || 'supabase';
+          if (this.providerLocal) this.providerLocal.checked = (prov === 'local');
+          if (this.providerSupabase) this.providerSupabase.checked = (prov === 'supabase');
+          const sbBadge = document.getElementById('supabaseProviderBadge');
+          if (sbBadge) {
+            sbBadge.textContent = prov === 'supabase' ? 'Supabase' : 'IndexedDB';
+            sbBadge.className = `badge ${prov === 'supabase' ? 'badge-primary' : 'badge-gray'}`;
+          }
+        }
+
+        if (adminSettings.cloudinary) {
+          const c = adminSettings.cloudinary;
+          if (this.settingCloudinaryName && c.cloudName !== undefined) this.settingCloudinaryName.value = c.cloudName;
+          if (this.settingCloudinaryPreset && (c.preset !== undefined || c.uploadPreset !== undefined)) {
+            this.settingCloudinaryPreset.value = c.preset || c.uploadPreset || '';
+          }
+          if (this.settingCloudinaryFolder && c.folder !== undefined) this.settingCloudinaryFolder.value = c.folder;
+          if (this.settingCloudinaryApiKey && c.apiKey !== undefined) this.settingCloudinaryApiKey.value = c.apiKey;
+        }
+
+        // Clean up legacy sensitive keys from localStorage
+        this.cleanSensitiveLocalStorage();
+      }
     } catch (e) {
-      console.debug('[Admin] Could not fetch service_settings:', e);
+      console.debug('[Admin] Could not fetch settings from cloud:', e);
     }
+  }
+
+  cleanSensitiveLocalStorage() {
+    try {
+      localStorage.removeItem('freshmarket_cloudinary_api_key');
+      localStorage.removeItem('freshmarket_cloudinary_cloud_name');
+      localStorage.removeItem('freshmarket_cloudinary_preset');
+      localStorage.removeItem('freshmarket_cloudinary_folder');
+      localStorage.removeItem('freshmarket_gemini_model');
+      localStorage.removeItem('freshmarket_gemini_custom_model');
+      localStorage.removeItem('freshmarket_storage_provider');
+    } catch (_) {}
   }
 
   openSettingsModal(isTriggeredByPhoto = false) {
@@ -1788,60 +1920,115 @@ class App {
   }
 
   async saveSettings() {
-    // 1. AI Settings (Zero-Secret: key managed in Supabase Vault)
-    localStorage.removeItem('freshmarket_gemini_api_key');
+    const sb = window.supabaseClient || this.sb;
+
+    // 1. Currency Exchange Rate (USD -> KHR)
+    const rateInput = document.getElementById('settingKhrRate');
+    if (rateInput && rateInput.value) {
+      const rateVal = parseInt(rateInput.value, 10);
+      if (!isNaN(rateVal) && rateVal >= 1000 && rateVal <= 10000) {
+        await this.saveKhrRate(rateVal);
+      }
+    }
+
+    // 2. Service & Pricing Rules (Public -> service_settings)
+    const serviceFeePercent = Number(parseFloat(this.settingServiceFeePercent?.value || 10).toFixed(2));
+    const feeZone1 = Number(parseFloat(this.settingDeliveryFeeZone1?.value || 1.00).toFixed(2));
+    const feeZone2 = Number(parseFloat(this.settingDeliveryFeeZone2?.value || 2.00).toFixed(2));
+    const feeZone3 = Number(parseFloat(this.settingDeliveryFeeZone3?.value || 3.50).toFixed(2));
+    const cutoffTime = this.settingOrderCutoffTime?.value || '23:00';
+    const deliveryStart = this.settingDeliveryStartTime?.value || '09:00';
+    const deliveryEnd = this.settingDeliveryEndTime?.value || '12:00';
+    const paymentMethods = (this.settingPaymentMethods?.value || 'Наличные или перевод по факту доставки').trim();
+
+    const serviceRules = {
+      service_fee_percent: serviceFeePercent,
+      zones: {
+        zone_1: feeZone1,
+        zone_2: feeZone2,
+        zone_3: feeZone3
+      },
+      cutoff_time: cutoffTime,
+      delivery_window: {
+        start: deliveryStart,
+        end: deliveryEnd
+      },
+      payment_methods: paymentMethods,
+      updated_at: new Date().toISOString()
+    };
+
+    if (sb) {
+      try {
+        const { error: rulesErr } = await sb
+          .from('service_settings')
+          .upsert({
+            key: 'service_rules',
+            value: serviceRules,
+            description: 'Глобальные тарифы комиссий, зон доставки и график работы сервиса',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'key' });
+
+        if (rulesErr) {
+          console.warn('[Admin] Failed to save service_rules to service_settings:', rulesErr);
+        } else {
+          if (this.serviceRulesBadge) {
+            this.serviceRulesBadge.textContent = `${serviceFeePercent}% / Зоны`;
+          }
+        }
+      } catch (err) {
+        console.warn('[Admin] service_rules upsert exception:', err);
+      }
+    }
+
+    // 3. Admin Integration Settings (Private -> Edge Function / admin_settings)
     const model = this.settingModel ? this.settingModel.value : 'gemini-2.5-flash';
     const customModel = this.settingCustomModel ? this.settingCustomModel.value.trim() : '';
-
-    localStorage.setItem('freshmarket_gemini_model', model);
-    if (model === 'custom' && customModel) {
-      localStorage.setItem('freshmarket_gemini_custom_model', customModel);
-    }
-
-    // 2. Supabase Settings
     const provider = this.providerSupabase && this.providerSupabase.checked ? 'supabase' : 'local';
-    const supabaseUrl = this.settingSupabaseUrl ? this.settingSupabaseUrl.value.trim() : '';
-    const supabaseKey = this.settingSupabaseKey ? this.settingSupabaseKey.value.trim() : '';
-
-    if (provider === 'supabase' && (!supabaseUrl || !supabaseKey)) {
-      this.showToast('⚠️ Для режима Supabase заполните URL и Anon Key');
-      return;
-    }
-
-    if (supabaseUrl && !isValidSupabaseUrl(supabaseUrl)) {
-      this.showToast('⚠️ URL Supabase должен начинаться с https:// и оканчиваться на .supabase.co');
-      return;
-    }
-
-    localStorage.setItem('freshmarket_storage_provider', provider);
-    localStorage.setItem('freshmarket_supabase_url', supabaseUrl);
-    localStorage.setItem('freshmarket_supabase_key', supabaseKey);
-
-    // 3. Cloudinary Settings
     const cloudName = this.settingCloudinaryName ? this.settingCloudinaryName.value.trim() : '';
     const preset = this.settingCloudinaryPreset ? this.settingCloudinaryPreset.value.trim() : '';
     const folder = this.settingCloudinaryFolder ? this.settingCloudinaryFolder.value.trim() : 'freshmarket';
     const cloudApiKey = this.settingCloudinaryApiKey ? this.settingCloudinaryApiKey.value.trim() : '';
 
-    localStorage.setItem('freshmarket_cloudinary_cloud_name', cloudName);
-    localStorage.setItem('freshmarket_cloudinary_preset', preset);
-    localStorage.setItem('freshmarket_cloudinary_folder', folder || 'freshmarket');
-    localStorage.setItem('freshmarket_cloudinary_api_key', cloudApiKey);
+    const adminSettings = {
+      ai: {
+        model,
+        customModel: model === 'custom' ? customModel : ''
+      },
+      storage: {
+        provider
+      },
+      cloudinary: {
+        cloudName,
+        preset,
+        folder,
+        apiKey: cloudApiKey
+      }
+    };
+    this.cachedAdminSettings = adminSettings;
 
-    // 4. KHR Exchange Rate
-    const rateInput = document.getElementById('settingKhrRate');
-    if (rateInput && rateInput.value) {
-      const rateVal = parseInt(rateInput.value, 10);
-      if (!isNaN(rateVal) && rateVal >= 1000 && rateVal <= 10000) {
-        this.saveKhrRate(rateVal);
+    if (sb) {
+      try {
+        const upsertRows = Object.entries(adminSettings).map(([k, v]) => ({
+          key: k,
+          value: v,
+          updated_at: new Date().toISOString()
+        }));
+        const { error: adminErr } = await sb.from('admin_settings').upsert(upsertRows, { onConflict: 'key' });
+        if (adminErr) {
+          console.warn('[Admin] admin_settings direct upsert warning:', adminErr);
+        }
+      } catch (e) {
+        console.warn('[Admin] admin_settings direct upsert exception:', e);
       }
     }
+
+    // 4. Clean up sensitive keys from localStorage
+    this.cleanSensitiveLocalStorage();
 
     // Re-initialize storage adapter
     storage = getActiveStorage();
 
-    this.loadSettingsFormValues();
-    this.showToast('✅ Параметры успешно сохранены');
+    this.showToast('✅ Все параметры и правила сервиса сохранены', 'success');
 
     // Reload catalog with active storage provider
     await this.loadData();
@@ -2240,8 +2427,8 @@ class App {
   // Gemini Vision Analysis
   // ------------------------------------------------------------------------
   async analyzeImageWithGemini(base64Image, isEdit = false, editCtx = null) {
-    const selectedModel = localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
-    const customModel = localStorage.getItem('freshmarket_gemini_custom_model');
+    const selectedModel = this.cachedAdminSettings?.ai?.model || this.settingModel?.value || localStorage.getItem('freshmarket_gemini_model') || 'gemini-2.5-flash';
+    const customModel = this.cachedAdminSettings?.ai?.customModel || this.settingCustomModel?.value || localStorage.getItem('freshmarket_gemini_custom_model');
     const modelToUse = (selectedModel === 'custom' && customModel) ? customModel.trim() : selectedModel;
 
     const overlay = isEdit ? (editCtx?.editAiScanOverlay || document.getElementById('editAiScanOverlay')) : this.aiScanOverlay;

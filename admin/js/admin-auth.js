@@ -35,6 +35,8 @@ class AdminAuth {
     this.realtimeOrdersChannel = null;
     this.audioContext = null;
     this.unreadOrdersCount = 0;
+    this.currentAdminOrdersTab = 'current';
+    this.cachedAdminOrders = [];
 
     // Section Tabs
     this.navTabs = document.querySelectorAll('.admin-nav-tab');
@@ -96,6 +98,20 @@ class AdminAuth {
         this.switchSection(target);
       });
     });
+
+    // Orders segmented tabs switching (Current / Upcoming / Archive)
+    const ordersTabsContainer = document.getElementById('adminOrdersSegmentedTabs');
+    if (ordersTabsContainer) {
+      ordersTabsContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-orders-tab]');
+        if (!btn) return;
+        const tab = btn.dataset.ordersTab;
+        if (tab && tab !== this.currentAdminOrdersTab) {
+          this.currentAdminOrdersTab = tab;
+          this.renderAdminOrders();
+        }
+      });
+    }
 
     // Supabase Auth State Change Listener
     if (this.sb) {
@@ -291,6 +307,13 @@ class AdminAuth {
     }
   }
 
+  getMarketLocalTime() {
+    // UTC+7 (Asia/Phnom_Penh)
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utcMs + (7 * 3600000));
+  }
+
   async loadAdminOrders(isSilent = false) {
     const listEl = document.getElementById('adminOrdersList');
     if (!listEl) return;
@@ -302,7 +325,7 @@ class AdminAuth {
       return;
     }
 
-    if (!isSilent) {
+    if (!isSilent && (!this.cachedAdminOrders || this.cachedAdminOrders.length === 0)) {
       listEl.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Загрузка заявок...</div>';
     }
 
@@ -311,25 +334,76 @@ class AdminAuth {
         .from('orders')
         .select('*, order_items(*)')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(100);
 
       if (error) {
         listEl.innerHTML = `<div class="empty-desc">Ошибка загрузки: ${error.message}</div>`;
         return;
       }
 
-      if (!data || data.length === 0) {
-        listEl.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <div class="empty-title">Нет активных заявок</div>
-            <div class="empty-desc">Когда покупатели оформят заявку на утренний закуп в магазине, она мгновенно появится здесь.</div>
-          </div>
-        `;
-        return;
-      }
+      this.cachedAdminOrders = data || [];
+      this.renderAdminOrders();
+    } catch (err) {
+      console.warn('[AdminAuth] Orders load error:', err);
+      listEl.innerHTML = `<div class="empty-desc">Не удалось загрузить заказы</div>`;
+    }
+  }
 
-      listEl.innerHTML = data.map(order => {
+  renderAdminOrders() {
+    const listEl = document.getElementById('adminOrdersList');
+    if (!listEl) return;
+
+    try {
+      const activeTab = this.currentAdminOrdersTab || 'current';
+    document.querySelectorAll('#adminOrdersSegmentedTabs [data-orders-tab]').forEach((btn) => {
+      const isActive = btn.dataset.ordersTab === activeTab;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    const marketNow = this.getMarketLocalTime();
+    const todayStr = marketNow.toISOString().slice(0, 10);
+    const orders = this.cachedAdminOrders || [];
+
+    const filteredOrders = orders.filter((order) => {
+      const targetDate = order.target_delivery_date || (order.created_at ? order.created_at.slice(0, 10) : todayStr);
+      const isTerminal = order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected';
+
+      if (activeTab === 'current') {
+        return !isTerminal && targetDate <= todayStr;
+      }
+      if (activeTab === 'upcoming') {
+        return !isTerminal && targetDate > todayStr;
+      }
+      if (activeTab === 'archive') {
+        return isTerminal || targetDate < todayStr;
+      }
+      return true;
+    });
+
+    if (filteredOrders.length === 0) {
+      let emptyTitle, emptyDesc;
+      if (activeTab === 'current') {
+        emptyTitle = 'Нет активных заявок';
+        emptyDesc = 'Заявки на утренний закуп сегодня отображаются здесь.';
+      } else if (activeTab === 'upcoming') {
+        emptyTitle = 'Нет будущих предзаказов';
+        emptyDesc = 'Заявки с датой доставки на завтра и последующие дни отображаются здесь.';
+      } else {
+        emptyTitle = 'Архив заявок пуст';
+        emptyDesc = 'Здесь сохраняется история выполненных и закрытых доставок.';
+      }
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">${this.escapeHtml(emptyTitle)}</div>
+          <div class="empty-desc">${this.escapeHtml(emptyDesc)}</div>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filteredOrders.map(order => {
         const safeNum = this.escapeHtml(order.order_number || 'FM-ЗАКАЗ');
         const rawStatus = order.status || 'pending';
         const safeStatus = this.escapeHtml(rawStatus);
@@ -347,24 +421,91 @@ class AdminAuth {
         const createdTimeStr = order.created_at ? new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
         const items = order.order_items || [];
+        const khrRate = (window.app && window.app.khrRate) || 4000;
+        let calcItemsUsd = 0;
+        let unknownCount = 0;
+
         const itemsListHtml = items.length > 0 ? `
           <div class="order-admin-items" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 12px;">
             <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">🛍️ Состав заказа (${items.length}):</div>
             ${items.map(it => {
               const itTitle = this.escapeHtml(it.product_title || it.product_name_ru || it.product_name_en || 'Товар');
-              const itQty = this.escapeHtml(it.quantity || it.requested_qty || 1);
-              const itUnit = this.escapeHtml(it.unit || 'кг');
+              const rawQty = Number(it.quantity || it.requested_qty || 1) || 1;
+              const itQty = this.escapeHtml(rawQty);
+              const rawUnit = String(it.unit || 'кг').trim();
+              const itUnit = this.escapeHtml(rawUnit);
               const itComment = it.customer_comment ? ` <i style="color: var(--text-muted); font-size: 11px;">[💬 ${this.escapeHtml(it.customer_comment)}]</i>` : '';
-              return `<div style="padding: 2px 0;">• <b>${itTitle}</b> — ${itQty} ${itUnit}${itComment}</div>`;
+              const estPrice = Number(it.actual_cost || it.estimated_price || 0);
+              let itemUsd = 0;
+              if (estPrice > 0 && estPrice < 500) {
+                itemUsd = Number(estPrice.toFixed(2));
+              } else if (estPrice >= 500) {
+                const isGrams = /^(г|g|ក្រាម)$/i.test(rawUnit) || rawQty >= 50;
+                const mult = isGrams ? (rawQty / 1000) : rawQty;
+                itemUsd = Number(((estPrice * mult) / khrRate).toFixed(2));
+              }
+              if (itemUsd > 0) {
+                calcItemsUsd += itemUsd;
+              } else {
+                unknownCount += 1;
+              }
+              const priceLabel = itemUsd > 0
+                ? ` — <b>$${itemUsd.toFixed(2)}</b>`
+                : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
+              return `<div style="padding: 2px 0;">• <b>${itTitle}</b> (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
             }).join('')}
           </div>
         ` : '';
 
+        const dbActualMarket = Number(order.actual_market_total || 0);
+        const effectiveUnknown = dbActualMarket > 0 ? 0 : unknownCount;
+        const dbMarketTotal = dbActualMarket > 0 ? dbActualMarket : Number(order.market_items_total || order.estimated_total || 0);
+        const marketTotalUsd = (dbMarketTotal > 0 && dbMarketTotal < 500) ? dbMarketTotal : Number(calcItemsUsd.toFixed(2));
+        const servicePercent = typeof order.service_percent === 'number' ? order.service_percent : 10;
+        const serviceFeeUsd = Number(order.service_fee || 0) > 0 ? Number(order.service_fee) : Number((marketTotalUsd * (servicePercent / 100.0)).toFixed(2));
+        const deliveryFeeUsd = Number(order.delivery_fee || 1.00);
+        const grandTotalUsd = Number((marketTotalUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
+
+        let totalText = `<b>$${grandTotalUsd.toFixed(2)}</b>`;
+        let breakdownText = `(рынок $${marketTotalUsd.toFixed(2)} + сбор $${serviceFeeUsd.toFixed(2)} + доставка $${deliveryFeeUsd.toFixed(2)})`;
+        if (effectiveUnknown > 0) {
+          if (marketTotalUsd === 0) {
+            totalText = `<b>$${deliveryFeeUsd.toFixed(2)} + по чеку</b>`;
+            breakdownText = `(рынок: по чеку + сбор: ${servicePercent}% + доставка $${deliveryFeeUsd.toFixed(2)})`;
+          } else {
+            totalText = `<b>~$${grandTotalUsd.toFixed(2)} + по чеку</b>`;
+            breakdownText = `(рынок ~$${marketTotalUsd.toFixed(2)} + сбор ~$${serviceFeeUsd.toFixed(2)} + доставка $${deliveryFeeUsd.toFixed(2)} + по чеку)`;
+          }
+        }
+
+        const normalizeStatus = (st) => {
+          if (st === 'new') return 'pending';
+          if (st === 'purchasing') return 'shopping';
+          if (st === 'needs_confirmation') return 'clarify';
+          return st || 'pending';
+        };
+        const canonicalStatus = normalizeStatus(rawStatus);
+        const statusOptions = [
+          { value: 'pending', label: 'Новый' },
+          { value: 'accepted', label: 'Принят' },
+          { value: 'clarify', label: 'Уточнение' },
+          { value: 'shopping', label: 'Закупка' },
+          { value: 'delivering', label: 'Доставка' },
+          { value: 'completed', label: 'Доставлен' },
+          { value: 'cancelled', label: 'Отменен' },
+          { value: 'rejected', label: 'Отклонен' }
+        ];
+        const statusSelectHtml = `
+          <select class="order-status-select status-${this.escapeHtml(canonicalStatus)}" data-order-id="${this.escapeHtml(order.id)}" data-current-status="${this.escapeHtml(canonicalStatus)}" aria-label="Статус заказа">
+            ${statusOptions.map(opt => `<option value="${opt.value}" ${opt.value === canonicalStatus ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          </select>
+        `;
+
         return `
-        <div class="order-admin-card">
+        <div class="order-admin-card" data-order-id="${this.escapeHtml(order.id)}">
           <div class="order-admin-header">
             <span class="order-admin-num">${safeNum}</span>
-            <span class="badge order-status-pill status-${safeStatus}">${statusLabel}</span>
+            ${statusSelectHtml}
           </div>
           <div class="order-admin-meta">
             <div>👤 <b>${safeName}</b> (${safePhone}${safeMessenger})</div>
@@ -373,6 +514,7 @@ class AdminAuth {
             ${safeNotes}
             <div>🔄 Замена: <b>${safePolicy}</b></div>
             <div>🕒 Создан: ${createdTimeStr}${deliveryDateStr}</div>
+            <div>💰 Итого: ${totalText} <span style="color: var(--text-muted); font-size: 11.5px;">${breakdownText}</span></div>
           </div>
           ${itemsListHtml}
           <div class="order-admin-actions">
@@ -395,10 +537,56 @@ class AdminAuth {
             alert('Ввод суммы чека и смена статуса будут доступны в следующей фазе');
           }
         });
+
+        listEl.addEventListener('change', async (e) => {
+          const select = e.target.closest('.order-status-select');
+          if (!select) return;
+          const orderId = select.dataset.orderId;
+          const newStatus = select.value;
+          const oldStatus = select.dataset.currentStatus || 'pending';
+          if (newStatus === oldStatus) return;
+
+          select.disabled = true;
+          try {
+            const { error } = await this.sb
+              .from('orders')
+              .update({ status: newStatus, updated_at: new Date().toISOString() })
+              .eq('id', orderId);
+
+            if (error) throw error;
+
+            select.dataset.currentStatus = newStatus;
+            select.className = `order-status-select status-${newStatus}`;
+            select.disabled = false;
+
+            // Update in-memory cache
+            const targetOrder = (this.cachedAdminOrders || []).find(o => o.id === orderId);
+            if (targetOrder) {
+              targetOrder.status = newStatus;
+              targetOrder.updated_at = new Date().toISOString();
+            }
+
+            if (typeof window.showToast === 'function') {
+              window.showToast(`Статус заказа обновлен: ${this.formatStatus(newStatus)}`, 'success', 3000);
+            }
+            this.syncInitialPendingOrdersCount();
+
+            // Re-render current tab so closed orders move to archive
+            this.renderAdminOrders();
+          } catch (err) {
+            console.error('[AdminAuth] Status update error:', err);
+            select.value = oldStatus;
+            select.className = `order-status-select status-${oldStatus}`;
+            select.disabled = false;
+            if (typeof window.showToast === 'function') {
+              window.showToast(`Не удалось обновить статус: ${err.message || 'Ошибка сети'}`, 'error', 4000);
+            }
+          }
+        });
       }
     } catch (err) {
-      console.warn('[AdminAuth] Orders load error:', err);
-      listEl.innerHTML = `<div class="empty-desc">Не удалось загрузить заказы</div>`;
+      console.warn('[AdminAuth] Orders render error:', err);
+      listEl.innerHTML = `<div class="empty-desc">Не удалось отобразить заказы</div>`;
     }
   }
 
@@ -425,15 +613,17 @@ class AdminAuth {
 
   formatStatus(status) {
     const map = {
-      pending: '⏳ Новая заявка',
-      new: '⏳ Новая заявка',
-      clarify: '⚠️ Уточнить доставку',
-      needs_confirmation: '⚠️ Уточнить доставку',
-      shopping: '🛒 Закупка на рынке',
-      purchasing: '🛒 Закупка на рынке',
-      delivering: '🛵 В доставке',
-      completed: '✅ Доставлен',
-      cancelled: '❌ Отменен'
+      pending: 'Новый',
+      new: 'Новый',
+      accepted: 'Принят',
+      clarify: 'Уточнение',
+      needs_confirmation: 'Уточнение',
+      shopping: 'Закупка',
+      purchasing: 'Закупка',
+      delivering: 'Доставка',
+      completed: 'Доставлен',
+      cancelled: 'Отменен',
+      rejected: 'Отклонен'
     };
     return map[status] || status || 'Новый';
   }
@@ -550,7 +740,7 @@ class AdminAuth {
       const { count, error } = await this.sb
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .in('status', ['pending', 'clarify']);
+        .in('status', ['pending', 'new', 'clarify']);
       if (!error && typeof count === 'number') {
         const currentView = window.app?.currentMainView || 'viewCatalog';
         if (currentView !== 'viewOrders') {

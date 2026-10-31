@@ -24,9 +24,9 @@
     rel="stylesheet" />
 
   <!-- Master Design System, Catalog & Admin Styles -->
-  <link rel="stylesheet" href="../css/components.css?v=1.5.19" />
+  <link rel="stylesheet" href="../css/components.css?v=1.5.32" />
   <link rel="stylesheet" href="../css/products.css?v=1.5.0" />
-  <link rel="stylesheet" href="../css/admin.css?v=1.5.10" />
+  <link rel="stylesheet" href="../css/admin.css?v=1.5.32" />
   <script src="../js/shared/branding.js?v=1.5.19"></script>
 </head>
 
@@ -247,6 +247,14 @@
         <div class="orders-header-bar">
           <h3 class="orders-title">Заявки на утренний закуп</h3>
           <span class="admin-badge" data-brand-name>FreshBuddy</span>
+        </div>
+
+        <div class="shop-segmented-tabs-wrap admin-orders-tabs-wrap">
+          <div class="segmented-tabs" id="adminOrdersSegmentedTabs" role="tablist">
+            <button type="button" class="tab-item active" data-orders-tab="current" role="tab" aria-selected="true">Текущие</button>
+            <button type="button" class="tab-item" data-orders-tab="upcoming" role="tab" aria-selected="false">Будущие</button>
+            <button type="button" class="tab-item" data-orders-tab="archive" role="tab" aria-selected="false">Архивные</button>
+          </div>
         </div>
 
         <div id="adminOrdersList">
@@ -583,7 +591,7 @@
                 <span>Услуги и комиссии сервиса</span>
               </div>
               <div class="settings-section-header-right">
-                <span class="badge badge-gray">10% / Зоны</span>
+                <span class="badge badge-primary" id="serviceRulesBadge">10% / Зоны</span>
                 <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть"
                   aria-label="Свернуть / Развернуть">
                   <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
@@ -594,11 +602,79 @@
               </div>
             </div>
             <div class="settings-section-body">
-              <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
-                <div>🛒 <b>Сервисный сбор:</b> 10% от суммы чека с рынка (единственный доход проекта, без наценки на товар).</div>
-                <div style="margin-top: 4px;">🛵 <b>Зоны доставки:</b> Зона 1: Центр ($1.00) / Зона 2: Средние районы ($2.00) / Зона 3: Окраины ($3.00) — целиком курьеру.</div>
-                <div style="margin-top: 4px;">⏰ <b>График работы:</b> Приём заказов до 23:00 предыдущего дня • Закупка на рассвете • Доставка 9:00–12:00.</div>
-                <div style="margin-top: 4px;">💵 <b>Оплата:</b> Наличные или перевод по факту доставки.</div>
+              <p class="form-field-hint" style="margin: 0 0 12px 0;">
+                Глобальные правила комиссий, тарифов зон доставки и график работы. Сохраняются в облачной базе <code>service_settings</code> и синхронизируются с витриной покупателя в реальном времени.
+              </p>
+
+              <!-- 1. Сервисный сбор -->
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label class="field-label" for="settingServiceFeePercent">
+                  Сервисный сбор сервиса (%)
+                </label>
+                <div class="input-wrap" style="position: relative;">
+                  <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">%</span>
+                  <input type="number" id="settingServiceFeePercent" class="text-input" min="0" max="100" step="0.5"
+                    value="10.0" placeholder="10.0" />
+                </div>
+                <div class="form-field-hint">Единственный доход сервиса — процент от суммы чека закупки на рынке (без скрытых наценок на продукты).</div>
+              </div>
+
+              <!-- 2. Тарифы зон доставки -->
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label class="field-label">Тарифы доставки по зонам ($ USD, курьеру)</label>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                  <div>
+                    <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Зона 1 (до 1 км)</label>
+                    <div class="input-wrap" style="position: relative;">
+                      <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">$</span>
+                      <input type="number" id="settingDeliveryFeeZone1" class="text-input" min="0" max="50" step="0.25"
+                        value="1.00" placeholder="1.00" style="padding-left: 28px;" />
+                    </div>
+                  </div>
+                  <div>
+                    <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Зона 2 (1–3 км)</label>
+                    <div class="input-wrap" style="position: relative;">
+                      <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">$</span>
+                      <input type="number" id="settingDeliveryFeeZone2" class="text-input" min="0" max="50" step="0.25"
+                        value="2.00" placeholder="2.00" style="padding-left: 28px;" />
+                    </div>
+                  </div>
+                  <div>
+                    <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Зона 3 (3–6 км)</label>
+                    <div class="input-wrap" style="position: relative;">
+                      <span class="input-lang-badge" style="background: var(--bg-card); font-weight: 700;">$</span>
+                      <input type="number" id="settingDeliveryFeeZone3" class="text-input" min="0" max="50" step="0.25"
+                        value="3.50" placeholder="3.50" style="padding-left: 28px;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. График работы и временные окна -->
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label class="field-label">График приёма и утренней доставки</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                  <div>
+                    <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Дедлайн вечернего приёма</label>
+                    <input type="time" id="settingOrderCutoffTime" class="text-input" value="23:00" />
+                  </div>
+                  <div>
+                    <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; display: block;">Интервал доставки</label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <input type="time" id="settingDeliveryStartTime" class="text-input" value="09:00" style="flex: 1;" />
+                      <span style="color: var(--text-secondary); font-size: 12px;">–</span>
+                      <input type="time" id="settingDeliveryEndTime" class="text-input" value="12:00" style="flex: 1;" />
+                    </div>
+                  </div>
+                </div>
+                <div class="form-field-hint">После дедлайна покупателям предлагается оформить заказ на следующее доступное утро либо очистить корзину.</div>
+              </div>
+
+              <!-- 4. Способы оплаты -->
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label class="field-label" for="settingPaymentMethods">Условия и способы оплаты</label>
+                <input type="text" id="settingPaymentMethods" class="text-input"
+                  value="Наличные или перевод по факту доставки" placeholder="Наличные или перевод по факту доставки" />
               </div>
             </div>
           </div>
@@ -607,7 +683,7 @@
           <div style="margin-top: 8px; margin-bottom: 24px;">
             <button type="submit" class="btn btn-primary" id="btnSaveAllSettings"
               style="width: 100%; height: 44px; font-weight: 700;">
-              Сохранить параметры интеграций
+              Сохранить настройки и параметры сервиса
             </button>
           </div>
 
@@ -857,8 +933,8 @@
   <script src="../js/shared/utils.js?v=1.5.0"></script>
   <script src="../js/shared/categories.js?v=1.5.15"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
-  <script src="js/admin-catalog.js?v=1.5.16"></script>
-  <script src="js/admin-auth.js?v=1.5.1"></script>
+  <script src="js/admin-catalog.js?v=1.5.34"></script>
+  <script src="js/admin-auth.js?v=1.5.33"></script>
 </body>
 
 </html>

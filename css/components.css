@@ -679,9 +679,9 @@ body {
   border-radius: var(--radius-full);
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: black;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -771,7 +771,20 @@ body {
 }
 
 .shop-segmented-tabs-wrap {
-  margin: 12px 0 14px 0;
+  margin: 12px 0 12px 0;
+}
+
+.admin-orders-tabs-wrap {
+  position: sticky;
+  top: calc(66px + var(--safe-top));
+  z-index: 35;
+  background: var(--header-bg, rgba(245, 245, 247, 0.88));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 0 -16px 12px -16px;
+  padding: 8px 16px 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .shop-tab-pane {
@@ -870,7 +883,6 @@ body {
 
 .category-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 12px 6px;
   display: flex;
@@ -882,7 +894,6 @@ body {
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
-  box-shadow: var(--shadow-sm);
   text-decoration: none;
   position: relative;
   overflow: hidden;
@@ -1922,6 +1933,115 @@ body {
   border-color: rgba(100, 210, 255, 0.25);
 }
 
+/* Order Status Pills & Interactive Status Select Dropdowns */
+.order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  line-height: 1.2;
+}
+
+.order-status-select {
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 4px 22px 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.order-status-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.order-status-select:focus-visible {
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+}
+
+.order-status-select option {
+  background: var(--bg-card, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-weight: 600;
+}
+
+.order-status-pill.status-pending,
+.order-status-pill.status-new,
+.order-status-select.status-pending,
+.order-status-select.status-new {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.order-status-pill.status-accepted,
+.order-status-select.status-accepted {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.order-status-pill.status-clarify,
+.order-status-pill.status-needs_confirmation,
+.order-status-select.status-clarify,
+.order-status-select.status-needs_confirmation {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.order-status-pill.status-shopping,
+.order-status-pill.status-purchasing,
+.order-status-select.status-shopping,
+.order-status-select.status-purchasing {
+  background-color: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.order-status-pill.status-delivering,
+.order-status-select.status-delivering {
+  background-color: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border-color: rgba(14, 165, 233, 0.35);
+}
+
+.order-status-pill.status-completed,
+.order-status-select.status-completed {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.order-status-pill.status-cancelled,
+.order-status-pill.status-rejected,
+.order-status-select.status-cancelled,
+.order-status-select.status-rejected {
+  background-color: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
 /* ==========================================================================
    6. FORMS, INPUTS & DROPDOWNS
    ========================================================================== */
@@ -2373,7 +2493,6 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 32px 24px;
-  margin: 12px 0 16px 0;
   box-shadow: var(--shadow-sm);
   width: 100%;
   grid-column: 1 / -1;
@@ -2406,6 +2525,8 @@ body {
   line-height: 1.5;
   max-width: 380px;
   margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .empty-state .btn,
@@ -3010,8 +3131,9 @@ body.modal-open {
 .floating-cart-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
   min-width: 0;
+  flex: 2;
+  padding-left: 6px;
 }
 
 .floating-cart-badge {
@@ -3034,26 +3156,32 @@ body.modal-open {
 }
 
 .floating-cart-total {
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--accent-emerald-light, #34d399);
-  margin-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .floating-cart-btn {
   background: var(--accent-emerald-gradient, linear-gradient(135deg, #10b981, #059669));
   color: #ffffff !important;
   border: none;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 7px 15px;
+  padding: 7px 12px;
   border-radius: var(--radius-full);
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
   transition: transform 0.15s ease, filter 0.15s ease;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
 }
 
 .floating-cart-btn:hover {
@@ -3063,6 +3191,95 @@ body.modal-open {
 
 .floating-cart-btn:active {
   transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   Cart Floating Actions Bar (.cart-floating-actions)
+   -------------------------------------------------------------------------- */
+.cart-floating-actions {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--bottom-nav-height, 62px) + 12px);
+  width: calc(100% - 24px);
+  max-width: 500px;
+  background: var(--bg-card-elevated, #1c1c20);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 900;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: floatingBarPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cart-floating-btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  transition: background 0.15s ease, transform 0.15s ease;
+  text-align: center;
+  font-family: inherit;
+}
+
+.cart-floating-btn-back:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.cart-floating-btn-back:active {
+  transform: translateY(0);
+}
+
+.cart-floating-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-emerald-gradient, linear-gradient(135deg, #10b981, #059669));
+  color: #ffffff !important;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  flex: 2;
+  min-width: 0;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+  transition: filter 0.15s ease, transform 0.15s ease;
+  font-family: inherit;
+}
+
+.cart-floating-btn-submit:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.cart-floating-btn-submit:active {
+  transform: translateY(0);
+}
+
+.cart-floating-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
 }
 
 /* Cart Item Comment Row in Cart List */

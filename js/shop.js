@@ -94,6 +94,31 @@ class ShopApp {
     this.updateCartUi();
     this.updateHeaderUi();
     this.initServiceWorker();
+
+    if (window.i18n && typeof window.i18n.onReady === 'function') {
+      window.i18n.onReady(() => {
+        this.updateCartUi();
+        this.renderCategories();
+        if (this.products && this.products.length > 0) {
+          this.renderProducts();
+        }
+        if (this.currentView === 'cart') {
+          this.renderCartModalList();
+        } else if (this.currentView === 'profile') {
+          this.renderProfileView();
+        } else if (this.currentView === 'orders' && this.cachedUserOrders.length > 0) {
+          this.renderOrdersList();
+        }
+      });
+    }
+  }
+
+  t(key, fallback = '') {
+    if (window.i18n && window.i18n.isReady && typeof window.i18n.t === 'function') {
+      const val = window.i18n.t(key);
+      if (val && val !== key) return val;
+    }
+    return fallback;
   }
 
   get logPrefix() {
@@ -134,18 +159,38 @@ class ShopApp {
   isNightCutoffActive() {
     const marketNow = this.getMarketLocalTime();
     const hour = marketNow.getHours();
-    return hour >= 23 || hour < 5;
+    const minute = marketNow.getMinutes();
+    let cutoffHour = 23;
+    let cutoffMinute = 0;
+    if (this.cutoffTimeStr && this.cutoffTimeStr.includes(':')) {
+      const parts = this.cutoffTimeStr.split(':');
+      cutoffHour = parseInt(parts[0], 10) || 23;
+      cutoffMinute = parseInt(parts[1], 10) || 0;
+    }
+    const currentMins = hour * 60 + minute;
+    const cutoffMins = cutoffHour * 60 + cutoffMinute;
+    return currentMins >= cutoffMins || hour < 5;
   }
 
   getNextAvailableDeliveryDate() {
     const marketNow = this.getMarketLocalTime();
     const hour = marketNow.getHours();
+    const minute = marketNow.getMinutes();
+    let cutoffHour = 23;
+    let cutoffMinute = 0;
+    if (this.cutoffTimeStr && this.cutoffTimeStr.includes(':')) {
+      const parts = this.cutoffTimeStr.split(':');
+      cutoffHour = parseInt(parts[0], 10) || 23;
+      cutoffMinute = parseInt(parts[1], 10) || 0;
+    }
+    const currentMins = hour * 60 + minute;
+    const cutoffMins = cutoffHour * 60 + cutoffMinute;
     const deliveryDate = new Date(marketNow);
 
-    // С 23:00 до 23:59: на утро (завтра) закуп закрыт -> перенос на +2 дня
-    // С 00:00 до 04:59: на утро (сегодня) закуп закрыт -> перенос на +1 день
-    // С 05:00 до 22:59: прием на завтра открыт -> перенос на +1 день
-    if (hour >= 23) {
+    // Если текущее время наступило после дедлайна (напр. >= 23:00) -> перенос на +2 дня
+    // С 00:00 до 04:59 -> перенос на +1 день
+    // До дедлайна (с 05:00) -> заказ на завтра (+1 день)
+    if (currentMins >= cutoffMins) {
       deliveryDate.setDate(deliveryDate.getDate() + 2);
     } else {
       deliveryDate.setDate(deliveryDate.getDate() + 1);
@@ -186,27 +231,80 @@ class ShopApp {
     try {
       const { data, error } = await this.sb
         .from('service_settings')
-        .select('key, value')
-        .eq('key', 'khr_rate')
-        .maybeSingle();
+        .select('key, value');
 
-      if (!error && data?.value) {
-        const rate = typeof data.value === 'object' ? Number(data.value.rate) : Number(data.value);
-        if (!isNaN(rate) && rate >= 1000 && rate <= 10000) {
-          const oldRate = this.khrRate;
-          this.khrRate = rate;
-          localStorage.setItem('freshmarket_khr_rate', String(rate));
-          if (oldRate !== rate) {
-            this.updateFloatingCartBar();
-            if (this.currentView === 'cart') {
-              this.renderCartModalList();
+      if (!error && Array.isArray(data)) {
+        for (const row of data) {
+          if (row.key === 'khr_rate' && row.value) {
+            const rate = typeof row.value === 'object' ? Number(row.value.rate) : Number(row.value);
+            if (!isNaN(rate) && rate >= 1000 && rate <= 10000) {
+              const oldRate = this.khrRate;
+              this.khrRate = rate;
+              localStorage.setItem('freshmarket_khr_rate', String(rate));
+              if (oldRate !== rate) {
+                this.updateFloatingCartBar();
+                if (this.currentView === 'cart') {
+                  this.renderCartModalList();
+                }
+              }
+              console.log(`${this.logPrefix} Active KHR exchange rate from cloud: $1 = ${rate} ៛`);
             }
+          } else if (row.key === 'service_rules' && row.value) {
+            this.applyServiceRules(row.value);
           }
-          console.log(`${this.logPrefix} Active KHR exchange rate from cloud: $1 = ${rate} ៛`);
         }
       }
     } catch (err) {
       console.debug(this.logPrefix, 'Could not fetch service_settings:', err);
+    }
+  }
+
+  applyServiceRules(rules) {
+    if (!rules || typeof rules !== 'object') return;
+    if (typeof rules.service_fee_percent === 'number' && rules.service_fee_percent >= 0) {
+      this.serviceFeePercent = rules.service_fee_percent;
+    }
+    if (rules.zones && typeof rules.zones === 'object') {
+      if (typeof window.DELIVERY_ZONES === 'object') {
+        if (rules.zones.zone_1 !== undefined) window.DELIVERY_ZONES.zone_1.fee = Number(rules.zones.zone_1);
+        if (rules.zones.zone_2 !== undefined) window.DELIVERY_ZONES.zone_2.fee = Number(rules.zones.zone_2);
+        if (rules.zones.zone_3 !== undefined) window.DELIVERY_ZONES.zone_3.fee = Number(rules.zones.zone_3);
+      }
+    }
+    if (rules.cutoff_time) {
+      this.cutoffTimeStr = rules.cutoff_time;
+    }
+    if (rules.delivery_window) {
+      this.deliveryWindow = rules.delivery_window;
+    }
+    if (rules.payment_methods) {
+      this.paymentMethodsText = rules.payment_methods;
+    }
+    this.updateFloatingCartBar();
+    if (this.currentView === 'cart') {
+      this.renderCartModalList();
+    }
+    this.updateNightCutoffBanner();
+  }
+
+  setupRealtimeServiceSettingsSync() {
+    if (!this.sb) return;
+    try {
+      if (this.realtimeServiceSettingsChannel) {
+        this.sb.removeChannel(this.realtimeServiceSettingsChannel);
+        this.realtimeServiceSettingsChannel = null;
+      }
+      this.realtimeServiceSettingsChannel = this.sb.channel('public-service-settings')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'service_settings'
+        }, () => {
+          this.loadServiceSettings();
+        })
+        .subscribe();
+    } catch (e) {
+      console.debug(this.logPrefix, 'Realtime service_settings subscription error:', e);
     }
   }
 
@@ -251,6 +349,7 @@ class ShopApp {
         // 1. Explicit immediate session check (handles page reload & cached tokens)
         this.checkInitialSession();
         this.loadServiceSettings();
+        this.setupRealtimeServiceSettingsSync();
 
         // 2. Real-time auth state changes (login, logout, token refresh)
         this.sb.auth.onAuthStateChange(async (event, session) => {
@@ -258,9 +357,11 @@ class ShopApp {
           this.updateUserAvatar();
           if (this.currentUser) {
             this.setupRealtimeProfileSync();
+            this.setupRealtimeOrdersSync();
             await this.loadUserProfileAndSyncCart();
           } else {
             this.teardownRealtimeProfileSync();
+            this.teardownRealtimeOrdersSync();
             this.userProfile = null;
             localStorage.removeItem('freshmarket_user_profile');
             localStorage.removeItem('freshmarket_cart_synced_user');
@@ -286,11 +387,13 @@ class ShopApp {
         this.currentUser = session.user;
         this.updateUserAvatar();
         this.setupRealtimeProfileSync();
+        this.setupRealtimeOrdersSync();
         await this.loadUserProfileAndSyncCart();
       } else if (!session) {
         // If Supabase confirms no active session, clear guest cache
         if (this.currentUser) {
           this.teardownRealtimeProfileSync();
+          this.teardownRealtimeOrdersSync();
           this.currentUser = null;
           this.userProfile = null;
           localStorage.removeItem('freshmarket_user_profile');
@@ -610,6 +713,90 @@ class ShopApp {
       if (this.currentView === 'cart') {
         this.renderCartModalList();
         this.prefillCheckoutData();
+      }
+    }
+  }
+
+  setupRealtimeOrdersSync() {
+    if (!this.sb || !this.currentUser) return;
+    if (this.realtimeOrdersChannel) {
+      try {
+        this.sb.removeChannel(this.realtimeOrdersChannel);
+      } catch (_) {}
+      this.realtimeOrdersChannel = null;
+    }
+
+    try {
+      this.realtimeOrdersChannel = this.sb.channel(`customer-orders-${this.currentUser.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${this.currentUser.id}`
+        }, (payload) => {
+          this.handleRemoteOrderUpdate(payload);
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(this.logPrefix, 'Realtime orders sync active');
+          }
+        });
+    } catch (err) {
+      console.warn(this.logPrefix, 'Could not initialize customer orders realtime channel:', err);
+    }
+  }
+
+  teardownRealtimeOrdersSync() {
+    if (this.realtimeOrdersChannel && this.sb) {
+      try {
+        this.sb.removeChannel(this.realtimeOrdersChannel);
+      } catch (_) {}
+      this.realtimeOrdersChannel = null;
+    }
+  }
+
+  handleRemoteOrderUpdate(payload) {
+    if (!payload) return;
+    const { eventType, new: newRecord } = payload;
+    if (eventType === 'UPDATE' && newRecord) {
+      const orderId = newRecord.id;
+      const orderNum = newRecord.order_number || 'FM-ЗАКАЗ';
+      const newStatus = newRecord.status || 'pending';
+
+      if (Array.isArray(this.cachedUserOrders)) {
+        const idx = this.cachedUserOrders.findIndex(o => o.id === orderId);
+        if (idx >= 0) {
+          const oldStatus = this.cachedUserOrders[idx].status;
+          this.cachedUserOrders[idx] = {
+            ...this.cachedUserOrders[idx],
+            ...newRecord
+          };
+          try {
+            localStorage.setItem('freshmarket_my_orders', JSON.stringify(this.cachedUserOrders.slice(0, 30)));
+          } catch (_) {}
+
+          if (oldStatus !== newStatus) {
+            const statusKey = newStatus === 'new' ? 'status_pending' : `status_${newStatus}`;
+            const statusLabel = (window.i18n ? window.i18n.t(`orders.${statusKey}`) : '') || newStatus;
+            const toastText = window.i18n
+              ? `${orderNum}: ${statusLabel}`
+              : `Заказ ${orderNum}: ${statusLabel}`;
+            this.showToast?.(toastText, 'info', 4000);
+          }
+
+          if (this.currentView === 'orders') {
+            this.renderOrdersList();
+          }
+          return;
+        }
+      }
+
+      if (this.currentView === 'orders') {
+        this.loadOrders();
+      }
+    } else if (eventType === 'INSERT') {
+      if (this.currentView === 'orders') {
+        this.loadOrders();
       }
     }
   }
@@ -1016,6 +1203,8 @@ class ShopApp {
 
     // Render contents on demand
     if (viewName === 'cart') {
+      this._userToggledCartDelivery = false;
+      this._userToggledCartPrefs = false;
       this.renderCartModalList();
       this.updateNightCutoffBanner();
     } else if (viewName === 'orders') {
@@ -1462,7 +1651,14 @@ class ShopApp {
     }
 
     // 3. Pieces / Packs / Trays
-    if (uKey === '1_pc' || uKey === 'pc' || uKey === '10_pcs' || uKey === '1_pack' || uKey === 'pack' || uKey === '1_tray' || unitField.includes('шт') || unitField.includes('упак') || form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('банка') || form.includes('упаковк')) {
+    if (uKey === '10_pcs') {
+      return {
+        unit: unitPcs,
+        options: [10, 20, 30, 50].map((n) => `${n} ${unitPcs}`),
+        defaultQty: (uInfo ? uInfo.label : product.unit) || `10 ${unitPcs}`
+      };
+    }
+    if (uKey === '1_pc' || uKey === 'pc' || uKey === '1_pack' || uKey === 'pack' || uKey === '1_tray' || unitField.includes('шт') || unitField.includes('упак') || form.includes('штук') || form.includes('кочан') || form.includes('пачка') || form.includes('банка') || form.includes('упаковк')) {
       return {
         unit: unitPcs,
         options: [1, 2, 3, 4, 5, 10].map((n) => `${n} ${unitPcs}`),
@@ -1549,6 +1745,100 @@ class ShopApp {
       }
     }
     return { key: key || norm, label };
+  }
+
+  calculateItemCost(product, qtyInput, explicitUnit = '') {
+    const rate = this.khrRate || 4000;
+    const rawPrice = Number(product?.price ?? product?.estimated_price ?? 0);
+    if (!Number.isFinite(rawPrice) || rawPrice <= 0) {
+      return { hasPrice: false, khr: 0, usd: 0, unitPriceKhr: 0, unitPriceUsd: 0, multiplier: 1 };
+    }
+
+    // Catalog prices are in KHR (>= 50), whereas explicit USD prices are < 50
+    const unitPriceKhr = rawPrice < 50 ? Math.round(rawPrice * rate) : Math.round(rawPrice);
+    const unitPriceUsd = unitPriceKhr / rate;
+
+    const qtyStr = String(qtyInput ?? '').trim();
+    const numMatch = qtyStr.match(/^([\d.]+)/);
+    const qVal = numMatch ? (parseFloat(numMatch[1]) || 1) : 1;
+    const rawQtyUnit = (explicitUnit || qtyStr.replace(/^[\d.\s]+/, '') || '').trim().toLowerCase();
+
+    const uInfo = this.getUnitInfo(product?.unit);
+    const baseKey = uInfo ? uInfo.key : '';
+
+    let multiplier = qVal;
+
+    if (['1_kg', 'kg', '500_g', '250_g', '100_g', 'g'].includes(baseKey)) {
+      const baseKg = baseKey === '500_g' ? 0.5 : baseKey === '250_g' ? 0.25 : baseKey === '100_g' ? 0.1 : baseKey === 'g' ? 0.001 : 1.0;
+      const isReqGrams = /^(г|g|ក្រាម|gram|grams)$/i.test(rawQtyUnit) || qVal >= 50;
+      const reqKg = isReqGrams ? (qVal / 1000) : qVal;
+      multiplier = reqKg / baseKg;
+    } else if (['1_l', '1_bottle', '0_7_l', '0_5_l', '0_2_l'].includes(baseKey)) {
+      const baseL = baseKey === '0_7_l' ? 0.7 : baseKey === '0_5_l' ? 0.5 : baseKey === '0_2_l' ? 0.2 : 1.0;
+      const isReqMl = /^(мл|ml|មីលីលីត្រ)$/i.test(rawQtyUnit) || qVal >= 50;
+      const reqL = isReqMl ? (qVal / 1000) : qVal;
+      multiplier = reqL / baseL;
+    } else if (baseKey === '10_pcs') {
+      multiplier = qVal >= 10 ? (qVal / 10) : qVal;
+    }
+
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      multiplier = 1;
+    }
+
+    const khr = Math.round(unitPriceKhr * multiplier);
+    const usd = Number((khr / rate).toFixed(2));
+
+    return {
+      hasPrice: true,
+      khr,
+      usd,
+      unitPriceKhr,
+      unitPriceUsd: Number(unitPriceUsd.toFixed(2)),
+      multiplier
+    };
+  }
+
+  calculateCartFinancials(overrideDeliveryFee = null) {
+    const rate = this.khrRate || 4000;
+    const items = Object.values(this.cart || {});
+    let itemsKhr = 0;
+    let unknownCount = 0;
+
+    items.forEach(({ product, qty }) => {
+      if (!product) return;
+      const cost = this.calculateItemCost(product, qty);
+      if (cost.hasPrice) {
+        itemsKhr += cost.khr;
+      } else {
+        unknownCount += 1;
+      }
+    });
+
+    const itemsUsd = Number((itemsKhr / rate).toFixed(2));
+    const feeRate = (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10.0) / 100.0;
+    const serviceFeeUsd = Number((itemsUsd * feeRate).toFixed(2));
+    const serviceFeeKhr = Math.round(itemsKhr * feeRate);
+    const rawDelivery = overrideDeliveryFee !== null && overrideDeliveryFee !== undefined
+      ? Number(overrideDeliveryFee)
+      : Number(this.currentDeliveryFee ?? 1.00);
+    const deliveryFeeUsd = Number((Number.isFinite(rawDelivery) ? rawDelivery : 1.00).toFixed(2));
+    const deliveryFeeKhr = Math.round(deliveryFeeUsd * rate);
+    const grandTotalUsd = Number((itemsUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
+    const grandTotalKhr = itemsKhr + serviceFeeKhr + deliveryFeeKhr;
+
+    return {
+      count: items.length,
+      unknownCount,
+      itemsKhr,
+      itemsUsd,
+      serviceFeeKhr,
+      serviceFeeUsd,
+      deliveryFeeKhr,
+      deliveryFeeUsd,
+      grandTotalKhr,
+      grandTotalUsd
+    };
   }
 
   renderPriceBadge(price, unit = '') {
@@ -1853,15 +2143,9 @@ class ShopApp {
     if (!this.sheetBtnSubmit) return;
 
     let estPrice = '';
-    const hasPrice = product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price)) && Number(product.price) > 0;
-    if (hasPrice) {
-      const numMatch = (this.activeSheetSelectedQty || '').match(/^([\d.]+)/);
-      if (numMatch) {
-        const qtyVal = parseFloat(numMatch[1]) || 1;
-        const rate = this.khrRate || 4000;
-        const usdPerUnit = Number(product.price) / rate;
-        estPrice = ` • ~$${(usdPerUnit * qtyVal).toFixed(2)}`;
-      }
+    const cost = this.calculateItemCost(product, this.activeSheetSelectedQty);
+    if (cost.hasPrice) {
+      estPrice = ` • ~$${cost.usd.toFixed(2)}`;
     }
 
     if (inCart) {
@@ -1917,30 +2201,25 @@ class ShopApp {
 
   updateFloatingCartBar() {
     if (!this.floatingCartBar) return;
-    const items = Object.values(this.cart);
-    const count = items.length;
+    const totals = this.calculateCartFinancials();
+    const count = totals.count;
 
     // Only show on catalog view when items > 0
     if (count > 0 && this.currentView === 'catalog') {
       if (this.floatingCartCount) this.floatingCartCount.textContent = count;
 
-      // Estimate total sum in KHR and USD
-      let sumKhr = 0;
-      items.forEach(({ product, qty }) => {
-        if (product && product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price))) {
-          const numMatch = (qty || '').match(/^([\d.]+)/);
-          const qVal = numMatch ? parseFloat(numMatch[1]) : 1;
-          sumKhr += Number(product.price) * qVal;
-        }
-      });
-
-      const rate = this.khrRate || 4000;
-      const sumUsd = sumKhr / rate;
-
       if (this.floatingCartTotal) {
-        this.floatingCartTotal.textContent = sumKhr > 0
-          ? `~$${sumUsd.toFixed(2)} / ${Math.round(sumKhr).toLocaleString('en-US')} ៛`
-          : '';
+        const byReceiptShort = this.t('cart.by_receipt_short', 'по чеку');
+        const plusByReceipt = this.t('cart.plus_by_receipt', '+ по чеку');
+        if (totals.itemsKhr > 0 && totals.unknownCount > 0) {
+          this.floatingCartTotal.textContent = `~$${totals.itemsUsd.toFixed(2)} ${plusByReceipt}`;
+        } else if (totals.itemsKhr > 0) {
+          this.floatingCartTotal.textContent = `~$${totals.itemsUsd.toFixed(2)} / ${totals.itemsKhr.toLocaleString('en-US')} ៛`;
+        } else if (totals.unknownCount > 0) {
+          this.floatingCartTotal.textContent = byReceiptShort;
+        } else {
+          this.floatingCartTotal.textContent = '';
+        }
       }
 
       this.floatingCartBar.style.display = 'flex';
@@ -2064,11 +2343,89 @@ class ShopApp {
     // Update Cart Card Badge
     const cartItemsBadge = document.getElementById('cartSectionItemsBadge');
     if (cartItemsBadge) {
-      const itemsWord = window.i18n ? window.i18n.t('cart.items_count') : 'позиций';
-      cartItemsBadge.textContent = `${count} ${itemsWord}`;
+      const totals = this.calculateCartFinancials();
+      const byReceiptShort = this.t('cart.by_receipt_short', 'по чеку');
+      const plusByReceipt = this.t('cart.plus_by_receipt', '+ по чеку');
+      cartItemsBadge.style.whiteSpace = 'nowrap';
+      if (totals.itemsUsd > 0 && totals.unknownCount > 0) {
+        cartItemsBadge.textContent = `${count} • ~$${totals.itemsUsd.toFixed(2)} ${plusByReceipt}`;
+      } else if (totals.itemsUsd > 0) {
+        cartItemsBadge.textContent = `${count} • ~$${totals.itemsUsd.toFixed(2)}`;
+      } else if (totals.unknownCount > 0) {
+        cartItemsBadge.textContent = `${count} • ${byReceiptShort}`;
+      } else {
+        cartItemsBadge.textContent = `${count}`;
+      }
     }
 
+    this.renderCartSummary();
     this.updateFloatingCartBar();
+  }
+
+  renderCartSummary() {
+    const summaryBox = document.getElementById('cartSummaryBox');
+    const submitBtn = document.getElementById('btnSubmitOrder');
+    const totals = this.calculateCartFinancials();
+
+    const submitBaseText = this.t('cart.submit_btn', 'Оформить заказ →');
+    const byReceiptShort = this.t('cart.by_receipt_short', 'по чеку');
+    const plusByReceipt = this.t('cart.plus_by_receipt', '+ по чеку');
+
+    if (submitBtn) {
+      submitBtn.textContent = submitBaseText;
+    }
+
+    if (!summaryBox) return;
+    if (totals.count === 0) {
+      summaryBox.style.display = 'none';
+      summaryBox.innerHTML = '';
+      return;
+    }
+
+    const currentPercent = typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10;
+    const subtotalLabel = this.t('cart.subtotal_label', 'Товары по чеку');
+    const rawFeeLabel = this.t('cart.buyer_fee_label', `Комиссия закупщика (${currentPercent}%)`);
+    const feeLabel = rawFeeLabel.replace(/10%|\{percent\}%?/, `${currentPercent}%`);
+    const deliveryLabel = this.t('cart.delivery_label', 'Доставка до двери');
+    const totalLabel = this.t('cart.total_label', 'Итого к оплате');
+    const unknownNoteRaw = this.t('cart.unknown_items_note', '* Цена для {count} поз. неизвестна и будет рассчитана по чеку с рынка');
+    const unknownNote = unknownNoteRaw.replace('{count}', String(totals.unknownCount));
+
+    const allUnknown = totals.itemsUsd === 0 && totals.unknownCount > 0;
+    const someUnknown = totals.itemsUsd > 0 && totals.unknownCount > 0;
+
+    const subtotalValueHtml = allUnknown
+      ? `<span class="cart-item-price-unknown">${this.escapeHtml(byReceiptShort)}</span>`
+      : `<b>~$${totals.itemsUsd.toFixed(2)}${someUnknown ? ` ${this.escapeHtml(plusByReceipt)}` : ''}</b> <span class="cart-item-price-khr">(${totals.itemsKhr.toLocaleString('en-US')} ៛)</span>`;
+
+    const feeValueHtml = allUnknown
+      ? `<span class="cart-item-price-unknown">+${currentPercent}% (${this.escapeHtml(byReceiptShort)})</span>`
+      : `<b>~$${totals.serviceFeeUsd.toFixed(2)}${someUnknown ? ` + ${currentPercent}%` : ''}</b>`;
+
+    const totalValueHtml = allUnknown
+      ? `<span class="cart-summary-total-val">$${totals.deliveryFeeUsd.toFixed(2)} ${this.escapeHtml(plusByReceipt)}</span>`
+      : `<span class="cart-summary-total-val">~$${totals.grandTotalUsd.toFixed(2)}${someUnknown ? ` ${this.escapeHtml(plusByReceipt)}` : ''}<span class="cart-summary-total-khr">(~${totals.grandTotalKhr.toLocaleString('en-US')} ៛)</span></span>`;
+
+    summaryBox.style.display = 'flex';
+    summaryBox.innerHTML = `
+      <div class="cart-summary-row">
+        <span>${this.escapeHtml(subtotalLabel)}:</span>
+        <span>${subtotalValueHtml}</span>
+      </div>
+      <div class="cart-summary-row">
+        <span>${this.escapeHtml(feeLabel)}:</span>
+        <span>${feeValueHtml}</span>
+      </div>
+      <div class="cart-summary-row">
+        <span>${this.escapeHtml(deliveryLabel)}:</span>
+        <span><b>$${totals.deliveryFeeUsd.toFixed(2)}</b></span>
+      </div>
+      <div class="cart-summary-total">
+        <span>${this.escapeHtml(totalLabel)}:</span>
+        ${totalValueHtml}
+      </div>
+      ${totals.unknownCount > 0 ? `<div class="cart-summary-unknown-note">${this.escapeHtml(unknownNote)}</div>` : ''}
+    `;
   }
 
   // ------------------------------------------------------------------------
@@ -2163,11 +2520,19 @@ class ShopApp {
     const qtyPlaceholder = window.i18n ? window.i18n.t('cart.qty_placeholder') : '1 кг / 3 шт';
     const removeTitle = window.i18n ? window.i18n.t('cart.remove_item') : 'Удалить';
 
-    this.cartItemsList.innerHTML = items.map(({ product, qty, comment }) => `
+    const unknownPriceText = this.t('cart.item_price_unknown', 'Цена неизвестна (по чеку)');
+
+    this.cartItemsList.innerHTML = items.map(({ product, qty, comment }) => {
+      const itemCost = this.calculateItemCost(product, qty);
+      const priceHtml = itemCost.hasPrice
+        ? `<div class="cart-item-price" data-price-id="${product.id}">~$${itemCost.usd.toFixed(2)} <span class="cart-item-price-khr">/ ${itemCost.khr.toLocaleString('en-US')} ៛</span></div>`
+        : `<div class="cart-item-price cart-item-price-unknown" data-price-id="${product.id}">${this.escapeHtml(unknownPriceText)}</div>`;
+      return `
       <div class="cart-item-row" data-id="${product.id}">
         <div class="cart-item-info" title="${window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ'}">
           <div class="cart-item-name">${this.escapeHtml(this.getLocalizedProductName(product))}</div>
           <div class="cart-item-kh khmer-font">${this.escapeHtml(this.getKhmerSubtitle(product))}</div>
+          ${priceHtml}
           ${comment ? `
             <div class="cart-item-comment-row">
               <span class="cart-comment-badge">💬 ${this.escapeHtml(comment)}</span>
@@ -2179,7 +2544,10 @@ class ShopApp {
         </div>
         <button type="button" class="cart-item-remove-btn" data-id="${product.id}" title="${removeTitle}">✕</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
+
+    this.renderCartSummary();
 
     // Clicking cart item info opens Product Bottom Sheet for easy adjustment
     this.cartItemsList.querySelectorAll('.cart-item-info').forEach((info) => {
@@ -2195,13 +2563,32 @@ class ShopApp {
 
     // Quantity manual change & remove listeners
     this.cartItemsList.querySelectorAll('.cart-item-qty-input').forEach((input) => {
-      input.addEventListener('change', (e) => {
+      const handleQtyUpdate = (e, isFinal = false) => {
         const id = e.target.dataset.id;
         if (this.cart[id]) {
-          this.cart[id].qty = e.target.value.trim() || (window.i18n ? `1 ${window.i18n.t('common.unit_pcs')}` : '1 шт');
+          const rawVal = e.target.value.trim();
+          if (isFinal && !rawVal) {
+            this.cart[id].qty = window.i18n ? `1 ${window.i18n.t('common.unit_pcs')}` : '1 шт';
+            e.target.value = this.cart[id].qty;
+          } else if (rawVal) {
+            this.cart[id].qty = rawVal;
+          }
+          const priceEl = this.cartItemsList.querySelector(`[data-price-id="${id}"]`);
+          if (priceEl && this.cart[id].product) {
+            const cost = this.calculateItemCost(this.cart[id].product, this.cart[id].qty);
+            if (cost.hasPrice) {
+              priceEl.classList.remove('cart-item-price-unknown');
+              priceEl.innerHTML = `~$${cost.usd.toFixed(2)} <span class="cart-item-price-khr">/ ${cost.khr.toLocaleString('en-US')} ៛</span>`;
+            } else {
+              priceEl.classList.add('cart-item-price-unknown');
+              priceEl.textContent = this.t('cart.item_price_unknown', 'Цена неизвестна (по чеку)');
+            }
+          }
           this.saveCart();
         }
-      });
+      };
+      input.addEventListener('input', (e) => handleQtyUpdate(e, false));
+      input.addEventListener('change', (e) => handleQtyUpdate(e, true));
     });
 
     this.cartItemsList.querySelectorAll('.cart-item-remove-btn').forEach((btn) => {
@@ -2249,6 +2636,47 @@ class ShopApp {
 
     this.syncCartAddressPresetPills(addressNameInput?.value);
 
+    // Pre-calculate delivery zone & fee from saved address coordinates even if map section is collapsed
+    const activeAddrVal = (addressInput?.value || address || '').trim();
+    const savedCoords = typeof extractCoordsFromText === 'function' ? extractCoordsFromText(activeAddrVal) : null;
+    if (savedCoords && Number.isFinite(savedCoords.lat) && Number.isFinite(savedCoords.lng)) {
+      const marketCoords = window.MARKET_COORDS || { lat: 10.6120, lng: 104.1780 };
+      const approxRoadKm = typeof calculateDistanceKm === 'function'
+        ? Number((calculateDistanceKm(savedCoords.lat, savedCoords.lng, marketCoords.lat, marketCoords.lng) * 1.25).toFixed(1))
+        : 1.0;
+      const zoneInfo = typeof getDeliveryZoneByDistance === 'function'
+        ? getDeliveryZoneByDistance(approxRoadKm)
+        : { zoneId: 'zone_1', fee: 1.00, name: 'Зона 1', zoneKey: 'zone_1_name' };
+      this.currentDeliveryZone = zoneInfo.zoneId;
+      this.currentDeliveryFee = zoneInfo.fee;
+      this.currentDeliveryDistance = approxRoadKm;
+      this.updateDeliveryMapBadge(zoneInfo, approxRoadKm);
+    } else if (activeAddrVal.length >= 5 && !this.currentDeliveryFee) {
+      // Manual text address without GPS coordinates defaults to Zone 2 ($2.00) per server rule
+      this.currentDeliveryZone = 'zone_2';
+      this.currentDeliveryFee = 2.00;
+      const zoneInfo = typeof getDeliveryZoneByDistance === 'function'
+        ? getDeliveryZoneByDistance(2.0)
+        : { zoneId: 'zone_2', fee: 2.00, name: 'Зона 2', zoneKey: 'zone_2_name' };
+      this.updateDeliveryMapBadge(zoneInfo);
+    }
+
+    // Auto-collapse delivery & preferences sections when required fields are valid
+    const deliverySection = document.getElementById('cartSectionDelivery');
+    const prefsSection = document.getElementById('cartSectionPreferences');
+    const isNameValid = (name || '').trim().length >= 2 && (name || '').trim().length <= 100;
+    const isPhoneValid = (phone || '').trim().length >= 3;
+    const isAddressValid = activeAddrVal.length >= 5 && activeAddrVal.length <= 300;
+    const isZoneValid = !this.currentDeliveryDistance || this.currentDeliveryDistance <= 10.0;
+    const isDeliveryComplete = isNameValid && isPhoneValid && isAddressValid && isZoneValid;
+
+    if (deliverySection && !this._userToggledCartDelivery) {
+      deliverySection.classList.toggle('is-collapsed', isDeliveryComplete);
+    }
+    if (prefsSection && !this._userToggledCartPrefs) {
+      prefsSection.classList.add('is-collapsed');
+    }
+
     // Accordion expand/collapse click handlers for Cart Cards
     document.querySelectorAll('#viewCart .settings-section-header').forEach((header) => {
       if (header.dataset.hasCartToggleListener) return;
@@ -2256,6 +2684,8 @@ class ShopApp {
       header.addEventListener('click', () => {
         const section = header.closest('.settings-section');
         if (section) {
+          if (section.id === 'cartSectionDelivery') this._userToggledCartDelivery = true;
+          if (section.id === 'cartSectionPreferences') this._userToggledCartPrefs = true;
           section.classList.toggle('is-collapsed');
           if (section.id === 'cartSectionDelivery' && !section.classList.contains('is-collapsed')) {
             setTimeout(() => {
@@ -2276,12 +2706,15 @@ class ShopApp {
     });
 
     this.renderRecentDeliveryAddresses();
-    this.initCheckoutMiniMap();
+    if (!deliverySection || !deliverySection.classList.contains('is-collapsed')) {
+      this.initCheckoutMiniMap();
+    }
 
     const savedPolicy = this.userProfile?.default_replacement_policy || localStorage.getItem('freshmarket_replacement_policy') || 'call_to_agree';
     const radio = document.querySelector(`input[name="replacementPolicy"][value="${savedPolicy}"]`);
     if (radio) radio.checked = true;
     this.updateCartPreferencesBadge(savedPolicy);
+    this.renderCartSummary();
   }
 
   resolveAddressPresetKey(val) {
@@ -2335,13 +2768,13 @@ class ShopApp {
   updateCartPreferencesBadge(policy) {
     const badge = document.getElementById('cartPreferencesBadge');
     if (!badge) return;
-    const t = (k, fb) => (window.i18n ? window.i18n.t(k) : fb);
+    badge.style.whiteSpace = 'nowrap';
     if (policy === 'picker_choice') {
-      badge.textContent = t('cart.sub_picker_title', 'Закупщик');
+      badge.textContent = this.t('cart.sub_picker_title', 'Закупщик');
     } else if (policy === 'do_not_replace') {
-      badge.textContent = t('cart.sub_remove_title', 'Не заменять');
+      badge.textContent = this.t('cart.sub_remove_title', 'Не заменять');
     } else {
-      badge.textContent = t('cart.sub_call_title', 'Позвонить');
+      badge.textContent = this.t('cart.sub_call_title', 'Позвонить');
     }
   }
 
@@ -2513,10 +2946,10 @@ class ShopApp {
     const badgeContainer = document.getElementById('deliveryMapStatusBadge');
     const cartZoneBadge = document.getElementById('cartDeliveryZoneBadge');
 
-    const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
-    const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
-    const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
-    const zoneName = (zoneInfo.zoneKey && window.i18n) ? window.i18n.t(`cart.${zoneInfo.zoneKey}`) : zoneInfo.name;
+    const byRoadText = this.t('cart.by_road', 'по дороге');
+    const minText = this.t('cart.min', 'мин');
+    const kmUnit = this.t('common.unit_km', 'км');
+    const zoneName = zoneInfo.zoneKey ? this.t(`cart.${zoneInfo.zoneKey}`, zoneInfo.name) : zoneInfo.name;
 
     let infoStr = '';
     if (roadKm !== undefined) {
@@ -2556,6 +2989,8 @@ class ShopApp {
         cartZoneBadge.textContent = `${zoneName} • ${feeStr}`;
       }
     }
+
+    this.renderCartSummary();
   }
 
   async applyLocationToCheckout(lat, lng, panMap = true) {
@@ -2951,6 +3386,11 @@ class ShopApp {
 
     // Client Pre-Validation: delivery address (5..300 chars) before any network activity
     if (!rawDeliveryAddress || rawDeliveryAddress.length < 5 || deliveryAddress.length > 300) {
+      const deliverySection = document.getElementById('cartSectionDelivery');
+      if (deliverySection) {
+        deliverySection.classList.remove('is-collapsed');
+        this.initCheckoutMiniMap();
+      }
       const friendly = this.getFriendlyErrorMessage({ message: 'delivery address required' });
       this.showAlertDialog({
         ...friendly,
@@ -2984,7 +3424,7 @@ class ShopApp {
           .from('orders')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', this.currentUser.id)
-          .in('status', ['pending', 'new', 'clarify', 'needs_confirmation', 'shopping', 'purchasing']);
+          .in('status', ['pending', 'new', 'accepted', 'clarify', 'needs_confirmation', 'shopping', 'purchasing']);
 
         if (!countErr && typeof activeCount === 'number' && activeCount >= 5) {
           const friendly = this.getFriendlyErrorMessage({ message: 'Maximum pending orders limit reached (5 active orders max)' });
@@ -3082,6 +3522,8 @@ class ShopApp {
       finalCustomerComment = customerComment ? `${customerComment}\n${note}` : note;
     }
 
+    const cartTotals = this.calculateCartFinancials(deliveryFee);
+
     const orderPayload = {
       id: orderId,
       order_number: orderNumber,
@@ -3101,12 +3543,12 @@ class ShopApp {
       status: initialStatus,
       payment_status: 'pending',
       payment_method: 'cash',
-      estimated_total: 0.00,
-      market_items_total: 0.00,
+      estimated_total: cartTotals.itemsUsd,
+      market_items_total: cartTotals.itemsUsd,
       actual_market_total: 0.00,
-      service_fee: 0.00,
-      delivery_fee: deliveryFee,
-      grand_total: deliveryFee,
+      service_fee: cartTotals.serviceFeeUsd,
+      delivery_fee: cartTotals.deliveryFeeUsd,
+      grand_total: cartTotals.grandTotalUsd,
       created_at: new Date().toISOString()
     };
 
@@ -3116,6 +3558,7 @@ class ShopApp {
       const parsedQty = numMatch ? parseFloat(numMatch[1]) : 1;
       const unitMatch = String(qty || '').replace(/^[\d.\s]+/, '').trim();
       const finalUnit = unitMatch || product.unit || 'кг';
+      const itemCost = this.calculateItemCost(product, qty);
       return {
         id: generateUUID(),
         order_id: orderId,
@@ -3132,7 +3575,7 @@ class ShopApp {
         unit: finalUnit,
         customer_comment: comment || '',
         status: 'pending',
-        estimated_price: Number(product.price) || 0.00,
+        estimated_price: itemCost.usd || 0.00,
         actual_cost: 0.00,
         created_at: new Date().toISOString()
       };
@@ -3173,6 +3616,11 @@ class ShopApp {
           }
           if (typeof rpcData.delivery_fee === 'number') {
             orderPayload.delivery_fee = rpcData.delivery_fee;
+            const updatedTotals = this.calculateCartFinancials(rpcData.delivery_fee);
+            orderPayload.estimated_total = updatedTotals.itemsUsd;
+            orderPayload.market_items_total = updatedTotals.itemsUsd;
+            orderPayload.service_fee = updatedTotals.serviceFeeUsd;
+            orderPayload.grand_total = updatedTotals.grandTotalUsd;
           }
           if (rpcData.status) {
             orderPayload.status = rpcData.status;
@@ -3285,7 +3733,7 @@ class ShopApp {
 
     const ordersLoading = window.i18n ? window.i18n.t('orders.loading') : 'Загрузка заказов...';
     this.ordersModalBody.innerHTML = `
-      <div class="empty-state" style="padding: 30px 0;">
+      <div class="empty-state" style="padding: 30px 20px;">
         <div class="empty-icon">⏳</div>
         <div class="empty-title">${ordersLoading}</div>
       </div>
@@ -3461,7 +3909,7 @@ class ShopApp {
 
     const filteredOrders = (orders || []).filter((order) => {
       const targetDate = order.target_delivery_date || (order.created_at ? order.created_at.slice(0, 10) : todayStr);
-      const isTerminal = order.status === 'completed' || order.status === 'cancelled';
+      const isTerminal = order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected';
 
       if (activeTab === 'current') {
         return !isTerminal && targetDate <= todayStr;
@@ -3489,7 +3937,7 @@ class ShopApp {
       }
       const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.ordersModalBody.innerHTML = `
-        <div class="empty-state" style="padding: 36px 0;">
+        <div class="empty-state" style="padding: 36px 20px;">
           <div class="empty-icon">📋</div>
           <div class="empty-title">${this.escapeHtml(emptyTitle)}</div>
           <div class="empty-desc">${this.escapeHtml(emptyDesc)}</div>
@@ -3503,16 +3951,17 @@ class ShopApp {
     }
 
     const statusMap = {
-      pending: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
-      new: { label: window.i18n ? window.i18n.t('orders.status_new') : '🌅 Принят на утренний закуп', class: 'status-new' },
-      clarify: { label: window.i18n ? window.i18n.t('orders.status_clarify') : '⚠️ Уточнить доставку', class: 'status-clarify' },
-      needs_confirmation: { label: window.i18n ? window.i18n.t('orders.status_clarify') : '⚠️ Уточнить доставку', class: 'status-clarify' },
-      shopping: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
-      purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : '🥬 Закупается на рынке (05:00)', class: 'status-purchasing' },
-      delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : '🛵 Передан курьеру', class: 'status-delivering' },
-      completed: { label: window.i18n ? window.i18n.t('orders.status_completed') : '✅ Доставлен и оплачен', class: 'status-completed' },
-      cancelled: { label: window.i18n ? window.i18n.t('orders.status_cancelled') : '❌ Отменен', class: 'status-cancelled' },
-      rejected: { label: window.i18n ? (window.i18n.t('dialogs.generic_error_title') + ' (Не отправлен)') : '⚠️ Отклонен', class: 'status-cancelled' }
+      pending: { label: window.i18n ? (window.i18n.t('orders.status_pending') || window.i18n.t('orders.status_new')) : 'Новый', class: 'status-pending' },
+      new: { label: window.i18n ? (window.i18n.t('orders.status_pending') || window.i18n.t('orders.status_new')) : 'Новый', class: 'status-new' },
+      accepted: { label: window.i18n ? window.i18n.t('orders.status_accepted') : 'Принят', class: 'status-accepted' },
+      clarify: { label: window.i18n ? window.i18n.t('orders.status_clarify') : 'Уточнение', class: 'status-clarify' },
+      needs_confirmation: { label: window.i18n ? window.i18n.t('orders.status_clarify') : 'Уточнение', class: 'status-clarify' },
+      shopping: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : 'Закупка', class: 'status-purchasing' },
+      purchasing: { label: window.i18n ? window.i18n.t('orders.status_purchasing') : 'Закупка', class: 'status-purchasing' },
+      delivering: { label: window.i18n ? window.i18n.t('orders.status_delivering') : 'Доставка', class: 'status-delivering' },
+      completed: { label: window.i18n ? window.i18n.t('orders.status_completed') : 'Доставлен', class: 'status-completed' },
+      cancelled: { label: window.i18n ? window.i18n.t('orders.status_cancelled') : 'Отменен', class: 'status-cancelled' },
+      rejected: { label: window.i18n ? window.i18n.t('orders.status_rejected') : 'Отклонен', class: 'status-rejected' }
     };
 
     const deliveryPrefix = window.i18n ? window.i18n.t('orders.delivery_prefix') : 'Доставка:';
@@ -3529,6 +3978,7 @@ class ShopApp {
     this.ordersModalBody.innerHTML = filteredOrders.map((order) => {
       const st = statusMap[order.status] || { label: order.status, class: '' };
       const items = order.items || [];
+      const orderFin = this.calculateOrderFinancials(order);
       const dateStr = new Date(order.created_at).toLocaleDateString(localeCode, {
         day: 'numeric',
         month: 'short',
@@ -3564,16 +4014,23 @@ class ShopApp {
 
             <!-- Items preview -->
             <div class="order-card-items">
-              ${items.map((item) => {
+              ${items.map((item, idx) => {
                 const itemTitle = this.getLocalizedProductName(item) || item.product_title || (window.i18n ? window.i18n.t('common.product') : 'Товар');
                 const itemQty = item.quantity || item.requested_qty || 1;
                 const itemUnit = item.unit || 'кг';
+                const itemUsd = orderFin.itemPricesUsd[idx] || 0;
+                const priceTag = itemUsd > 0
+                  ? `<span style="font-weight: 600; color: var(--text-primary); margin-left: 8px; white-space: nowrap;">$${itemUsd.toFixed(2)}</span>`
+                  : `<span class="order-item-price-unknown">${this.escapeHtml(this.t('cart.by_receipt_short', 'по чеку'))}</span>`;
                 return `
                 <div class="order-item-mini">
                   <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
-                  ${item.receipt_url ? `
-                    <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
-                  ` : ''}
+                  <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    ${item.receipt_url ? `
+                      <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
+                    ` : ''}
+                    ${priceTag}
+                  </span>
                 </div>
               `;
               }).join('')}
@@ -3582,11 +4039,12 @@ class ShopApp {
             <!-- Totals Calculation -->
             <div class="order-card-footer">
               <div class="order-calc-breakdown">
-                <div>${marketLabel} <b>$${Number(order.market_items_total || 0).toFixed(2)}</b></div>
-                <div>${feeDeliveryLabel} <b>$${(Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0)).toFixed(2)}</b></div>
+                const orderPercent = typeof order?.service_percent === 'number' ? order.service_percent : (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10);
+                <div>${marketLabel} ${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `<b class="order-item-price-unknown">${this.escapeHtml(this.t('cart.by_receipt_short', 'по чеку'))}</b>` : `<b>$${orderFin.marketTotalUsd.toFixed(2)}${orderFin.unknownCount > 0 ? ` ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}` : ''}</b>`}</div>
+                <div>${feeDeliveryLabel} <b>${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `$${orderFin.deliveryFeeUsd.toFixed(2)} + ${orderPercent}%` : `$${(orderFin.serviceFeeUsd + orderFin.deliveryFeeUsd).toFixed(2)}`}</b></div>
               </div>
               <div class="order-grand-total">
-                ${totalLabel} <b>$${Number(order.grand_total || (Number(order.market_items_total || 0) + Number(order.service_fee || 0) + Number(order.delivery_fee || 1.0))).toFixed(2)}</b>
+                ${totalLabel} ${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `<b>$${orderFin.deliveryFeeUsd.toFixed(2)} ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}</b>` : `<b>$${orderFin.grandTotalUsd.toFixed(2)}${orderFin.unknownCount > 0 ? ` ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}` : ''}</b>`}
               </div>
             </div>
           </div>
@@ -3603,6 +4061,74 @@ class ShopApp {
         }
       });
     });
+  }
+
+  calculateOrderFinancials(order) {
+    const rate = this.khrRate || 4000;
+    const items = order?.items || order?.order_items || [];
+    let calcItemsUsd = 0;
+    let unknownCount = 0;
+
+    const itemPricesUsd = items.map((item) => {
+      const actualCost = Number(item.actual_cost || 0);
+      if (actualCost > 0) {
+        const usd = actualCost >= 500 ? Number((actualCost / rate).toFixed(2)) : Number(actualCost.toFixed(2));
+        calcItemsUsd += usd;
+        return usd;
+      }
+
+      const catalogProduct = (this.products || []).find((p) => p.id === item.product_id);
+      const qtyVal = item.quantity || item.requested_qty || 1;
+      const unitVal = item.unit || catalogProduct?.unit || 'кг';
+      const estPrice = Number(item.estimated_price || 0);
+
+      // If estimated_price was saved as item subtotal in USD (< 500)
+      if (estPrice > 0 && estPrice < 500) {
+        const usd = Number(estPrice.toFixed(2));
+        calcItemsUsd += usd;
+        return usd;
+      }
+
+      // If estimated_price was saved as raw catalog price in KHR (>= 500) or fallback to catalog product
+      const refProduct = {
+        price: estPrice >= 500 ? estPrice : (catalogProduct?.price || 0),
+        unit: catalogProduct?.unit || item.unit || '1 кг',
+        form: item.product_form || catalogProduct?.form || ''
+      };
+      const cost = this.calculateItemCost(refProduct, `${qtyVal} ${unitVal}`, unitVal);
+      if (cost.hasPrice) {
+        calcItemsUsd += cost.usd;
+        return cost.usd;
+      }
+      unknownCount += 1;
+      return 0;
+    });
+
+    calcItemsUsd = Number(calcItemsUsd.toFixed(2));
+
+    const dbActualMarket = Number(order?.actual_market_total || 0);
+    const dbMarketItems = Number(order?.market_items_total || order?.estimated_total || 0);
+    const marketTotalUsd = dbActualMarket > 0
+      ? (dbActualMarket >= 500 ? Number((dbActualMarket / rate).toFixed(2)) : dbActualMarket)
+      : (dbMarketItems > 0 && dbMarketItems < 500 ? dbMarketItems : calcItemsUsd);
+
+    const dbServiceFee = Number(order?.service_fee || 0);
+    const orderPercent = typeof order?.service_percent === 'number' ? order.service_percent : (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10);
+    const serviceFeeUsd = dbServiceFee > 0 ? dbServiceFee : Number((marketTotalUsd * (orderPercent / 100.0)).toFixed(2));
+    const deliveryFeeUsd = Number(order?.delivery_fee || 1.00);
+    const grandTotalUsd = Number((marketTotalUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
+
+    // If actual market receipt total is registered, no unknown items remain in totals
+    const effectiveUnknownCount = dbActualMarket > 0 ? 0 : unknownCount;
+
+    return {
+      itemPricesUsd,
+      unknownCount: effectiveUnknownCount,
+      marketTotalUsd,
+      serviceFeeUsd,
+      deliveryFeeUsd,
+      grandTotalUsd
+    };
   }
 
   formatReplacementPolicy(policy) {
@@ -4430,10 +4956,10 @@ class ShopApp {
     const badgeContainer = document.getElementById('profileMapStatusBadge');
     if (!badgeText) return;
 
-    const byRoadText = window.i18n ? window.i18n.t('cart.by_road') : 'по дороге';
-    const minText = window.i18n ? window.i18n.t('cart.min') : 'мин';
-    const kmUnit = window.i18n ? window.i18n.t('common.unit_km') : 'км';
-    const zoneName = (zoneInfo.zoneKey && window.i18n) ? window.i18n.t(`cart.${zoneInfo.zoneKey}`) : zoneInfo.name;
+    const byRoadText = this.t('cart.by_road', 'по дороге');
+    const minText = this.t('cart.min', 'мин');
+    const kmUnit = this.t('common.unit_km', 'км');
+    const zoneName = zoneInfo.zoneKey ? this.t(`cart.${zoneInfo.zoneKey}`, zoneInfo.name) : zoneInfo.name;
 
     let infoStr = '';
     if (roadKm !== undefined) {
