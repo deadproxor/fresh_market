@@ -3430,10 +3430,11 @@ class App {
     if (exact) return exact;
 
     // 2. Synonym token or Khmer script match
+    const pKhTokens = khBase.split('/').map(norm).filter(Boolean);
     return PRODUCE_DICTIONARY.find(d => {
       const dEnTokens = getTokens(d.en);
       const dRuTokens = getTokens(d.ru);
-      const dKhBase = norm((d.kh || '').split('(')[0]);
+      const dKhTokens = norm((d.kh || '').split('(')[0]).split('/').map(norm).filter(Boolean);
 
       for (const t of enTokens) {
         if (dEnTokens.includes(t)) return true;
@@ -3443,7 +3444,7 @@ class App {
       }
       const pCat = norm(product.category || product.cat);
       const dCat = norm(d.cat);
-      if (khBase && dKhBase && (khBase === dKhBase || dKhBase.includes(khBase)) && (!pCat || !dCat || pCat === dCat)) return true;
+      if (pKhTokens.length > 0 && dKhTokens.length > 0 && pKhTokens.some(t => dKhTokens.includes(t)) && (!pCat || !dCat || pCat === dCat)) return true;
       return false;
     }) || null;
   }
@@ -3459,7 +3460,7 @@ class App {
     const dEn = norm(dictItem.en);
     const dRu = norm(dictItem.ru);
     const dCat = norm(dictItem.cat);
-    const dKhBase = norm((dictItem.kh || '').split('(')[0]);
+    const dKhTokens = norm((dictItem.kh || '').split('(')[0]).split('/').map(norm).filter(Boolean);
     const dEnTokens = getTokens(dictItem.en);
     const dRuTokens = getTokens(dictItem.ru);
 
@@ -3471,11 +3472,11 @@ class App {
     );
     if (exact) return exact;
 
-    // 2. Token or Khmer base match (within same category for shared Khmer bases)
+    // 2. Token or exact Khmer token match (within same category)
     return candidates.find(p => {
       const pEnTokens = getTokens(p.name_en);
       const pRuTokens = getTokens(p.name_ru);
-      const pKhBase = norm((p.name_kh || '').split('(')[0]);
+      const pKhTokens = norm((p.name_kh || '').split('(')[0]).split('/').map(norm).filter(Boolean);
       const pCat = norm(p.category);
 
       for (const t of dEnTokens) {
@@ -3484,7 +3485,7 @@ class App {
       for (const t of dRuTokens) {
         if (pRuTokens.includes(t)) return true;
       }
-      if (dKhBase && pKhBase && (dKhBase === pKhBase || dKhBase.includes(pKhBase)) && (!dCat || !pCat || dCat === pCat)) return true;
+      if (dKhTokens.length > 0 && pKhTokens.length > 0 && dKhTokens.some(t => pKhTokens.includes(t)) && (!dCat || !pCat || dCat === pCat)) return true;
       return false;
     }) || null;
   }
@@ -3493,6 +3494,7 @@ class App {
     const products = Array.isArray(productsList) ? productsList : (this.products || []);
     const norm = (s) => (s || '').toLowerCase().trim();
     const byEn = new Map();
+    const byCatKh = new Map();
     const duplicates = [];
 
     // Sort so richest record (with photo/price) comes first and is kept
@@ -3507,12 +3509,17 @@ class App {
     });
 
     sorted.forEach(p => {
-      const key = norm(p.name_en) || norm(p.name_ru);
-      if (!key) return;
-      if (byEn.has(key)) {
-        duplicates.push({ duplicate: p, primary: byEn.get(key) });
+      const enKey = norm(p.name_en) || norm(p.name_ru);
+      const khBase = norm((p.name_kh || '').split('(')[0]);
+      const catKhKey = khBase ? `${norm(p.category)}::${khBase}` : '';
+
+      if (enKey && byEn.has(enKey)) {
+        duplicates.push({ duplicate: p, primary: byEn.get(enKey) });
+      } else if (catKhKey && byCatKh.has(catKhKey)) {
+        duplicates.push({ duplicate: p, primary: byCatKh.get(catKhKey) });
       } else {
-        byEn.set(key, p);
+        if (enKey) byEn.set(enKey, p);
+        if (catKhKey) byCatKh.set(catKhKey, p);
       }
     });
 

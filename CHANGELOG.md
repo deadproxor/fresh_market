@@ -1483,6 +1483,13 @@ flowchart TD
     * Добавлена кнопка «Импорт словаря» (`#btnImportDictJson`) для загрузки любого внешнего/отредактированного файла `products_dictionary.json` и его синхронизации с базой.
     * Обновлены методы `auditDictionaryConsistency()` и `syncDatabaseFromDictionary()`: двусторонняя сверка (отсутствующие в базе позиции словаря, расхождения полей, дубликаты в базе) и атомарная синхронизация через RPC `sync_products_from_dictionary` с автоматическим резервным пакетным режимом (`createBatch`).
   * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.37` (`shop.html` `v=1.5.37`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.37` (`admin/index.html` `v=1.5.37`).
+* [x] **Изоляция поиска по активному языку интерфейса и дедубликация по кхмерским токенам (v1.5.38 Shop & Admin):**
+  * **Поиск строго по активному языку (`js/shop.js`):**
+    * В методе `renderProducts()` фильтр поиска ограничен названием продукта на текущем выбранном языке (`getLocalizedProductName(p, currentLang)`) и отображаемым на карточке кхмерским подзаголовком (`getKhmerSubtitle(p, currentLang)`). Это исключило ложные срабатывания при вводе латиницы (например, запрос `"pal"` на английском больше не захватывает скрытые французские названия `"Crabe de palétuvier"` и `"Moules / Palourdes"`).
+  * **Точное сопоставление кхмерских токенов и очистка дубликатов (`js/shop.js`, `admin/js/admin-catalog.js`, `supabase/migrations/20261119000000_sync_dictionary_to_products.sql`):**
+    * Подстрочное совпадение кхмерской основы заменено на точное сравнение токенов (`split_part`), исключив пересечение коротких основ с составными названиями (`ម្សៅអង្ករ` vs `ម្សៅអង្ករដំណើប` и `សាច់ក្តាម` vs `សាច់ក្តាមកំប៉ុង`).
+    * В процедуру `sync_products_from_dictionary` и клиентский обогатитель `enrichProductsWithDict` добавлена дедубликация по паре `(category, name_kh)`, приводящая каталог строго к 215 уникальным позициям словаря.
+  * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.38` (`shop.html` `v=1.5.38`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.38` (`admin/index.html` `v=1.5.38`).
 
 
 

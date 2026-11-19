@@ -1384,9 +1384,9 @@ class ShopApp {
     }
     try {
       const fetchOpts = { cache: 'no-cache' };
-      let resp = await fetch('./data/products_dictionary.json?v=1.5.37', fetchOpts);
-      if (!resp.ok) resp = await fetch('../data/products_dictionary.json?v=1.5.37', fetchOpts);
-      if (!resp.ok) resp = await fetch('./products_dictionary.json?v=1.5.37', fetchOpts);
+      let resp = await fetch('./data/products_dictionary.json?v=1.5.38', fetchOpts);
+      if (!resp.ok) resp = await fetch('../data/products_dictionary.json?v=1.5.38', fetchOpts);
+      if (!resp.ok) resp = await fetch('./products_dictionary.json?v=1.5.38', fetchOpts);
       if (resp.ok) {
         const data = await resp.json();
         const core = Array.isArray(data.core) ? data.core : [];
@@ -1406,12 +1406,26 @@ class ShopApp {
     if (!this.produceDictionary || this.produceDictionary.length === 0) return products;
 
     const norm = (s) => (s || '').toLowerCase().trim();
+    const getKhTokens = (s) => norm(s).split('(')[0].split('/').map(norm).filter(Boolean);
 
-    return products.map((item) => {
+    // Prioritize items with uploaded photos and prices when deduplicating
+    const sorted = [...products].sort((a, b) => {
+      const aImg = a.img_url && a.img_url.trim() ? 1 : 0;
+      const bImg = b.img_url && b.img_url.trim() ? 1 : 0;
+      if (bImg !== aImg) return bImg - aImg;
+      const aPrice = a.price != null ? 1 : 0;
+      const bPrice = b.price != null ? 1 : 0;
+      return bPrice - aPrice;
+    });
+
+    const seenKeys = new Set();
+    const result = [];
+
+    sorted.forEach((item) => {
       const enName = norm(item.name_en);
       const ruName = norm(item.name_ru);
       const khName = norm(item.name_kh);
-      const khBase = khName.split('(')[0].trim();
+      const khTokens = getKhTokens(item.name_kh);
       const itemCat = norm(item.category);
 
       // 1. Primary match by EN or RU name / synonym
@@ -1423,14 +1437,15 @@ class ShopApp {
         return false;
       });
 
-      // 2. Fallback match by Khmer script within same category
-      if (!match && khBase) {
+      // 2. Fallback match by exact Khmer token within same category
+      if (!match && khTokens.length > 0) {
         match = this.produceDictionary.find((d) => {
-          const dKh = norm(d.kh);
-          const dKhBase = dKh.split('(')[0].trim();
           const dCat = norm(d.cat);
           if (itemCat && dCat && itemCat !== dCat) return false;
-          return dKh === khName || dKhBase === khBase || (dKhBase && dKhBase.includes(khBase));
+          const dKh = norm(d.kh);
+          if (dKh === khName) return true;
+          const dKhTokens = getKhTokens(d.kh);
+          return khTokens.some((t) => dKhTokens.includes(t));
         });
       }
 
@@ -1442,8 +1457,15 @@ class ShopApp {
         item.name_fr = match.fr || item.name_fr || match.en || '';
         if (!item.desc && match.desc) item.desc = match.desc;
       }
-      return item;
+
+      const dedupKey = `${norm(item.category)}::${norm(item.name_en || item.name_ru)}`;
+      if (!seenKeys.has(dedupKey)) {
+        seenKeys.add(dedupKey);
+        result.push(item);
+      }
     });
+
+    return result;
   }
 
   async loadCatalog() {
@@ -1931,29 +1953,19 @@ class ShopApp {
       });
     }
 
-    // Filter by Search Query (EN, KH, RU, UA, FR)
+    const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
+
+    // Filter by Search Query (strictly by active UI language name + displayed Khmer subtitle)
     if (this.searchQuery) {
       const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter((p) => {
-        const en = (p.name_en || p.en || '').toLowerCase();
-        const kh = (p.name_kh || p.name_km || p.kh || '').toLowerCase();
-        const ru = (p.name_ru || p.ru || '').toLowerCase();
-        const ua = (p.name_ua || p.ua || '').toLowerCase();
-        const fr = (p.name_fr || p.fr || '').toLowerCase();
-        const cat = (p.category || p.cat || '').toLowerCase();
-        const desc = (p.description || p.desc || '').toLowerCase();
-        return en.includes(q) ||
-          kh.includes(q) ||
-          ru.includes(q) ||
-          ua.includes(q) ||
-          fr.includes(q) ||
-          cat.includes(q) ||
-          desc.includes(q);
+        const primaryName = this.getLocalizedProductName(p, currentLang).toLowerCase();
+        const khSubtitle = this.getKhmerSubtitle(p, currentLang).toLowerCase();
+        return primaryName.includes(q) || khSubtitle.includes(q);
       });
     }
 
     // Sort alphabetically according to the active UI language (RU, EN, KM, FR, UA)
-    const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
     const collatorLocale = currentLang === 'ua' || currentLang === 'uk'
       ? 'uk'
       : currentLang === 'km'
