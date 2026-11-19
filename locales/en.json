@@ -251,7 +251,14 @@
     "empty_upcoming_desc": "Place an order for tomorrow or future market mornings.",
     "empty_archive_title": "Archive is empty",
     "empty_archive_desc": "Completed and delivered orders will be stored here.",
-    "saved_offline_warning": "⚠️ Order {orderNumber} saved locally, but not synced to database: {error}"
+    "saved_offline_warning": "⚠️ Order {orderNumber} saved locally, but not synced to database: {error}",
+    "btn_cancel_order": "Cancel order",
+    "cancel_confirm_title": "Cancel Order",
+    "cancel_confirm_desc": "Are you sure you want to cancel order {orderNumber}?",
+    "btn_confirm_cancel": "Yes, cancel",
+    "cancelling_toast": "Cancelling order...",
+    "cancelled_success_toast": "Order {orderNumber} successfully cancelled",
+    "cancel_error_toast": "Could not cancel order"
   },
   "profile": {
     "title": "Profile & Settings",

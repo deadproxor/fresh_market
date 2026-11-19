@@ -251,7 +251,14 @@
     "empty_upcoming_desc": "Оформіть замовлення на завтра або наступні дні.",
     "empty_archive_title": "Архів порожній",
     "empty_archive_desc": "Тут зберігатимуться завершені та доставлені замовлення.",
-    "saved_offline_warning": "⚠️ Замовлення {orderNumber} збережено локально, але не передано до бази: {error}"
+    "saved_offline_warning": "⚠️ Замовлення {orderNumber} збережено локально, але не передано до бази: {error}",
+    "btn_cancel_order": "Скасувати замовлення",
+    "cancel_confirm_title": "Скасування замовлення",
+    "cancel_confirm_desc": "Ви впевнені, що хочете скасувати замовлення {orderNumber}?",
+    "btn_confirm_cancel": "Так, скасувати",
+    "cancelling_toast": "Скасовуємо замовлення...",
+    "cancelled_success_toast": "Замовлення {orderNumber} успішно скасовано",
+    "cancel_error_toast": "Не вдалося скасувати замовлення"
   },
   "profile": {
     "title": "Профіль і Налаштування",

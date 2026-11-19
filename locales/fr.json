@@ -251,7 +251,14 @@
     "empty_upcoming_desc": "Passez commande pour demain ou pour les jours suivants.",
     "empty_archive_title": "L'archive est vide",
     "empty_archive_desc": "Les commandes terminées et livrées seront conservées ici.",
-    "saved_offline_warning": "⚠️ Commande {orderNumber} enregistrée localement, mais non synchronisée avec la base : {error}"
+    "saved_offline_warning": "⚠️ Commande {orderNumber} enregistrée localement, mais non synchronisée avec la base : {error}",
+    "btn_cancel_order": "Annuler la commande",
+    "cancel_confirm_title": "Annulation de commande",
+    "cancel_confirm_desc": "Êtes-vous sûr de vouloir annuler la commande {orderNumber} ?",
+    "btn_confirm_cancel": "Oui, annuler",
+    "cancelling_toast": "Annulation de la commande...",
+    "cancelled_success_toast": "La commande {orderNumber} a été annulée avec succès",
+    "cancel_error_toast": "Impossible d'annuler la commande"
   },
   "profile": {
     "title": "Profil & Paramètres",

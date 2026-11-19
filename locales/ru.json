@@ -251,7 +251,14 @@
     "empty_upcoming_desc": "Оформите заказ на завтра или последующие дни.",
     "empty_archive_title": "Архив пуст",
     "empty_archive_desc": "Здесь будут храниться завершенные и доставленные заказы.",
-    "saved_offline_warning": "⚠️ Заказ {orderNumber} сохранен локально, но не передан в базу: {error}"
+    "saved_offline_warning": "⚠️ Заказ {orderNumber} сохранен локально, но не передан в базу: {error}",
+    "btn_cancel_order": "Отменить заказ",
+    "cancel_confirm_title": "Отмена заказа",
+    "cancel_confirm_desc": "Вы уверены, что хотите отменить заказ {orderNumber}?",
+    "btn_confirm_cancel": "Да, отменить",
+    "cancelling_toast": "Отменяем заказ...",
+    "cancelled_success_toast": "Заказ {orderNumber} успешно отменен",
+    "cancel_error_toast": "Не удалось отменить заказ"
   },
   "profile": {
     "title": "Профиль и Настройки",

@@ -3607,6 +3607,9 @@ class ShopApp {
         if (!rpcErr && rpcData?.success) {
           supabaseSuccess = true;
           localStorage.setItem('freshmarket_last_order_timestamp', String(Date.now()));
+          if (rpcData.order_id) {
+            orderPayload.id = rpcData.order_id;
+          }
           if (rpcData.order_number) {
             finalOrderNumber = rpcData.order_number;
             orderPayload.order_number = rpcData.order_number;
@@ -3988,6 +3991,10 @@ class ShopApp {
 
       const orderTarget = order.target_delivery_date;
       const targetDisplay = orderTarget === todayStr ? todayLabel : (orderTarget || tomorrowLabel);
+      const orderPercent = typeof order?.service_percent === 'number'
+        ? order.service_percent
+        : (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10);
+      const canCancel = ['pending', 'new', 'accepted', 'clarify', 'needs_confirmation'].includes(order.status);
 
       return `
         <div class="settings-section order-card" id="order-${this.escapeHtml(order.order_number)}">
@@ -4039,7 +4046,6 @@ class ShopApp {
             <!-- Totals Calculation -->
             <div class="order-card-footer">
               <div class="order-calc-breakdown">
-                const orderPercent = typeof order?.service_percent === 'number' ? order.service_percent : (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10);
                 <div>${marketLabel} ${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `<b class="order-item-price-unknown">${this.escapeHtml(this.t('cart.by_receipt_short', 'по чеку'))}</b>` : `<b>$${orderFin.marketTotalUsd.toFixed(2)}${orderFin.unknownCount > 0 ? ` ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}` : ''}</b>`}</div>
                 <div>${feeDeliveryLabel} <b>${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `$${orderFin.deliveryFeeUsd.toFixed(2)} + ${orderPercent}%` : `$${(orderFin.serviceFeeUsd + orderFin.deliveryFeeUsd).toFixed(2)}`}</b></div>
               </div>
@@ -4047,6 +4053,14 @@ class ShopApp {
                 ${totalLabel} ${orderFin.marketTotalUsd === 0 && orderFin.unknownCount > 0 ? `<b>$${orderFin.deliveryFeeUsd.toFixed(2)} ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}</b>` : `<b>$${orderFin.grandTotalUsd.toFixed(2)}${orderFin.unknownCount > 0 ? ` ${this.escapeHtml(this.t('cart.plus_by_receipt', '+ по чеку'))}` : ''}</b>`}
               </div>
             </div>
+
+            ${canCancel ? `
+              <div class="order-card-actions">
+                <button type="button" class="btn-order-cancel" data-cancel-order-id="${this.escapeHtml(order.id || '')}" data-cancel-order-num="${this.escapeHtml(order.order_number)}">
+                  ${this.escapeHtml(this.t('orders.btn_cancel_order', 'Отменить заказ'))}
+                </button>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -4061,6 +4075,77 @@ class ShopApp {
         }
       });
     });
+
+    // Wire order cancellation buttons
+    this.ordersModalBody.querySelectorAll('.btn-order-cancel').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const orderId = btn.dataset.cancelOrderId;
+        const orderNum = btn.dataset.cancelOrderNum;
+        this.handleCancelOrderClick(orderId, orderNum);
+      });
+    });
+  }
+
+  handleCancelOrderClick(orderId, orderNum) {
+    const title = this.t('orders.cancel_confirm_title', 'Отмена заказа');
+    const rawDesc = this.t('orders.cancel_confirm_desc', 'Вы уверены, что хотите отменить заказ {orderNumber}?');
+    const message = rawDesc.replace('{orderNumber}', orderNum || '');
+    const confirmText = this.t('orders.btn_confirm_cancel', 'Да, отменить');
+    const cancelText = this.t('common.cancel', 'Отмена');
+
+    this.showConfirmDialog({
+      title,
+      message,
+      confirmText,
+      cancelText,
+      onConfirm: () => {
+        this.executeCancelOrder(orderId, orderNum);
+      }
+    });
+  }
+
+  async executeCancelOrder(orderId, orderNum) {
+    const cancellingMsg = this.t('orders.cancelling_toast', 'Отменяем заказ...');
+    this.showToast(cancellingMsg, 'info', 3000);
+
+    try {
+      if (orderId && orderId !== 'undefined' && orderId !== 'null' && this.sb) {
+        const { error } = await this.sb.rpc('cancel_order', { p_order_id: orderId });
+        if (error) {
+          console.error('Cancel order RPC error:', error);
+          throw error;
+        }
+      }
+
+      // Update cached orders locally
+      if (Array.isArray(this.cachedUserOrders)) {
+        const idx = this.cachedUserOrders.findIndex((o) => (orderId && o.id === orderId) || (orderNum && o.order_number === orderNum));
+        if (idx !== -1) {
+          this.cachedUserOrders[idx] = {
+            ...this.cachedUserOrders[idx],
+            status: 'cancelled',
+            sync_status: orderId ? 'synced' : 'cancelled_local',
+            updated_at: new Date().toISOString()
+          };
+          try {
+            localStorage.setItem('freshmarket_my_orders', JSON.stringify(this.cachedUserOrders.slice(0, 30)));
+          } catch (e) {
+            console.debug('Failed to update local orders cache:', e);
+          }
+        }
+      }
+
+      const successRaw = this.t('orders.cancelled_success_toast', 'Заказ {orderNumber} успешно отменен');
+      this.showToast(successRaw.replace('{orderNumber}', orderNum || ''), 'info', 4000);
+
+      // Re-render orders view
+      this.renderOrdersList();
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      const errMsg = err?.message || this.t('orders.cancel_error_toast', 'Не удалось отменить заказ');
+      this.showToast(errMsg, 'warning', 5000);
+    }
   }
 
   calculateOrderFinancials(order) {

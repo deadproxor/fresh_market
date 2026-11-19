@@ -1452,10 +1452,21 @@ flowchart TD
     * Метод `loadServiceSettings()` расширен для чтения `service_rules`.
     * Добавлена Realtime-подписка на таблицу `service_settings` (`setupRealtimeServiceSettingsSync`), мгновенно обновляющая корзину покупателя при смене комиссий и тарифов закупщиком.
   * **Кэширование:** Service Worker админ-панели повышен до `freshmarket-admin-v1.5.33` (`admin/index.html` `v=1.5.33`), Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.33` (`shop.html` `v=1.5.33`).
-* [x] **Прямая синхронизация с таблицей admin_settings без CORS-запросов к Edge Function (v1.5.34 Admin):**
-  * В `admin/js/admin-catalog.js` методы загрузки и сохранения параметров переключены на прямое обращение к созданной защищенной таблице `public.admin_settings` (`.from('admin_settings')`).
-  * Устранены попытки обращения к ещё не развернутой функции `admin-settings`, ликвидирована ошибка CORS на `localhost`.
-  * Кэширование: Service Worker админ-панели повышен до `freshmarket-admin-v1.5.34` (`admin/index.html` `v=1.5.34`).
+* [x] **Самостоятельная отмена заказов покупателем и исправление отображения чека (v1.5.35 Shop):**
+  * **Безопасная RPC-функция (`supabase/migrations/20261031010000_customer_order_cancellation.sql`):**
+    * Создана функция `public.cancel_order(p_order_id UUID)` с модификатором `SECURITY DEFINER` и явным `SET search_path = public, pg_temp`.
+    * Проверка аутентификации (`auth.uid()`) и принадлежности заказа (`user_id = auth.uid()` или `public.is_admin()`).
+    * Блокировка отмены для терминальных статусов (`completed`, `cancelled`, `rejected`) и заказов на этапе активной закупки/доставки (`shopping`, `purchasing`, `delivering`).
+    * Права на выполнение `cancel_order` предоставлены строго роли `authenticated`.
+  * **Интерфейс витрины покупателя (`shop.html`, `js/shop.js`, `css/shop.css`):**
+    * Исправлен шаблонный литерал в `js/shop.js` (вынесение `orderPercent` из HTML-разметки калькуляции итогов).
+    * В карточку заказа добавлена кнопка отмены `.btn-order-cancel` (без иконок, строго в соответствии с правилом лаконичности вторичных элементов).
+    * Реализованы методы `handleCancelOrderClick` с модальным подтверждением через нативный `showConfirmDialog` и `executeCancelOrder` с атомарным обновлением кэша `freshmarket_my_orders` и реактивным перерисовыванием списка.
+  * **Локализация (5 языков в паритете):**
+    * В `locales/ru.json`, `locales/en.json`, `locales/km.json`, `locales/fr.json`, `locales/ua.json` синхронно добавлены ключи: `btn_cancel_order`, `cancel_confirm_title`, `cancel_confirm_desc`, `btn_confirm_cancel`, `cancelling_toast`, `cancelled_success_toast`, `cancel_error_toast`.
+  * **Исправление схемы позиций в create_order:**
+    * В процедуре `create_order` скорректированы имена колонок для вставки в `order_items` (`product_title`, `product_name_ru`, `product_name_en`, `product_name_kh`, `product_category`, `product_form`, `product_img_url`, `requested_qty`, `actual_cost`), что полностью устранило ошибку сбоя синхронизации заказов с базой данных.
+  * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.35` (`shop.html` `v=1.5.35`).
 
 
 

@@ -251,7 +251,14 @@
     "empty_upcoming_desc": "ធ្វើការកុម្ម៉ង់សម្រាប់ថ្ងៃស្អែក ឬថ្ងៃបន្ទាប់។",
     "empty_archive_title": "ប័ណ្ណសារទទេ",
     "empty_archive_desc": "ការបញ្ជាទិញដែលបានដឹកជញ្ជូនរួចរាល់នឹងត្រូវបានរក្សាទុកនៅទីនេះ។",
-    "saved_offline_warning": "⚠️ ការបញ្ជាទិញ {orderNumber} ត្រូវបានរក្សាទុកក្នុងឧបករណ៍ ប៉ុន្តែមិនទាន់ផ្ញើទៅកាន់ប្រព័ន្ធ៖ {error}"
+    "saved_offline_warning": "⚠️ ការបញ្ជាទិញ {orderNumber} ត្រូវបានរក្សាទុកក្នុងឧបករណ៍ ប៉ុន្តែមិនទាន់ផ្ញើទៅកាន់ប្រព័ន្ធ៖ {error}",
+    "btn_cancel_order": "បោះបង់ការបញ្ជាទិញ",
+    "cancel_confirm_title": "បោះបង់ការបញ្ជាទិញ",
+    "cancel_confirm_desc": "តើអ្នកប្រាកដជាចង់បោះបង់ការបញ្ជាទិញ {orderNumber} មែនទេ?",
+    "btn_confirm_cancel": "បាទ/ចាស បោះបង់",
+    "cancelling_toast": "កំពុងបោះបង់ការបញ្ជាទិញ...",
+    "cancelled_success_toast": "ការបញ្ជាទិញ {orderNumber} ត្រូវបានបោះបង់ដោយជោគជ័យ",
+    "cancel_error_toast": "មិនអាចបោះបង់ការបញ្ជាទិញបានទេ"
   },
   "profile": {
     "title": "គណនី និងការកំណត់",
