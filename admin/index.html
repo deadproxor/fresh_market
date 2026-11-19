@@ -546,9 +546,13 @@
                   <button type="button" class="btn-settings-action" id="btnAuditConsistency" title="Сверить базу Supabase с эталонным словарём">
                     Сверить консистентность
                   </button>
-                  <button type="button" class="btn-settings-action" id="btnSyncDbFromDict" title="Обновить категории, транскрипции и описания в Supabase из словаря">
+                  <button type="button" class="btn-settings-action" id="btnSyncDbFromDict" title="Добавить новые позиции и обновить существующие в Supabase из словаря">
                     Синхронизировать базу из словаря
                   </button>
+                  <button type="button" class="btn-settings-action" id="btnImportDictJson" title="Загрузить локальный файл products_dictionary.json для синхронизации">
+                    Импорт словаря
+                  </button>
+                  <input type="file" id="inputImportDictJson" accept=".json,application/json" style="display: none;" />
                   <button type="button" class="btn-settings-action" id="btnExportDictJson" title="Скачать актуальный products_dictionary.json">
                     Экспорт словаря
                   </button>
@@ -933,7 +937,7 @@
   <script src="../js/shared/utils.js?v=1.5.0"></script>
   <script src="../js/shared/categories.js?v=1.5.15"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
-  <script src="js/admin-catalog.js?v=1.5.34"></script>
+  <script src="js/admin-catalog.js?v=1.5.37"></script>
   <script src="js/admin-auth.js?v=1.5.33"></script>
 </body>
 

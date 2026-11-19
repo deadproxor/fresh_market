@@ -1383,9 +1383,10 @@ class ShopApp {
       return this.produceDictionary;
     }
     try {
-      let resp = await fetch('./data/products_dictionary.json');
-      if (!resp.ok) resp = await fetch('../data/products_dictionary.json');
-      if (!resp.ok) resp = await fetch('./products_dictionary.json');
+      const fetchOpts = { cache: 'no-cache' };
+      let resp = await fetch('./data/products_dictionary.json?v=1.5.37', fetchOpts);
+      if (!resp.ok) resp = await fetch('../data/products_dictionary.json?v=1.5.37', fetchOpts);
+      if (!resp.ok) resp = await fetch('./products_dictionary.json?v=1.5.37', fetchOpts);
       if (resp.ok) {
         const data = await resp.json();
         const core = Array.isArray(data.core) ? data.core : [];
@@ -1410,21 +1411,35 @@ class ShopApp {
       const enName = norm(item.name_en);
       const ruName = norm(item.name_ru);
       const khName = norm(item.name_kh);
+      const khBase = khName.split('(')[0].trim();
+      const itemCat = norm(item.category);
 
-      const match = this.produceDictionary.find((d) => {
+      // 1. Primary match by EN or RU name / synonym
+      let match = this.produceDictionary.find((d) => {
         const dEn = norm(d.en);
         const dRu = norm(d.ru);
-        const dKh = norm(d.kh);
-
         if (enName && (dEn === enName || dEn.split('/').map(norm).includes(enName))) return true;
         if (ruName && (dRu === ruName || dRu.split('/').map(norm).includes(ruName))) return true;
-        if (khName && (dKh === khName || dKh.split('(')[0].trim() === khName.split('(')[0].trim())) return true;
         return false;
       });
 
+      // 2. Fallback match by Khmer script within same category
+      if (!match && khBase) {
+        match = this.produceDictionary.find((d) => {
+          const dKh = norm(d.kh);
+          const dKhBase = dKh.split('(')[0].trim();
+          const dCat = norm(d.cat);
+          if (itemCat && dCat && itemCat !== dCat) return false;
+          return dKh === khName || dKhBase === khBase || (dKhBase && dKhBase.includes(khBase));
+        });
+      }
+
       if (match) {
-        if (!item.name_ua) item.name_ua = match.ua || match.ru || '';
-        if (!item.name_fr) item.name_fr = match.fr || match.en || '';
+        if (match.ru) item.name_ru = match.ru;
+        if (match.en) item.name_en = match.en;
+        if (match.kh) item.name_kh = match.kh;
+        item.name_ua = match.ua || item.name_ua || match.ru || '';
+        item.name_fr = match.fr || item.name_fr || match.en || '';
         if (!item.desc && match.desc) item.desc = match.desc;
       }
       return item;
@@ -1936,6 +1951,24 @@ class ShopApp {
           desc.includes(q);
       });
     }
+
+    // Sort alphabetically according to the active UI language (RU, EN, KM, FR, UA)
+    const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
+    const collatorLocale = currentLang === 'ua' || currentLang === 'uk'
+      ? 'uk'
+      : currentLang === 'km'
+        ? 'km'
+        : currentLang === 'fr'
+          ? 'fr'
+          : currentLang === 'en'
+            ? 'en'
+            : 'ru';
+    const collator = new Intl.Collator(collatorLocale, { sensitivity: 'base', numeric: true });
+    filtered = [...filtered].sort((a, b) => {
+      const nameA = this.getLocalizedProductName(a, currentLang).trim();
+      const nameB = this.getLocalizedProductName(b, currentLang).trim();
+      return collator.compare(nameA, nameB);
+    });
 
     // Update Counter
     if (this.shopProductsCount) {

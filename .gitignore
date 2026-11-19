@@ -13,3 +13,8 @@ components.html
 # Internal security audits and reviews
 *audit*.md
 FreshMarket-audit-*.md
+
+# Local dictionary exports
+data/products_dictionary.pdf
+data/products_dictionary.docx
+data/products_dictionary.html

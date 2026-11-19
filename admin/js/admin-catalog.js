@@ -144,12 +144,14 @@ const CUSTOM_DICT_KEY = 'freshmarket_custom_produce_dictionary';
 // Load produce dictionary from standalone JSON file + localStorage custom items
 async function loadProduceDictionary() {
   try {
-    let response = await fetch('../data/products_dictionary.json');
+    const bust = `?t=${Date.now()}`;
+    const fetchOpts = { cache: 'no-store' };
+    let response = await fetch(`../data/products_dictionary.json${bust}`, fetchOpts);
     if (!response.ok) {
-      response = await fetch('./data/products_dictionary.json');
+      response = await fetch(`./data/products_dictionary.json${bust}`, fetchOpts);
     }
     if (!response.ok) {
-      response = await fetch('./products_dictionary.json');
+      response = await fetch(`./products_dictionary.json${bust}`, fetchOpts);
     }
     if (response.ok) {
       const data = await response.json();
@@ -564,6 +566,37 @@ class SupabaseAdapter {
       throw new Error('Товар не найден в базе данных или недостаточно прав для удаления (требуется сессия администратора)');
     }
     return data;
+  }
+
+  async createBatch(productsArray) {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    if (!Array.isArray(productsArray) || productsArray.length === 0) return [];
+    const res = await fetch(`${this.url}/rest/v1/products`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(productsArray)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || err.hint || `Supabase batch insert error: ${res.statusText}`);
+    }
+    return await res.json();
+  }
+
+  async syncFromDictionaryRpc(items) {
+    if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
+    const res = await fetch(`${this.url}/rest/v1/rpc/sync_products_from_dictionary`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ p_items: items })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const error = new Error(err.message || err.hint || `RPC error: ${res.statusText}`);
+      error.code = err.code || String(res.status);
+      throw error;
+    }
+    return await res.json();
   }
 
   async testConnection() {
@@ -1088,8 +1121,11 @@ class App {
     this.dictSyncMatchBadge = document.getElementById('dictSyncMatchBadge');
     this.btnAuditConsistency = document.getElementById('btnAuditConsistency');
     this.btnSyncDbFromDict = document.getElementById('btnSyncDbFromDict');
+    this.btnImportDictJson = document.getElementById('btnImportDictJson');
+    this.inputImportDictJson = document.getElementById('inputImportDictJson');
     this.btnExportDictJson = document.getElementById('btnExportDictJson');
     this.dictSyncReportBox = document.getElementById('dictSyncReportBox');
+    this.hasImportedCustomDictFile = false;
 
     // Currency Exchange Rate Elements
     this.settingKhrRate = document.getElementById('settingKhrRate');
@@ -1216,6 +1252,18 @@ class App {
     }
     if (this.btnSyncDbFromDict) {
       this.btnSyncDbFromDict.addEventListener('click', () => this.syncDatabaseFromDictionary());
+    }
+    if (this.btnImportDictJson && this.inputImportDictJson) {
+      this.btnImportDictJson.addEventListener('click', () => {
+        this.inputImportDictJson.value = '';
+        this.inputImportDictJson.click();
+      });
+      this.inputImportDictJson.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          this.importDictionaryJson(file);
+        }
+      });
     }
     if (this.btnExportDictJson) {
       this.btnExportDictJson.addEventListener('click', () => this.exportDictionaryJson());
@@ -3328,6 +3376,9 @@ class App {
       return;
     }
 
+    const dictCollator = new Intl.Collator('ru', { sensitivity: 'base', numeric: true });
+    items = [...items].sort((a, b) => dictCollator.compare((a.ru || a.en || '').trim(), (b.ru || b.en || '').trim()));
+
     this.settingsDictList.innerHTML = items.map(item => {
       const isDb = item.source === 'database';
       const badgeHtml = isDb
@@ -3362,111 +3413,238 @@ class App {
   findDictionaryMatch(product) {
     if (!product || !Array.isArray(PRODUCE_DICTIONARY)) return null;
     const norm = (s) => (s || '').toLowerCase().trim();
+    const genericTokens = new Set(['offal', 'субпродукты']);
+    const getTokens = (s) => (s || '').split('/').map(norm).filter(t => t && !genericTokens.has(t));
+
     const ru = norm(product.name_ru || product.ru);
     const en = norm(product.name_en || product.en);
-    const kh = norm(product.name_kh || product.kh);
+    const khBase = norm((product.name_kh || product.kh || '').split('(')[0]);
 
-    const enTokens = (product.name_en || product.en || '').split('/').map(norm);
-    const ruTokens = (product.name_ru || product.ru || '').split('/').map(norm);
+    const enTokens = getTokens(product.name_en || product.en);
+    const ruTokens = getTokens(product.name_ru || product.ru);
 
+    // 1. Exact full title match first
+    const exact = PRODUCE_DICTIONARY.find(d =>
+      (en && norm(d.en) === en) || (ru && norm(d.ru) === ru)
+    );
+    if (exact) return exact;
+
+    // 2. Synonym token or Khmer script match
     return PRODUCE_DICTIONARY.find(d => {
-      const dEnTokens = (d.en || '').split('/').map(norm);
-      const dRuTokens = (d.ru || '').split('/').map(norm);
-      const dKh = norm(d.kh);
+      const dEnTokens = getTokens(d.en);
+      const dRuTokens = getTokens(d.ru);
+      const dKhBase = norm((d.kh || '').split('(')[0]);
 
-      // Match by EN token
       for (const t of enTokens) {
-        if (t && dEnTokens.includes(t)) return true;
+        if (dEnTokens.includes(t)) return true;
       }
-      // Match by RU token
       for (const t of ruTokens) {
-        if (t && dRuTokens.includes(t)) return true;
+        if (dRuTokens.includes(t)) return true;
       }
-      // Match by exact Khmer script/transcription
-      if (kh && dKh && kh === dKh) return true;
+      const pCat = norm(product.category || product.cat);
+      const dCat = norm(d.cat);
+      if (khBase && dKhBase && (khBase === dKhBase || dKhBase.includes(khBase)) && (!pCat || !dCat || pCat === dCat)) return true;
       return false;
     }) || null;
   }
 
-  auditDictionaryConsistency() {
-    if (!this.dictSyncReportBox) return;
-    const products = this.products || [];
-    const totalDb = products.length;
-    let matchedCount = 0;
-    const discrepancies = [];
-    const missingInDict = [];
+  findDatabaseMatch(dictItem, productsList = null, excludeIds = null) {
+    const products = Array.isArray(productsList) ? productsList : (this.products || []);
+    if (!dictItem || products.length === 0) return null;
 
-    products.forEach(p => {
-      const match = this.findDictionaryMatch(p);
-      if (!match) {
-        missingInDict.push(p);
-        return;
-      }
-      matchedCount++;
-      const diffs = [];
+    const norm = (s) => (s || '').toLowerCase().trim();
+    const genericTokens = new Set(['offal', 'субпродукты']);
+    const getTokens = (s) => (s || '').split('/').map(norm).filter(t => t && !genericTokens.has(t));
 
-      // Check category slug
-      if (match.cat && p.category !== match.cat) {
-        diffs.push(`Категория: в базе «${p.category}» vs словарь «${match.cat}»`);
-      }
-      // Check Khmer script / transcription
-      if (match.kh && (!p.name_kh || p.name_kh.trim() !== match.kh.trim())) {
-        diffs.push(`Кхмерское написание: в базе «${p.name_kh || 'пусто'}» vs словарь «${match.kh}»`);
-      }
-      // Check description
-      if (match.desc && (!p.description || p.description.trim() !== match.desc.trim())) {
-        if (!p.description) {
-          diffs.push(`Описание: отсутствует в базе (в словаре есть)`);
-        }
-      }
-      // Check form
-      if (match.form && (!p.form || p.form.trim() !== match.form.trim())) {
-        diffs.push(`Форма: в базе «${p.form || 'пусто'}» vs словарь «${match.form}»`);
-      }
+    const dEn = norm(dictItem.en);
+    const dRu = norm(dictItem.ru);
+    const dCat = norm(dictItem.cat);
+    const dKhBase = norm((dictItem.kh || '').split('(')[0]);
+    const dEnTokens = getTokens(dictItem.en);
+    const dRuTokens = getTokens(dictItem.ru);
 
-      if (diffs.length > 0) {
-        discrepancies.push({ product: p, match, diffs });
+    const candidates = products.filter(p => !excludeIds || !excludeIds.has(p.id));
+
+    // 1. Exact full title match first
+    const exact = candidates.find(p =>
+      (dEn && norm(p.name_en) === dEn) || (dRu && norm(p.name_ru) === dRu)
+    );
+    if (exact) return exact;
+
+    // 2. Token or Khmer base match (within same category for shared Khmer bases)
+    return candidates.find(p => {
+      const pEnTokens = getTokens(p.name_en);
+      const pRuTokens = getTokens(p.name_ru);
+      const pKhBase = norm((p.name_kh || '').split('(')[0]);
+      const pCat = norm(p.category);
+
+      for (const t of dEnTokens) {
+        if (pEnTokens.includes(t)) return true;
+      }
+      for (const t of dRuTokens) {
+        if (pRuTokens.includes(t)) return true;
+      }
+      if (dKhBase && pKhBase && (dKhBase === pKhBase || dKhBase.includes(pKhBase)) && (!dCat || !pCat || dCat === pCat)) return true;
+      return false;
+    }) || null;
+  }
+
+  detectDatabaseDuplicates(productsList = null) {
+    const products = Array.isArray(productsList) ? productsList : (this.products || []);
+    const norm = (s) => (s || '').toLowerCase().trim();
+    const byEn = new Map();
+    const duplicates = [];
+
+    // Sort so richest record (with photo/price) comes first and is kept
+    const sorted = [...products].sort((a, b) => {
+      const aHasImg = a.img_url && a.img_url.trim() ? 1 : 0;
+      const bHasImg = b.img_url && b.img_url.trim() ? 1 : 0;
+      if (bHasImg !== aHasImg) return bHasImg - aHasImg;
+      const aHasPrice = a.price != null ? 1 : 0;
+      const bHasPrice = b.price != null ? 1 : 0;
+      if (bHasPrice !== aHasPrice) return bHasPrice - aHasPrice;
+      return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+    });
+
+    sorted.forEach(p => {
+      const key = norm(p.name_en) || norm(p.name_ru);
+      if (!key) return;
+      if (byEn.has(key)) {
+        duplicates.push({ duplicate: p, primary: byEn.get(key) });
+      } else {
+        byEn.set(key, p);
       }
     });
 
+    return duplicates;
+  }
+
+  async auditDictionaryConsistency(reloadFromDisk = true) {
+    if (!this.dictSyncReportBox) return;
+
+    // Reload local dictionary fresh from disk unless a custom file was imported in this session
+    if (reloadFromDisk && !this.hasImportedCustomDictFile) {
+      await loadProduceDictionary();
+    }
+
+    const products = this.products || [];
+    const dictItems = Array.isArray(PRODUCE_DICTIONARY) ? PRODUCE_DICTIONARY : [];
+    const totalDb = products.length;
+    const totalDict = dictItems.length;
+
+    const matchedIds = new Set();
+    const missingInDb = [];
+    const discrepancies = [];
+
+    dictItems.forEach(d => {
+      const dbMatch = this.findDatabaseMatch(d, products, matchedIds);
+      if (!dbMatch) {
+        missingInDb.push(d);
+        return;
+      }
+      matchedIds.add(dbMatch.id);
+
+      const diffs = [];
+      if (d.ru && (!dbMatch.name_ru || dbMatch.name_ru.trim() !== d.ru.trim())) {
+        diffs.push(`RU: «${dbMatch.name_ru || 'пусто'}» → «${d.ru}»`);
+      }
+      if (d.en && (!dbMatch.name_en || dbMatch.name_en.trim() !== d.en.trim())) {
+        diffs.push(`EN: «${dbMatch.name_en || 'пусто'}» → «${d.en}»`);
+      }
+      if (d.cat && dbMatch.category !== d.cat) {
+        diffs.push(`Категория: в базе «${dbMatch.category}» → словарь «${d.cat}»`);
+      }
+      if (d.kh && (!dbMatch.name_kh || dbMatch.name_kh.trim() !== d.kh.trim())) {
+        diffs.push(`Кхмерский: в базе «${dbMatch.name_kh || 'пусто'}» → словарь «${d.kh}»`);
+      }
+      if (d.desc && (!dbMatch.description || !dbMatch.description.trim())) {
+        diffs.push(`Описание: отсутствует в базе`);
+      }
+      if (d.form && (!dbMatch.form || dbMatch.form.trim() !== d.form.trim())) {
+        diffs.push(`Форма: в базе «${dbMatch.form || 'пусто'}» → словарь «${d.form}»`);
+      }
+      if (d.ua && dbMatch.name_ua !== undefined && (!dbMatch.name_ua || dbMatch.name_ua.trim() !== d.ua.trim())) {
+        diffs.push(`UA: «${dbMatch.name_ua || 'пусто'}» → «${d.ua}»`);
+      }
+      if (d.fr && dbMatch.name_fr !== undefined && (!dbMatch.name_fr || dbMatch.name_fr.trim() !== d.fr.trim())) {
+        diffs.push(`FR: «${dbMatch.name_fr || 'пусто'}» → «${d.fr}»`);
+      }
+
+      if (diffs.length > 0) {
+        discrepancies.push({ product: dbMatch, match: d, diffs });
+      }
+    });
+
+    const dbDuplicates = this.detectDatabaseDuplicates(products);
+    const dupIds = new Set(dbDuplicates.map(x => x.duplicate.id));
+    const missingInDict = products.filter(p => !matchedIds.has(p.id) && !dupIds.has(p.id) && !this.findDictionaryMatch(p));
+
+    const matchedCount = matchedIds.size;
+    const isClean = missingInDb.length === 0 && discrepancies.length === 0 && dbDuplicates.length === 0 && missingInDict.length === 0;
+
     if (this.dictSyncMatchBadge) {
-      this.dictSyncMatchBadge.textContent = `${matchedCount} / ${totalDb} в базе`;
-      this.dictSyncMatchBadge.className = discrepancies.length === 0 ? 'badge badge-success' : 'badge badge-warning';
+      this.dictSyncMatchBadge.textContent = `${matchedCount} / ${totalDict} из словаря (в базе: ${totalDb})`;
+      this.dictSyncMatchBadge.className = isClean ? 'badge badge-success' : 'badge badge-warning';
     }
 
     this.dictSyncReportBox.style.display = 'block';
 
-    if (discrepancies.length === 0 && missingInDict.length === 0) {
+    if (isClean) {
       this.dictSyncReportBox.innerHTML = `
         <div style="color: var(--accent-emerald, #10b981); font-weight: 600; margin-bottom: 4px;">
-          Все товары в базе (${totalDb}) полностью консистентны со словарём!
+          База данных (${totalDb}) и эталонный словарь (${totalDict}) синхронизированы на 100%!
         </div>
         <div style="color: var(--text-secondary);">
-          Категории, кхмерские транскрипции, описания и формы совпадают с эталонным фондом.
+          Дубликатов нет, все позиции словаря присутствуют в базе, категории и переводы совпадают.
         </div>
       `;
-      this.showToast('✅ Сверка завершена: 100% консистентность', 'success');
+      this.showToast('✅ Сверка завершена: 100% синхронизация', 'success');
       return;
     }
 
     let reportHtml = `
-      <div style="margin-bottom: 8px;">
-        <strong>Результат сверки:</strong> Совпало <strong>${matchedCount} / ${totalDb}</strong> товаров.
-        ${discrepancies.length > 0 ? `<span style="color: var(--accent-orange, #f59e0b);">Расхождений для уточнения: ${discrepancies.length}.</span>` : ''}
-        ${missingInDict.length > 0 ? `<span style="color: var(--accent-coral, #ef4444);">Нет в словаре: ${missingInDict.length}.</span>` : ''}
+      <div style="margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 10px;">
+        <span><strong>В словаре:</strong> ${totalDict}</span>
+        <span><strong>В базе:</strong> ${totalDb}</span>
+        <span><strong>Совпало:</strong> ${matchedCount}</span>
+        ${missingInDb.length > 0 ? `<span style="color: var(--accent-emerald, #10b981); font-weight: 600;">Новых из словаря к добавлению в базу: ${missingInDb.length}</span>` : ''}
+        ${discrepancies.length > 0 ? `<span style="color: var(--accent-orange, #f59e0b); font-weight: 600;">К обновлению полей: ${discrepancies.length}</span>` : ''}
+        ${dbDuplicates.length > 0 ? `<span style="color: var(--accent-coral, #ef4444); font-weight: 600;">Дубликатов в базе: ${dbDuplicates.length}</span>` : ''}
       </div>
     `;
 
-    if (discrepancies.length > 0) {
-      reportHtml += `<div style="font-weight: 600; margin-bottom: 4px;">Расхождения по полям:</div><ul style="margin: 0 0 8px 18px; padding: 0;">`;
-      discrepancies.forEach(({ product, diffs }) => {
-        reportHtml += `<li style="margin-bottom: 4px;"><strong>${this.escapeHtml(product.name_ru || product.name_en)}</strong>: ${diffs.map(d => this.escapeHtml(d)).join('; ')}</li>`;
+    if (missingInDb.length > 0) {
+      const previewList = missingInDb.slice(0, 12).map(d => `${this.escapeHtml(d.ru)} (${this.escapeHtml(d.en)})`).join(', ');
+      const moreCount = missingInDb.length > 12 ? ` и ещё ${missingInDb.length - 12}...` : '';
+      reportHtml += `
+        <div style="margin-bottom: 6px;">
+          <strong>Отсутствуют в базе (${missingInDb.length} поз.):</strong>
+          <span style="color: var(--text-secondary);">${previewList}${moreCount}</span>
+        </div>
+      `;
+    }
+
+    if (dbDuplicates.length > 0) {
+      reportHtml += `<div style="font-weight: 600; margin-bottom: 4px; color: var(--accent-coral, #ef4444);">Дубликаты в базе (будут объединены):</div><ul style="margin: 0 0 8px 18px; padding: 0;">`;
+      dbDuplicates.forEach(({ duplicate }) => {
+        reportHtml += `<li>${this.escapeHtml(duplicate.name_ru || duplicate.name_en)} (ID: ${this.escapeHtml(duplicate.id)})</li>`;
       });
       reportHtml += `</ul>`;
     }
 
+    if (discrepancies.length > 0) {
+      reportHtml += `<div style="font-weight: 600; margin-bottom: 4px;">Расхождения по полям (${discrepancies.length}):</div><ul style="margin: 0 0 8px 18px; padding: 0;">`;
+      discrepancies.slice(0, 15).forEach(({ product, diffs }) => {
+        reportHtml += `<li style="margin-bottom: 3px;"><strong>${this.escapeHtml(product.name_ru || product.name_en)}</strong>: ${diffs.map(d => this.escapeHtml(d)).join('; ')}</li>`;
+      });
+      if (discrepancies.length > 15) {
+        reportHtml += `<li><em>...и ещё ${discrepancies.length - 15} поз.</em></li>`;
+      }
+      reportHtml += `</ul>`;
+    }
+
     if (missingInDict.length > 0) {
-      reportHtml += `<div style="font-weight: 600; margin-bottom: 4px;">Товары из базы, отсутствующие в словаре:</div><ul style="margin: 0 0 8px 18px; padding: 0;">`;
+      reportHtml += `<div style="font-weight: 600; margin-bottom: 4px;">Товары в базе, отсутствующие в локальном словаре (${missingInDict.length}):</div><ul style="margin: 0 0 4px 18px; padding: 0;">`;
       missingInDict.forEach(p => {
         reportHtml += `<li>${this.escapeHtml(p.name_ru || p.name_en)} (${this.escapeHtml(p.category || 'other')})</li>`;
       });
@@ -3474,63 +3652,10 @@ class App {
     }
 
     this.dictSyncReportBox.innerHTML = reportHtml;
-    this.showToast(`⚠️ Найдено ${discrepancies.length} расхождений для синхронизации`, 'warning');
+    this.showToast(`ℹ️ Готово к синхронизации: +${missingInDb.length} новых, ~${discrepancies.length} обновлений`, 'info');
   }
 
-  async syncDatabaseFromDictionary() {
-    const products = this.products || [];
-    if (products.length === 0) {
-      this.showToast('ℹ️ В каталоге нет товаров для синхронизации', 'info');
-      return;
-    }
-
-    // Determine what to update
-    const updates = [];
-    products.forEach(p => {
-      const match = this.findDictionaryMatch(p);
-      if (!match) return;
-
-      const fields = {};
-      // 1. Category
-      if (match.cat && p.category !== match.cat) {
-        fields.category = match.cat;
-      }
-      // 2. Khmer script / transcription
-      if (match.kh && (!p.name_kh || p.name_kh.trim() !== match.kh.trim())) {
-        fields.name_kh = match.kh;
-      }
-      // 3. Description
-      if (match.desc && (!p.description || p.description.trim() !== match.desc.trim())) {
-        if (!p.description) {
-          fields.description = match.desc;
-        }
-      }
-      // 4. Form
-      if (match.form && (!p.form || p.form.trim() !== match.form.trim())) {
-        fields.form = match.form;
-      }
-
-      if (Object.keys(fields).length > 0) {
-        updates.push({ product: p, fields });
-      }
-    });
-
-    if (updates.length === 0) {
-      this.showToast('ℹ️ База уже полностью актуализирована по словарю', 'info');
-      if (this.dictSyncReportBox) {
-        this.dictSyncReportBox.style.display = 'block';
-        this.dictSyncReportBox.innerHTML = `
-          <div style="color: var(--accent-emerald, #10b981); font-weight: 600;">
-            Все товары в базе (${products.length}) уже синхронизированы со словарём!
-          </div>
-        `;
-      }
-      return;
-    }
-
-    const confirmMsg = `Синхронизировать ${updates.length} позиций в Supabase по эталону словаря?`;
-    if (!confirm(confirmMsg)) return;
-
+  async syncDatabaseFromDictionary(reloadFromDisk = true) {
     const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
     const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
     const sbUrl = localStorage.getItem('freshmarket_supabase_url') || fallbackUrl;
@@ -3542,23 +3667,168 @@ class App {
       return;
     }
 
-    let successCount = 0;
-    const errors = [];
     const btn = this.btnSyncDbFromDict;
     if (btn) btn.classList.add('loading');
 
     try {
-      for (const { product, fields } of updates) {
-        try {
-          await adapter.update(product.id, fields);
-          Object.assign(product, fields);
-          successCount++;
-        } catch (err) {
-          console.error(`[Sync] Failed to update product ${product.id}:`, err);
-          errors.push(`${product.name_ru || product.name_en}: ${err.message || err}`);
+      // 1. Reload fresh dictionary from disk (unless custom file imported) and fresh products from Supabase
+      if (reloadFromDisk && !this.hasImportedCustomDictFile) {
+        await loadProduceDictionary();
+      }
+      const liveProducts = await adapter.getAll();
+      this.products = liveProducts;
+
+      const dictItems = Array.isArray(PRODUCE_DICTIONARY) ? PRODUCE_DICTIONARY : [];
+      if (dictItems.length === 0) {
+        this.showToast('❌ Словарь пуст или не загружен', 'error');
+        return;
+      }
+
+      // 2. Analyze differences and duplicates
+      const dbDuplicates = this.detectDatabaseDuplicates(liveProducts);
+      const dupIds = new Set(dbDuplicates.map(x => x.duplicate.id));
+      const cleanProducts = liveProducts.filter(p => !dupIds.has(p.id));
+
+      const matchedIds = new Set();
+      const toInsert = [];
+      const toUpdate = [];
+
+      dictItems.forEach(d => {
+        const dbMatch = this.findDatabaseMatch(d, cleanProducts, matchedIds);
+        if (!dbMatch) {
+          toInsert.push(d);
+          return;
+        }
+        matchedIds.add(dbMatch.id);
+
+        const fields = {};
+        if (d.ru && (!dbMatch.name_ru || dbMatch.name_ru.trim() !== d.ru.trim())) {
+          fields.name_ru = d.ru;
+        }
+        if (d.en && (!dbMatch.name_en || dbMatch.name_en.trim() !== d.en.trim())) {
+          fields.name_en = d.en;
+        }
+        if (d.cat && dbMatch.category !== d.cat) {
+          fields.category = d.cat;
+        }
+        if (d.kh && (!dbMatch.name_kh || dbMatch.name_kh.trim() !== d.kh.trim())) {
+          fields.name_kh = d.kh;
+        }
+        if (d.desc && (!dbMatch.description || !dbMatch.description.trim())) {
+          fields.description = d.desc;
+        }
+        if (d.form && (!dbMatch.form || dbMatch.form.trim() !== d.form.trim())) {
+          fields.form = d.form;
+        }
+        if (d.ua && dbMatch.name_ua !== undefined && (!dbMatch.name_ua || dbMatch.name_ua.trim() !== d.ua.trim())) {
+          fields.name_ua = d.ua;
+        }
+        if (d.fr && dbMatch.name_fr !== undefined && (!dbMatch.name_fr || dbMatch.name_fr.trim() !== d.fr.trim())) {
+          fields.name_fr = d.fr;
+        }
+
+        if (Object.keys(fields).length > 0) {
+          toUpdate.push({ product: dbMatch, fields });
+        }
+      });
+
+      if (toInsert.length === 0 && toUpdate.length === 0 && dbDuplicates.length === 0) {
+        this.showToast('✅ База уже на 100% синхронизирована со словарём', 'success');
+        await this.auditDictionaryConsistency();
+        return;
+      }
+
+      const confirmParts = [];
+      if (toInsert.length > 0) confirmParts.push(`• Добавить новых товаров из словаря: ${toInsert.length}`);
+      if (toUpdate.length > 0) confirmParts.push(`• Обновить поля существующих товаров (без потери цен и фото): ${toUpdate.length}`);
+      if (dbDuplicates.length > 0) confirmParts.push(`• Очистить дубликаты в базе: ${dbDuplicates.length}`);
+
+      const confirmMsg = `Выполнить синхронизацию базы Supabase со словарём (${dictItems.length} поз.)?\n\n${confirmParts.join('\n')}`;
+      if (!confirm(confirmMsg)) return;
+
+      let insertedCount = 0;
+      let updatedCount = 0;
+      let dedupCount = 0;
+      const errors = [];
+
+      // 3. Try atomic server-side RPC first (fastest, 1 transaction)
+      let rpcSucceeded = false;
+      try {
+        const rpcRes = await adapter.syncFromDictionaryRpc(dictItems);
+        if (rpcRes && rpcRes.success) {
+          rpcSucceeded = true;
+          insertedCount = Number(rpcRes.inserted || 0);
+          updatedCount = Number(rpcRes.updated || 0);
+          dedupCount = Number(rpcRes.deduplicated || 0);
+        }
+      } catch (rpcErr) {
+        console.warn('[Sync] Server RPC fallback to REST batch sync:', rpcErr.message || rpcErr);
+      }
+
+      // 4. Fallback to REST API if RPC is not yet installed in DB
+      if (!rpcSucceeded) {
+        // 4a. Remove duplicate rows
+        for (const { duplicate } of dbDuplicates) {
+          try {
+            await adapter.delete(duplicate.id);
+            dedupCount++;
+          } catch (err) {
+            errors.push(`Удаление дубликата ${duplicate.name_en}: ${err.message || err}`);
+          }
+        }
+
+        // 4b. Update existing products
+        for (const { product, fields } of toUpdate) {
+          try {
+            await adapter.update(product.id, fields);
+            updatedCount++;
+          } catch (err) {
+            // Retry without name_ua/name_fr if columns were not migrated yet
+            const safeFields = { ...fields };
+            delete safeFields.name_ua;
+            delete safeFields.name_fr;
+            if (Object.keys(safeFields).length > 0) {
+              try {
+                await adapter.update(product.id, safeFields);
+                updatedCount++;
+              } catch (err2) {
+                errors.push(`Обновление ${product.name_ru || product.name_en}: ${err2.message || err2}`);
+              }
+            }
+          }
+        }
+
+        // 4c. Batch insert missing products in chunks of 50
+        if (toInsert.length > 0) {
+          const chunkSize = 50;
+          for (let i = 0; i < toInsert.length; i += chunkSize) {
+            const chunk = toInsert.slice(i, i + chunkSize).map(d => ({
+              id: generateUUID(),
+              name_ru: (d.ru || '').trim(),
+              name_en: (d.en || '').trim(),
+              name_kh: (d.kh || '').trim(),
+              category: (d.cat || 'other').trim(),
+              form: (d.form || 'Целый').trim(),
+              description: (d.desc || '').trim(),
+              img_url: d.img_url && d.img_url.trim() ? d.img_url.trim() : null,
+              price: null,
+              unit: '1 кг',
+              price_currency: 'KHR',
+              created_at: new Date().toISOString()
+            }));
+            try {
+              const created = await adapter.createBatch(chunk);
+              insertedCount += Array.isArray(created) ? created.length : chunk.length;
+            } catch (err) {
+              errors.push(`Пакетная вставка (${i + 1}..${i + chunk.length}): ${err.message || err}`);
+            }
+          }
         }
       }
 
+      // 5. Reload updated catalog from Supabase and refresh UI
+      this.products = await adapter.getAll();
+      this.saveData();
       this.renderProductsList();
       this.renderCategoriesGrid();
       this.renderCategoryStatsBreakdown();
@@ -3566,23 +3836,67 @@ class App {
       this.renderSettingsDictionary();
 
       if (this.dictSyncMatchBadge) {
-        this.dictSyncMatchBadge.textContent = `${products.length} / ${products.length} в базе`;
-        this.dictSyncMatchBadge.className = 'badge badge-success';
+        this.dictSyncMatchBadge.textContent = `${this.products.length} / ${dictItems.length} в базе`;
+        this.dictSyncMatchBadge.className = errors.length === 0 ? 'badge badge-success' : 'badge badge-warning';
       }
 
       if (this.dictSyncReportBox) {
         this.dictSyncReportBox.style.display = 'block';
         this.dictSyncReportBox.innerHTML = `
           <div style="color: var(--accent-emerald, #10b981); font-weight: 600; margin-bottom: 4px;">
-            Успешно синхронизировано ${successCount} из ${updates.length} товаров в Supabase!
+            Синхронизация завершена! Всего товаров в базе: ${this.products.length}.
           </div>
-          ${errors.length > 0 ? `<div style="color: var(--accent-coral, #ef4444); margin-top: 4px;">Ошибки: ${errors.join('; ')}</div>` : ''}
+          <div style="color: var(--text-secondary);">
+            Добавлено новых: <strong>${insertedCount}</strong> • Обновлено существующих: <strong>${updatedCount}</strong>${dedupCount > 0 ? ` • Очищено дубликатов: <strong>${dedupCount}</strong>` : ''}
+          </div>
+          ${errors.length > 0 ? `<div style="color: var(--accent-coral, #ef4444); margin-top: 6px;">Ошибки: ${this.escapeHtml(errors.join('; '))}</div>` : ''}
         `;
       }
 
-      this.showToast(`✅ Синхронизировано товаров: ${successCount}`, 'success');
+      this.showToast(`✅ База синхронизирована (+${insertedCount} новых, ~${updatedCount} обновл.)`, 'success');
+    } catch (err) {
+      console.error('[Sync] Error syncing database from dictionary:', err);
+      this.showToast(`❌ Ошибка синхронизации: ${err.message || err}`, 'error');
     } finally {
       if (btn) btn.classList.remove('loading');
+    }
+  }
+
+  async importDictionaryJson(file) {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      let loadedItems = [];
+
+      if (Array.isArray(data)) {
+        loadedItems = data;
+        PRODUCE_DICTIONARY_SECTIONS = { core: data, from_database: [] };
+      } else if (data && typeof data === 'object') {
+        const core = Array.isArray(data.core) ? data.core : [];
+        const fromDb = Array.isArray(data.from_database) ? data.from_database : [];
+        PRODUCE_DICTIONARY_SECTIONS = { core, from_database: fromDb };
+        loadedItems = [...core, ...fromDb];
+      }
+
+      if (loadedItems.length === 0) {
+        this.showToast('❌ Выбранный JSON-файл не содержит записей словаря', 'error');
+        return;
+      }
+
+      PRODUCE_DICTIONARY = loadedItems;
+      window.PRODUCE_DICTIONARY = PRODUCE_DICTIONARY;
+      window.PRODUCE_DICTIONARY_SECTIONS = PRODUCE_DICTIONARY_SECTIONS;
+      this.hasImportedCustomDictFile = true;
+
+      this.updateStats();
+      this.renderSettingsDictionary();
+      await this.auditDictionaryConsistency(false);
+      this.showToast(`✅ Загружен словарь из файла: ${loadedItems.length} поз.`, 'success');
+
+      await this.syncDatabaseFromDictionary(false);
+    } catch (err) {
+      console.error('[Sync] Error importing dictionary JSON:', err);
+      this.showToast(`❌ Ошибка чтения JSON-файла: ${err.message || err}`, 'error');
     }
   }
 
@@ -3728,6 +4042,27 @@ class App {
         (p.description && p.description.toLowerCase().includes(this.searchQuery))
       );
     }
+
+    // Sort alphabetically according to the active UI language
+    const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
+    const collatorLocale = currentLang === 'ua' || currentLang === 'uk'
+      ? 'uk'
+      : currentLang === 'km'
+        ? 'km'
+        : currentLang === 'fr'
+          ? 'fr'
+          : currentLang === 'en'
+            ? 'en'
+            : 'ru';
+    const collator = new Intl.Collator(collatorLocale, { sensitivity: 'base', numeric: true });
+    const getSortName = (item) => {
+      if (currentLang === 'en') return (item.name_en || item.name_ru || '').trim();
+      if (currentLang === 'km') return (item.name_kh || item.name_en || '').trim();
+      if (currentLang === 'fr') return (item.name_fr || item.name_en || item.name_ru || '').trim();
+      if (currentLang === 'ua' || currentLang === 'uk') return (item.name_ua || item.name_ru || '').trim();
+      return (item.name_ru || item.name_en || '').trim();
+    };
+    list = [...list].sort((a, b) => collator.compare(getSortName(a), getSortName(b)));
 
     this.productsGrid.innerHTML = '';
 

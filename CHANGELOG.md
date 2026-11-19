@@ -1467,6 +1467,22 @@ flowchart TD
   * **Исправление схемы позиций в create_order:**
     * В процедуре `create_order` скорректированы имена колонок для вставки в `order_items` (`product_title`, `product_name_ru`, `product_name_en`, `product_name_kh`, `product_category`, `product_form`, `product_img_url`, `requested_qty`, `actual_cost`), что полностью устранило ошибку сбоя синхронизации заказов с базой данных.
   * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.35` (`shop.html` `v=1.5.35`).
+* [x] **Полная синхронизация удалённой базы со словарём продуктов, нормализация «Существительное на первом месте» и алфавитная сортировка на 5 языках (v1.5.37 Shop & Admin):**
+  * **Нормализация названий по принципу «Главное существительное на первом месте» (`data/products_dictionary.json`):**
+    * Все 215 позиций словаря на 5 языках (`ru`, `en`, `kh`, `ua`, `fr`) приведены к единому порядку слов, где главное существительное стоит первым словом (`Onion`, `Onion Green / Spring Onion`, `Onion Red`, `Onion Shallot`; `Mango Green / Ripe`; `Papaya Green / Ripe`; `Pepper Black / White / Red / Chili / Green`; `Rice Jasmine / Sticky / Red / Cooked / Uncooked`; `Sauce Soy / Fish / Oyster / Chili / Hoisin / Sriracha`; `Crab ...`; `Shrimp ...`; `Fish ...`; `Pork ...`; `Chicken ...`; `Tofu Fresh / Egg`; `Beans ...` и др.), обеспечивая группировку однотипных товаров при алфавитной сортировке на любом языке.
+  * **Серверная миграция и RPC-функция (`supabase/migrations/20261119000000_sync_dictionary_to_products.sql`):**
+    * Таблица `public.products` расширена мультиязычными колонками `name_ua` и `name_fr`.
+    * Создана идемпотентная транзакционная RPC-функция `public.sync_products_from_dictionary(p_items JSONB)` с автоматическим распознаванием и очисткой дубликатов (с перепривязкой `order_items.product_id`), обогащением и переименованием существующих товаров без потери их `id`, цен, фотографий и развёрнутых описаний, а также пакетной вставкой всех недостающих товаров из словаря.
+    * В скрипт миграции включён полный посев всех 215 товаров из `data/products_dictionary.json`.
+  * **Алфавитная сортировка продуктов на каждом языке (`js/shop.js`, `admin/js/admin-catalog.js`):**
+    * В методе `renderProducts()` клиентской витрины внедрена динамическая сортировка через `Intl.Collator(collatorLocale, { sensitivity: 'base', numeric: true })` по названию товара на активном языке интерфейса (`ru` → `'ru'`, `en` → `'en'`, `km` → `'km'`, `fr` → `'fr'`, `ua` → `'uk'`).
+    * Метод `enrichProductsWithDict()` в `js/shop.js` синхронизирует канонические имена всех 5 языков из эталонного словаря при загрузке витрины.
+    * В админ-панели закупщика алфавитная сортировка по активному языку внедрена в `renderProductsList()` и `renderSettingsDictionary()`.
+  * **Инструмент последующей синхронизации в админ-панели (`admin/index.html`, `admin/js/admin-catalog.js`):**
+    * При вызове сверки или синхронизации локальный файл `data/products_dictionary.json` перезагружается с диска в обход браузерного кэша (`cache: 'no-store'`), чтобы мгновенно подхватывать локальные изменения.
+    * Добавлена кнопка «Импорт словаря» (`#btnImportDictJson`) для загрузки любого внешнего/отредактированного файла `products_dictionary.json` и его синхронизации с базой.
+    * Обновлены методы `auditDictionaryConsistency()` и `syncDatabaseFromDictionary()`: двусторонняя сверка (отсутствующие в базе позиции словаря, расхождения полей, дубликаты в базе) и атомарная синхронизация через RPC `sync_products_from_dictionary` с автоматическим резервным пакетным режимом (`createBatch`).
+  * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.37` (`shop.html` `v=1.5.37`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.37` (`admin/index.html` `v=1.5.37`).
 
 
 
