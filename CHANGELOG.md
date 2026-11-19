@@ -1490,6 +1490,9 @@ flowchart TD
     * Подстрочное совпадение кхмерской основы заменено на точное сравнение токенов (`split_part`), исключив пересечение коротких основ с составными названиями (`ម្សៅអង្ករ` vs `ម្សៅអង្ករដំណើប` и `សាច់ក្តាម` vs `សាច់ក្តាមកំប៉ុង`).
     * В процедуру `sync_products_from_dictionary` и клиентский обогатитель `enrichProductsWithDict` добавлена дедубликация по паре `(category, name_kh)`, приводящая каталог строго к 215 уникальным позициям словаря.
   * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.38` (`shop.html` `v=1.5.38`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.38` (`admin/index.html` `v=1.5.38`).
+* [x] **Разделение кхмерских наименований красного репчатого лука и лука-шалота (v1.5.39 Shop & Admin):**
+  * В `data/products_dictionary.json` и `supabase/migrations/20261119000000_sync_dictionary_to_products.sql` разведены кхмерские названия для `Onion Red` («Лук красный» → `ខ្ទឹមបារាំងក្រហម (Khtoem Barang Krahom)`) и `Onion Shallot / Shallots` («Лук-шалот» → `ខ្ទឹមក្រហម (Khtoem Krahom)`), обеспечив 100% уникальность кхмерских названий по всем 215 позициям словаря.
+  * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.39` (`shop.html` `v=1.5.39`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.39` (`admin/index.html` `v=1.5.39`).
 
 
 
