@@ -685,6 +685,35 @@
   gap: 12px;
 }
 
+/* Showcase Grid override (1 or 2 Columns) */
+.products-grid.shop-products-grid,
+.shop-products-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.products-grid.shop-products-grid.layout-grid-1,
+.shop-products-grid.layout-grid-1 {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+}
+
+.products-grid.shop-products-grid.layout-grid-2,
+.shop-products-grid.layout-grid-2 {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.shop-products-grid .shop-product-card {
+  padding: 10px;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .swipe-container {
   position: relative;
   overflow: hidden;
@@ -869,3 +898,104 @@
   margin-top: 14px;
   letter-spacing: 0.2px;
 }
+
+/* ==========================================================================
+   Admin Products Toolbar & Layout Switcher
+   ========================================================================== */
+.admin-products-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 12px 0;
+  padding: 0 4px;
+}
+
+.admin-products-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.1px;
+}
+
+.admin-layout-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.layout-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layout-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.layout-toggle-btn.active {
+  background: var(--bg-input);
+  color: var(--primary);
+}
+
+/* ==========================================================================
+   Admin Product Card in Shop Grid (Edit Action Button)
+   ========================================================================== */
+.shop-product-card.admin-product-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.shop-product-card.admin-product-card:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.shop-product-card.admin-product-card:active {
+  transform: scale(0.98);
+}
+
+.shop-product-card .card-btn-edit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  z-index: 23;
+}
+
+.shop-product-card .card-btn-edit:hover {
+  transform: scale(1.1);
+  background: #ffffff;
+  border-color: var(--primary, #10b981);
+}
+
+.shop-product-card .card-btn-edit:active {
+  transform: scale(0.92);
+}
+

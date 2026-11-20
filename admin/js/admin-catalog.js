@@ -864,6 +864,7 @@ class App {
     this.searchQuery = '';
     this.currentMainView = 'viewCatalog';
     this.activeCatalogTab = 'categories';
+    this.adminLayout = localStorage.getItem('freshmarket_admin_products_layout') || 'grid-2';
     this.selectedCategory = CATEGORIES[0].name;
     this.selectedForm = FORMS[0].label;
     this.currentImageBase64 = '';
@@ -880,6 +881,7 @@ class App {
     this.renderFormChips();
     this.renderCategoryFilterPills();
     this.renderCategoriesGrid();
+    this.initLayoutSwitcher();
     this.loadData();
     this.initServiceWorker();
     this.renderAppVersion();
@@ -1088,6 +1090,11 @@ class App {
     this.searchClearBtn = document.getElementById('searchClearBtn');
     this.categoryFilterPills = document.getElementById('categoryFilterPills');
     this.productsGrid = document.getElementById('productsGrid');
+    this.adminProductsToolbar = document.getElementById('adminProductsToolbar');
+    this.adminProductsCount = document.getElementById('adminProductsCount');
+    this.adminLayoutSwitcher = document.getElementById('adminLayoutSwitcher');
+    this.btnLayoutList = document.getElementById('btnLayoutList');
+    this.btnLayoutGrid = document.getElementById('btnLayoutGrid');
     this.emptyState = document.getElementById('emptyState');
     this.btnEmptyGoAdd = document.getElementById('btnEmptyGoAdd');
 
@@ -1189,6 +1196,14 @@ class App {
     }
     if (this.adminTabBtnProducts) {
       this.adminTabBtnProducts.addEventListener('click', () => this.setCatalogTab('products'));
+    }
+
+    // Product List Layout Switcher (1 Column vs 2 Columns)
+    if (this.btnLayoutList) {
+      this.btnLayoutList.addEventListener('click', () => this.setAdminLayout('grid-1'));
+    }
+    if (this.btnLayoutGrid) {
+      this.btnLayoutGrid.addEventListener('click', () => this.setAdminLayout('grid-2'));
     }
 
     // Floating Action Button (FAB) Add Product
@@ -1528,6 +1543,34 @@ class App {
       this.renderCategoriesGrid();
     } else if (tabName === 'products') {
       this.renderProductsList();
+    }
+  }
+
+  initLayoutSwitcher() {
+    this.adminLayout = localStorage.getItem('freshmarket_admin_products_layout') || 'grid-2';
+    this.applyAdminLayout(this.adminLayout);
+  }
+
+  setAdminLayout(layout) {
+    this.adminLayout = layout;
+    localStorage.setItem('freshmarket_admin_products_layout', layout);
+    this.closeAllSwipes();
+    this.applyAdminLayout(layout);
+  }
+
+  applyAdminLayout(layout) {
+    if (this.productsGrid) {
+      this.productsGrid.classList.remove('layout-grid-1', 'layout-grid-2');
+      this.productsGrid.classList.add(layout === 'grid-1' ? 'layout-grid-1' : 'layout-grid-2');
+    }
+    if (this.btnLayoutGrid && this.btnLayoutList) {
+      if (layout === 'grid-2') {
+        this.btnLayoutGrid.classList.add('active');
+        this.btnLayoutList.classList.remove('active');
+      } else {
+        this.btnLayoutList.classList.add('active');
+        this.btnLayoutGrid.classList.remove('active');
+      }
     }
   }
 
@@ -4071,118 +4114,88 @@ class App {
     };
     list = [...list].sort((a, b) => collator.compare(getSortName(a), getSortName(b)));
 
+    if (this.adminProductsCount) {
+      this.adminProductsCount.textContent = `Товаров: ${list.length}`;
+    }
+
+    this.applyAdminLayout(this.adminLayout);
     this.productsGrid.innerHTML = '';
 
     if (list.length === 0) {
       this.emptyState.style.display = 'flex';
+      if (this.adminProductsToolbar) {
+        this.adminProductsToolbar.style.display = 'none';
+      }
       return;
     }
 
     this.emptyState.style.display = 'none';
+    if (this.adminProductsToolbar) {
+      this.adminProductsToolbar.style.display = 'flex';
+    }
 
     list.forEach(item => {
-      const container = document.createElement('div');
-      container.className = 'swipe-container';
-      container.setAttribute('data-id', item.id);
-
       const catObj = CATEGORIES.find(c => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
       const catImg = catObj && catObj.img ? `../${catObj.img}` : null;
+      const catId = catObj ? catObj.id : (item.category || 'other');
+      const catName = catObj ? catObj.name : item.category;
+      const formInfo = getFormInfo(item.form);
 
-      container.innerHTML = `
-        <!-- Underlay Action Buttons (Revealed on Swipe Left) -->
-        <div class="swipe-actions-underlay">
-          <button type="button" class="swipe-action-btn btn-swipe-edit" title="Редактировать" data-id="${item.id}">
-            <span class="swipe-icon">✏️</span>
-          </button>
-          <button type="button" class="swipe-action-btn btn-swipe-delete" title="Удалить" data-id="${item.id}" data-name="${this.escapeHtml(item.name_en)}">
-            <span class="swipe-icon">🗑️</span>
-          </button>
-        </div>
+      const card = document.createElement('div');
+      card.className = 'product-card shop-product-card admin-product-card';
+      card.setAttribute('data-id', item.id);
 
-        <!-- Main Card Content Surface -->
-        <div class="swipe-card-content product-card">
-          <div class="card-names-block">
-            <!-- Header with prominent EN Name and Minimalist Collapse Arrow -->
-            <div class="card-header-row">
-              <div class="card-name-en">${this.escapeHtml(item.name_en)}</div>
-              <button type="button" class="btn-card-toggle" title="Свернуть / Развернуть" aria-label="Свернуть / Развернуть">
-                <svg class="toggle-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-            </div>
-
-            ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
-            <div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>
-          </div>
-
-          <div class="card-collapsible-body">
-            <!-- Badges (Category & Form - hidden in collapsed state) -->
-            <div class="card-badges">
-              <span class="badge badge-category" data-cat-id="${catObj ? catObj.id : ''}">
-                ${catImg ? `<img src="${catImg}" class="badge-cat-brand-img" alt="${this.escapeHtml(catObj ? catObj.name : item.category)}" loading="lazy" />` : `<span class="badge-cat-icon">${catIcon}</span>`}
-                <span class="badge-cat-name">${this.escapeHtml(catObj ? catObj.name : item.category)}</span>
-              </span>
-              ${(() => {
-                const fInfo = getFormInfo(item.form);
-                if (!fInfo || !fInfo.label) return '';
-                return `<span class="badge badge-form" data-form="${this.escapeHtml(item.form)}" ${fInfo.key ? `data-form-id="${this.escapeHtml(fInfo.key)}"` : ''}>${this.escapeHtml(fInfo.label)}</span>`;
-              })()}
-            </div>
-
+      card.innerHTML = `
+        <!-- 1. Photo Container with Price Badge and Edit Action Button -->
+        <div class="card-slider-viewport">
+          <div class="card-photo-container" data-id="${item.id}" title="Редактировать">
             ${item.img_url ? `
-              <div class="card-photo-container">
-                <img src="${sanitizeUrl(item.img_url)}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
-                ${this.renderPriceBadge(item.price, item.unit)}
-              </div>
+              <img src="${sanitizeUrl(item.img_url)}" class="card-photo-full" alt="${this.escapeHtml(item.name_en)}" loading="lazy" />
             ` : `
-              <div class="card-photo-container" style="display: flex; align-items: center; justify-content: center; font-size: 64px;">
-                ${catImg ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(catObj ? catObj.name : item.category)}" loading="lazy" />` : catIcon}
-                ${this.renderPriceBadge(item.price, item.unit)}
+              <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px;" title="Редактировать">
+                ${catImg ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />` : catIcon}
               </div>
             `}
-
-            ${item.description ? `<div class="card-desc">${this.escapeHtml(item.description)}</div>` : ''}
+            ${this.renderPriceBadge(item.price, item.unit)}
+            <button type="button" class="card-btn-edit" data-id="${item.id}" title="Редактировать" aria-label="Редактировать">
+              ✏️
+            </button>
           </div>
+        </div>
+
+        <!-- 2. Product Names Block -->
+        <div class="card-names-block">
+          <div class="card-header-row">
+            <div class="card-name-title-wrap">
+              <div class="card-name-en card-name-primary">${this.escapeHtml(item.name_en)}</div>
+            </div>
+          </div>
+          ${item.name_kh ? `<div class="card-name-kh khmer-font">${this.escapeHtml(item.name_kh)}</div>` : ''}
+          ${item.name_ru ? `<div class="card-name-ru">${this.escapeHtml(item.name_ru)}</div>` : ''}
+        </div>
+
+        <!-- 3. Badges Block (Category Icon & Form Badge) -->
+        <div class="card-badges">
+          <span class="badge badge-category" data-cat-id="${this.escapeHtml(catId)}" title="${this.escapeHtml(catName)}" aria-label="${this.escapeHtml(catName)}">
+            ${catImg ? `
+              <img src="${catImg}" class="badge-cat-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />
+            ` : `
+              <span class="badge-cat-icon">${catIcon}</span>
+            `}
+            <span class="badge-cat-name">${this.escapeHtml(catName)}</span>
+          </span>
+          ${formInfo && formInfo.label ? `
+            <span class="badge badge-form" ${formInfo.key ? `data-form-id="${this.escapeHtml(formInfo.key)}"` : ''}>${this.escapeHtml(formInfo.label)}</span>
+          ` : ''}
         </div>
       `;
 
-      // Event listeners for underlay action buttons
-      container.querySelector('.btn-swipe-edit').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.closeAllSwipes();
+      card.addEventListener('click', () => {
         this.openEditModal(item);
       });
 
-      container.querySelector('.btn-swipe-delete').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.handleDelete(item.id, item.name_en);
-      });
-
-      // Toggle card collapse / expand via chevron button or clicking .card-names-block
-      const toggleCollapse = (e) => {
-        e.stopPropagation();
-        const cardEl = container.querySelector('.product-card');
-        if (cardEl && !cardEl.classList.contains('swiped-open')) {
-          cardEl.classList.toggle('is-collapsed');
-        }
-      };
-
-      const toggleBtn = container.querySelector('.btn-card-toggle');
-      if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleCollapse);
-      }
-
-      const namesBlock = container.querySelector('.card-names-block');
-      if (namesBlock) {
-        namesBlock.addEventListener('click', toggleCollapse);
-      }
-
-      // Attach Swipe Gesture Handler
-      this.initSwipeGesture(container);
-
-      this.productsGrid.appendChild(container);
+      this.productsGrid.appendChild(card);
     });
   }
 
@@ -4209,6 +4222,7 @@ class App {
     const maxRevealWidth = 110; // width of 2 action buttons
 
     const handleStart = (clientX, clientY) => {
+      if (this.adminLayout === 'grid-2') return;
       this.closeAllSwipes(container);
       startX = clientX;
       startY = clientY;
@@ -4464,8 +4478,9 @@ class App {
             placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять...">${this.escapeHtml(item.description || '')}</textarea>
         </div>
 
-        <!-- FORM ACTIONS (Cancel 1/3 vs Save 2/3) -->
-        <div class="form-actions" style="margin-top:14px;">
+        <!-- FORM ACTIONS (Delete | Cancel | Save) -->
+        <div class="form-actions" style="margin-top:14px; display:flex; gap:8px;">
+          <button type="button" class="btn btn-danger" id="btnDeleteFromEdit" style="margin-right:auto;">🗑️ Удалить</button>
           <button type="button" class="btn btn-secondary" id="btnCancelEdit">Отмена</button>
           <button type="submit" class="btn btn-primary" id="btnSaveEdit">Сохранить</button>
         </div>
@@ -4495,10 +4510,18 @@ class App {
     const editPriceHint = document.getElementById('editPriceHint');
     const editDescription = document.getElementById('editDescription');
     const btnCancelEdit = document.getElementById('btnCancelEdit');
+    const btnDeleteFromEdit = document.getElementById('btnDeleteFromEdit');
 
     if (btnCancelEdit) {
       btnCancelEdit.addEventListener('click', () => {
         this.closeEditModal();
+      });
+    }
+
+    if (btnDeleteFromEdit) {
+      btnDeleteFromEdit.addEventListener('click', () => {
+        this.closeEditModal();
+        this.handleDelete(item.id, item.name_en);
       });
     }
 

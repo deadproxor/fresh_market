@@ -1493,6 +1493,22 @@ flowchart TD
 * [x] **Разделение кхмерских наименований красного репчатого лука и лука-шалота (v1.5.39 Shop & Admin):**
   * В `data/products_dictionary.json` и `supabase/migrations/20261119000000_sync_dictionary_to_products.sql` разведены кхмерские названия для `Onion Red` («Лук красный» → `ខ្ទឹមបារាំងក្រហម (Khtoem Barang Krahom)`) и `Onion Shallot / Shallots` («Лук-шалот» → `ខ្ទឹមក្រហម (Khtoem Krahom)`), обеспечив 100% уникальность кхмерских названий по всем 215 позициям словаря.
   * **Кэширование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.39` (`shop.html` `v=1.5.39`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.39` (`admin/index.html` `v=1.5.39`).
+* [x] **Выбор лайаута (1 колонка / 2 колонки) и эталонные карточки витрины в панели закупщика, принудительный диалог Google Auth (v1.5.41 Shop & Admin):**
+  * **Google OAuth: принудительный выбор аккаунта (`js/shop.js`):**
+    * В метод вызова авторизации `signInWithOAuth` для провайдера Google добавлен параметр `queryParams: { prompt: 'select_account' }`. Это гарантирует появление системного диалога Google «Выберите аккаунт для входа» при авторизации на любых устройствах.
+  * **Тулбар каталога и переключатель видов (`admin/index.html`):**
+    * Вкладка «Все продукты» (`#adminTabViewProducts`) дополнена панелью инструментов `#adminProductsToolbar` со счетчиком отфильтрованных позиций («Товаров: N») и компактным переключателем с эталонными векторными иконками списка (`grid-1`) и сетки (`grid-2`).
+    * По умолчанию установлен режим **2 колонки (`grid-2` / `layout-grid-2`)**; выбранный режим автоматически сохраняется в `localStorage` (`freshmarket_admin_products_layout`) и восстанавливается при перезагрузке страницы.
+  * **Эталонные карточки витрины (`product-card shop-product-card admin-product-card`) и сетка (`css/products.css`, `admin/js/admin-catalog.js`):**
+    * Контейнер `#productsGrid` переведен на компонент витрины: `class="products-grid shop-products-grid layout-grid-2"`.
+    * В `css/products.css` добавлено строгое правило для `.products-grid.shop-products-grid` (`display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;`) и `.layout-grid-1` (`grid-template-columns: 1fr;`), исключающее перебивание flexbox-свойствами.
+    * Карточки каталога админки переведены на эталонную разметку `shop-product-card` из `css/components.css`:
+      * Фиксированный вьюпорт фото с компактным бейджем цены (`card-price-badge`) слева внизу и круглой кнопкой `✏️` (`card-btn-edit`) справа внизу.
+      * Названия товара: EN (`card-name-primary`), KH (`card-name-kh`) и RU (`card-name-ru`).
+      * Бейджи категории (с фирменной иконкой) и формы фасовки (`Whole`, `Paste` и др.).
+    * По тапу на карточку (или кнопку `✏️`) мгновенно открывается окно редактирования (`openEditModal`), в которое добавлена кнопка **«🗑️ Удалить»** для безопасного удаления без свайпа.
+  * **Кэширование и версионирование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.41` (`shop.html` `v=1.5.41`), Service Worker админ-панели повышен до `freshmarket-admin-v1.5.41` (`admin/index.html` `v=1.5.41`).
+
 
 
 

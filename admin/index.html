@@ -25,7 +25,7 @@
 
   <!-- Master Design System, Catalog & Admin Styles -->
   <link rel="stylesheet" href="../css/components.css?v=1.5.32" />
-  <link rel="stylesheet" href="../css/products.css?v=1.5.0" />
+  <link rel="stylesheet" href="../css/products.css?v=1.5.41" />
   <link rel="stylesheet" href="../css/admin.css?v=1.5.32" />
   <script src="../js/shared/branding.js?v=1.5.19"></script>
 </head>
@@ -157,8 +157,29 @@
             </div>
           </div>
 
+          <!-- Products Toolbar: Count & Layout Switcher -->
+          <div class="admin-products-toolbar" id="adminProductsToolbar">
+            <div class="admin-products-count" id="adminProductsCount">Товаров: 0</div>
+            <div class="admin-layout-switcher" id="adminLayoutSwitcher" role="group" aria-label="Вид отображения">
+              <button type="button" class="layout-toggle-btn" id="btnLayoutList" data-layout="grid-1" title="1 колонка" aria-label="1 колонка">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="6" rx="2"></rect>
+                  <rect x="3" y="14" width="18" height="6" rx="2"></rect>
+                </svg>
+              </button>
+              <button type="button" class="layout-toggle-btn active" id="btnLayoutGrid" data-layout="grid-2" title="2 колонки" aria-label="2 колонки">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                  <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                  <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                  <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                </svg>
+              </button>
+            </div>
+          </div>
+
           <!-- Product List Cards Container -->
-          <div class="products-grid" id="productsGrid">
+          <div class="products-grid shop-products-grid layout-grid-2" id="productsGrid">
             <!-- Injected via JS -->
           </div>
 
@@ -937,7 +958,7 @@
   <script src="../js/shared/utils.js?v=1.5.0"></script>
   <script src="../js/shared/categories.js?v=1.5.15"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
-  <script src="js/admin-catalog.js?v=1.5.39"></script>
+  <script src="js/admin-catalog.js?v=1.5.41"></script>
   <script src="js/admin-auth.js?v=1.5.33"></script>
 </body>
 

@@ -4817,7 +4817,10 @@ class ShopApp {
         this.sb.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo
+            redirectTo,
+            queryParams: {
+              prompt: 'select_account'
+            }
           }
         });
       } else {
