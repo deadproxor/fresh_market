@@ -7,7 +7,7 @@
 (function () {
   var h = window.location.hash || '';
   var s = window.location.search || '';
-  if (h.indexOf('access_token') !== -1 || h.indexOf('error') !== -1 || s.indexOf('code=') !== -1) {
+  if (h.indexOf('access_token') !== -1 || h.indexOf('error') !== -1 || s.indexOf('code=') !== -1 || s.indexOf('error=') !== -1) {
     window.location.replace('shop.html' + s + h);
   }
 })();

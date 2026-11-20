@@ -80,16 +80,19 @@ class ShopApp {
     this.currentOrdersTab = 'current';
     this.cachedUserOrders = [];
     this.nightCutoffConfirmed = false;
+    this.isHandlingOAuthCallback = false;
+    this._syncAuthCartPromise = null;
 
     // 0. Synchronous fast recovery of cached customer session and profile
     this.initCachedUser();
 
     this.initSplashScreen();
     this.initDomElements();
+    const hasOAuthParams = this.hasOAuthCallbackParams();
     this.initSupabase();
     this.initEventListeners();
-    this.switchView('catalog');
-    this.initOnboarding();
+    this.switchView(hasOAuthParams ? 'profile' : 'catalog');
+    this.initOnboarding(hasOAuthParams);
     this.loadCatalog();
     this.updateCartUi();
     this.updateHeaderUi();
@@ -113,10 +116,13 @@ class ShopApp {
     }
   }
 
-  t(key, fallback = '') {
+  t(key, fallback = '', params = null) {
     if (window.i18n && window.i18n.isReady && typeof window.i18n.t === 'function') {
-      const val = window.i18n.t(key);
+      const val = window.i18n.t(key, params);
       if (val && val !== key) return val;
+    }
+    if (params && typeof fallback === 'string') {
+      return fallback.replace(/\{(\w+)\}/g, (match, pName) => (params[pName] !== undefined ? params[pName] : match));
     }
     return fallback;
   }
@@ -328,8 +334,57 @@ class ShopApp {
   }
 
   // ------------------------------------------------------------------------
-  // 1. Supabase Initialization
+  // 1. Supabase Initialization & Deterministic OAuth Callback Handling
   // ------------------------------------------------------------------------
+  parseOAuthCallbackParams() {
+    const searchParams = new URLSearchParams(window.location.search || '');
+    const rawHash = (window.location.hash || '').replace(/^#/, '');
+    const hashParams = new URLSearchParams(rawHash);
+
+    const code = searchParams.get('code') || '';
+    const accessToken = hashParams.get('access_token') || '';
+    const refreshToken = hashParams.get('refresh_token') || '';
+    const error = searchParams.get('error') || hashParams.get('error') || '';
+    const errorCode = searchParams.get('error_code') || hashParams.get('error_code') || '';
+    const errorDescription = searchParams.get('error_description') || hashParams.get('error_description') || '';
+
+    return {
+      hasParams: Boolean(code || accessToken || error),
+      code,
+      accessToken,
+      refreshToken,
+      error,
+      errorCode,
+      errorDescription
+    };
+  }
+
+  hasOAuthCallbackParams() {
+    return this.parseOAuthCallbackParams().hasParams;
+  }
+
+  cleanOAuthUrlParams() {
+    try {
+      const url = new URL(window.location.href);
+      ['code', 'state', 'error', 'error_code', 'error_description'].forEach((k) => {
+        url.searchParams.delete(k);
+      });
+      const rawHash = (url.hash || '').replace(/^#/, '');
+      if (
+        rawHash.includes('access_token=') ||
+        rawHash.includes('refresh_token=') ||
+        rawHash.includes('error=') ||
+        rawHash.includes('error_description=')
+      ) {
+        url.hash = '';
+      }
+      const cleanUrl = url.pathname + (url.search ? url.search : '') + (url.hash ? url.hash : '');
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch (err) {
+      console.warn(this.logPrefix, 'Could not clean OAuth URL params:', err);
+    }
+  }
+
   initSupabase() {
     const fallbackUrl = window.FreshMarketConfig?.SUPABASE_URL || '';
     const fallbackKey = window.FreshMarketConfig?.SUPABASE_ANON_KEY || '';
@@ -342,17 +397,18 @@ class ShopApp {
             storageKey: 'freshmarket_customer_auth',
             storage: window.localStorage,
             persistSession: true,
-            autoRefreshToken: true
+            autoRefreshToken: true,
+            detectSessionInUrl: false
           }
         });
 
-        // 1. Explicit immediate session check (handles page reload & cached tokens)
-        this.checkInitialSession();
-        this.loadServiceSettings();
-        this.setupRealtimeServiceSettingsSync();
-
-        // 2. Real-time auth state changes (login, logout, token refresh)
+        // 1. Real-time auth state changes (login, logout, token refresh)
         this.sb.auth.onAuthStateChange(async (event, session) => {
+          // Ignore transient null INITIAL_SESSION while OAuth callback exchange is in flight
+          if (this.isHandlingOAuthCallback && !session) {
+            return;
+          }
+
           this.currentUser = session?.user || null;
           this.updateUserAvatar();
           if (this.currentUser) {
@@ -373,8 +429,113 @@ class ShopApp {
             this.renderCartModalList();
           }
         });
+
+        // 2. Deterministic auth bootstrap: exchange OAuth callback first, else restore session
+        this.bootstrapAuthSession();
+        this.loadServiceSettings();
+        this.setupRealtimeServiceSettingsSync();
       } catch (err) {
         console.warn(this.logPrefix, 'Supabase client init error:', err);
+      }
+    }
+  }
+
+  async bootstrapAuthSession() {
+    if (!this.sb) return;
+    const oauthParams = this.parseOAuthCallbackParams();
+    if (oauthParams.hasParams) {
+      await this.handleOAuthCallback(oauthParams);
+      return;
+    }
+    await this.checkInitialSession();
+  }
+
+  async handleOAuthCallback(oauthParams) {
+    if (!this.sb) return;
+    this.isHandlingOAuthCallback = true;
+
+    try {
+      // 1. Surface any provider / Supabase error from the redirect URL
+      if (oauthParams.error) {
+        const rawErr = oauthParams.errorDescription || oauthParams.errorCode || oauthParams.error;
+        const decodedErr = rawErr.replace(/\+/g, ' ');
+        console.error(this.logPrefix, 'OAuth callback error:', {
+          error: oauthParams.error,
+          errorCode: oauthParams.errorCode,
+          errorDescription: decodedErr
+        });
+        this.cleanOAuthUrlParams();
+        this.showToast(
+          this.t('toasts.auth_failed', '⚠️ Ошибка авторизации: {error}', { error: decodedErr })
+        );
+        this.switchView('profile');
+        return;
+      }
+
+      // 2. Notify user that sign-in is completing
+      this.showToast(this.t('toasts.auth_in_progress', '⏳ Завершение входа...'));
+
+      let authSession = null;
+      let authError = null;
+
+      if (oauthParams.code) {
+        // PKCE flow (?code=...)
+        const res = await this.sb.auth.exchangeCodeForSession(oauthParams.code);
+        authSession = res.data?.session || null;
+        authError = res.error || null;
+      } else if (oauthParams.accessToken) {
+        // Implicit flow (#access_token=...&refresh_token=...)
+        const res = await this.sb.auth.setSession({
+          access_token: oauthParams.accessToken,
+          refresh_token: oauthParams.refreshToken || ''
+        });
+        authSession = res.data?.session || null;
+        authError = res.error || null;
+      }
+
+      // Strip single-use OAuth parameters from address bar
+      this.cleanOAuthUrlParams();
+
+      if (authError || !authSession?.user) {
+        const errDetail = authError?.message || 'Не удалось установить сессию';
+        console.error(this.logPrefix, 'OAuth session exchange failed:', authError);
+        this.showToast(
+          this.t('toasts.auth_failed', '⚠️ Ошибка авторизации: {error}', { error: errDetail })
+        );
+        await this.checkInitialSession();
+        this.switchView('profile');
+        return;
+      }
+
+      // 3. Apply authenticated session & sync profile
+      this.currentUser = authSession.user;
+      this.updateUserAvatar();
+      this.setupRealtimeProfileSync();
+      this.setupRealtimeOrdersSync();
+      await this.loadUserProfileAndSyncCart();
+      this.switchView('profile');
+
+      const userName =
+        this.userProfile?.full_name ||
+        this.currentUser.user_metadata?.full_name ||
+        this.currentUser.user_metadata?.name ||
+        this.currentUser.email ||
+        '';
+      const baseWelcome = this.t('toasts.auth_success', '👋 Добро пожаловать!');
+      const welcomeText = userName ? `${baseWelcome.replace(/!$/, '')}, ${userName}!` : baseWelcome;
+      this.showToast(welcomeText);
+    } catch (err) {
+      console.error(this.logPrefix, 'Unexpected OAuth callback error:', err);
+      this.cleanOAuthUrlParams();
+      const errDetail = err?.message || 'Unexpected error';
+      this.showToast(
+        this.t('toasts.auth_failed', '⚠️ Ошибка авторизации: {error}', { error: errDetail })
+      );
+      this.switchView('profile');
+    } finally {
+      this.isHandlingOAuthCallback = false;
+      if (this.currentView === 'profile') {
+        this.renderProfileView();
       }
     }
   }
@@ -389,7 +550,12 @@ class ShopApp {
         this.setupRealtimeProfileSync();
         this.setupRealtimeOrdersSync();
         await this.loadUserProfileAndSyncCart();
-      } else if (!session) {
+        if (this.currentView === 'profile') {
+          this.renderProfileView();
+        } else if (this.currentView === 'cart') {
+          this.renderCartModalList();
+        }
+      } else if (!session && !this.isHandlingOAuthCallback) {
         // If Supabase confirms no active session, clear guest cache
         if (this.currentUser) {
           this.teardownRealtimeProfileSync();
@@ -399,6 +565,9 @@ class ShopApp {
           localStorage.removeItem('freshmarket_user_profile');
           localStorage.removeItem('freshmarket_cart_synced_user');
           this.updateUserAvatar();
+          if (this.currentView === 'profile') {
+            this.renderProfileView();
+          }
         }
       }
     } catch (err) {
@@ -411,10 +580,11 @@ class ShopApp {
   // ------------------------------------------------------------------------
   async loadUserProfileAndSyncCart() {
     if (!this.sb || !this.currentUser) return;
-    if (this.isSyncingAuthCart) return;
+    if (this._syncAuthCartPromise) return this._syncAuthCartPromise;
     this.isSyncingAuthCart = true;
 
-    try {
+    this._syncAuthCartPromise = (async () => {
+      try {
       const { data: profile, error } = await this.sb
         .from('profiles')
         .select('*')
@@ -577,7 +747,16 @@ class ShopApp {
       console.warn(this.logPrefix, 'Error syncing profile & cart:', err);
     } finally {
       this.isSyncingAuthCart = false;
+      this._syncAuthCartPromise = null;
+      if (this.currentView === 'profile') {
+        this.renderProfileView();
+      } else if (this.currentView === 'cart') {
+        this.renderCartModalList();
+      }
     }
+    })();
+
+    return this._syncAuthCartPromise;
   }
 
   async updateProfileField(fields) {
@@ -1258,9 +1437,9 @@ class ShopApp {
   // ------------------------------------------------------------------------
   // 5. Onboarding Carousel Controller
   // ------------------------------------------------------------------------
-  initOnboarding() {
+  initOnboarding(skipAutoOpen = false) {
     const hideOnboarding = localStorage.getItem('freshmarket_hide_onboarding') === 'true';
-    if (!hideOnboarding && this.onboardingOverlay) {
+    if (!skipAutoOpen && !hideOnboarding && this.onboardingOverlay) {
       this.openOnboarding();
     }
 
@@ -4811,10 +4990,10 @@ class ShopApp {
     });
 
     // OAuth Login click handlers
-    document.getElementById('btnLoginGoogle')?.addEventListener('click', () => {
+    document.getElementById('btnLoginGoogle')?.addEventListener('click', async () => {
       if (this.sb) {
         const redirectTo = window.location.origin + window.location.pathname;
-        this.sb.auth.signInWithOAuth({
+        const { error } = await this.sb.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo,
@@ -4823,20 +5002,36 @@ class ShopApp {
             }
           }
         });
+        if (error) {
+          console.error(this.logPrefix, 'Google OAuth start error:', error);
+          this.showToast(
+            this.t('toasts.auth_failed', '⚠️ Ошибка авторизации: {error}', {
+              error: error.message || 'Google OAuth error'
+            })
+          );
+        }
       } else {
         this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
       }
     });
 
-    document.getElementById('btnLoginFacebook')?.addEventListener('click', () => {
+    document.getElementById('btnLoginFacebook')?.addEventListener('click', async () => {
       if (this.sb) {
         const redirectTo = window.location.origin + window.location.pathname;
-        this.sb.auth.signInWithOAuth({
+        const { error } = await this.sb.auth.signInWithOAuth({
           provider: 'facebook',
           options: {
             redirectTo
           }
         });
+        if (error) {
+          console.error(this.logPrefix, 'Facebook OAuth start error:', error);
+          this.showToast(
+            this.t('toasts.auth_failed', '⚠️ Ошибка авторизации: {error}', {
+              error: error.message || 'Facebook OAuth error'
+            })
+          );
+        }
       } else {
         this.showToast(window.i18n ? window.i18n.t('toasts.network_lost') : 'Supabase не подключен');
       }

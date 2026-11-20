@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline resilience
  */
 
-const CACHE_NAME = 'freshmarket-shop-v1.5.41';
+const CACHE_NAME = 'freshmarket-shop-v1.5.42';
 const STATIC_ASSETS = [
   './shop.html',
   './privacy-geodata.html',
@@ -90,8 +90,9 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // Clone and cache successful responses for local assets
-        if (networkResponse && networkResponse.status === 200 && event.request.url.includes(self.location.origin)) {
+        // Clone and cache successful responses for local assets (skip OAuth callback URLs)
+        const hasAuthQuery = url.searchParams.has('code') || url.searchParams.has('error');
+        if (networkResponse && networkResponse.status === 200 && event.request.url.includes(self.location.origin) && !hasAuthQuery) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);

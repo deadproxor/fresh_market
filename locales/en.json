@@ -325,6 +325,8 @@
     "order_sent": "🎉 Order successfully sent to buyer!",
     "order_failed": "⚠️ Failed to submit order",
     "auth_success": "👋 Welcome!",
+    "auth_in_progress": "⏳ Completing sign-in...",
+    "auth_failed": "⚠️ Sign-in error: {error}",
     "logged_out": "You have signed out",
     "contacts_saved": "✅ Contacts saved",
     "contacts_required": "⚠️ Please provide contact info (Telegram / WhatsApp / phone)",

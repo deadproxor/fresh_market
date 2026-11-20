@@ -325,6 +325,8 @@
     "order_sent": "🎉 Commande transmise avec succès à l'acheteur !",
     "order_failed": "⚠️ Échec de l'envoi de la commande",
     "auth_success": "👋 Bienvenue !",
+    "auth_in_progress": "⏳ Finalisation de la connexion...",
+    "auth_failed": "⚠️ Erreur d'authentification : {error}",
     "logged_out": "Vous êtes déconnecté",
     "contacts_saved": "✅ Coordonnées enregistrées",
     "contacts_required": "⚠️ Veuillez renseigner un contact (Telegram / WhatsApp / téléphone)",

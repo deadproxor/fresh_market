@@ -325,6 +325,8 @@
     "order_sent": "🎉 Заказ успешно отправлен закупщику!",
     "order_failed": "⚠️ Ошибка отправки заказа",
     "auth_success": "👋 Добро пожаловать!",
+    "auth_in_progress": "⏳ Завершение входа...",
+    "auth_failed": "⚠️ Ошибка авторизации: {error}",
     "logged_out": "Вы вышли из профиля",
     "contacts_saved": "✅ Контакты сохранены",
     "contacts_required": "⚠️ Укажите контакт (Telegram / WhatsApp / телефон) для связи",
