@@ -257,6 +257,231 @@ async function reverseGeocodeCoords(lat, lng) {
   }
 }
 
+/**
+ * Unified Grouped Toast Notification Controller
+ * Groups incoming notifications into a single card with duplicate counters,
+ * severity priority, pause-on-read, and extended auto-dismiss timeouts
+ * (20s for info/success, 60s for error/warning).
+ */
+const FreshMarketToast = (() => {
+  const DEFAULT_DURATION_MS = 20000;
+  const ERROR_DURATION_MS = 60000;
+  const MIN_RESUME_MS = 3000;
+  const MAX_ROWS = 12;
+  const SEVERITY_RANK = { info: 1, success: 2, warning: 3, error: 4 };
+
+  function detectType(cleanMsg, type) {
+    if (type && type !== 'auto') return type;
+    if (/^⚠️|^❌|ошибка|не удалось|пуста|заполните|error|failed|помилка|erreur/i.test(cleanMsg)) {
+      return 'error';
+    }
+    if (/^✅|^🎉|успешно|оформлен|сохранен|добавлен|обновлен|добро пожаловать|welcome|bienvenue|ласкаво/i.test(cleanMsg)) {
+      return 'success';
+    }
+    return 'info';
+  }
+
+  function extractIconAndMessage(rawMsg, toastType) {
+    let cleanMsg = String(rawMsg || '').trim();
+    let icon = '';
+    const emojiMatch = cleanMsg.match(
+      /^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Emoji_Presentation}|\p{Extended_Pictographic})/u
+    );
+    if (emojiMatch) {
+      icon = emojiMatch[0];
+      cleanMsg = cleanMsg.slice(icon.length).trim();
+    } else if (toastType === 'success') {
+      icon = '✅';
+    } else if (toastType === 'error' || toastType === 'warning') {
+      icon = '⚠️';
+    } else {
+      icon = 'ℹ️';
+    }
+    return { icon, cleanMsg };
+  }
+
+  function getHighestSeverity(toastEl) {
+    const rows = toastEl.querySelectorAll('.toast-message-row');
+    let best = 'info';
+    let bestRank = 0;
+    rows.forEach((row) => {
+      const t = row.dataset.toastType || 'info';
+      const rank = SEVERITY_RANK[t] || 1;
+      if (rank > bestRank) {
+        bestRank = rank;
+        best = t;
+      }
+    });
+    return best;
+  }
+
+  function applySeverityClass(toastEl, severity) {
+    toastEl.classList.remove('toast-info', 'toast-success', 'toast-warning', 'toast-error');
+    toastEl.classList.add(`toast-${severity}`);
+  }
+
+  function scheduleDismiss(toastEl, durationMs) {
+    if (!toastEl || toastEl.classList.contains('toast-hiding')) return;
+    if (toastEl._toastTimer) {
+      clearTimeout(toastEl._toastTimer);
+      toastEl._toastTimer = null;
+    }
+    toastEl._remainingMs = durationMs;
+    if (toastEl._isPaused) {
+      return;
+    }
+    toastEl._startedAt = Date.now();
+    toastEl._toastTimer = setTimeout(() => {
+      dismiss(toastEl);
+    }, durationMs);
+  }
+
+  function pauseDismiss(toastEl) {
+    if (!toastEl || toastEl._isPaused || toastEl.classList.contains('toast-hiding')) return;
+    toastEl._isPaused = true;
+    if (toastEl._toastTimer) {
+      clearTimeout(toastEl._toastTimer);
+      toastEl._toastTimer = null;
+      const elapsed = Date.now() - (toastEl._startedAt || Date.now());
+      toastEl._remainingMs = Math.max(MIN_RESUME_MS, (toastEl._remainingMs || DEFAULT_DURATION_MS) - elapsed);
+    }
+  }
+
+  function resumeDismiss(toastEl) {
+    if (!toastEl || !toastEl._isPaused || toastEl.classList.contains('toast-hiding')) return;
+    toastEl._isPaused = false;
+    const nextMs = Math.max(MIN_RESUME_MS, toastEl._remainingMs || DEFAULT_DURATION_MS);
+    scheduleDismiss(toastEl, nextMs);
+  }
+
+  function dismiss(toastEl) {
+    if (!toastEl || toastEl.classList.contains('toast-hiding')) return;
+    if (toastEl._toastTimer) {
+      clearTimeout(toastEl._toastTimer);
+      toastEl._toastTimer = null;
+    }
+    toastEl.classList.add('toast-hiding');
+    setTimeout(() => {
+      if (toastEl.parentNode) {
+        toastEl.parentNode.removeChild(toastEl);
+      }
+    }, 250);
+  }
+
+  function createGroupToast(container, closeTitle) {
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast-item toast-grouped toast-info';
+    toastEl.setAttribute('role', 'status');
+    toastEl.setAttribute('aria-live', 'polite');
+    toastEl._isPaused = false;
+    toastEl._remainingMs = DEFAULT_DURATION_MS;
+
+    toastEl.innerHTML = `
+      <div class="toast-messages-list"></div>
+      <button type="button" class="toast-close-btn" title="${escapeHtml(closeTitle)}" aria-label="${escapeHtml(closeTitle)}">✕</button>
+    `;
+
+    const closeBtn = toastEl.querySelector('.toast-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dismiss(toastEl);
+      });
+    }
+
+    toastEl.addEventListener('mouseenter', () => pauseDismiss(toastEl));
+    toastEl.addEventListener('mouseleave', () => resumeDismiss(toastEl));
+    toastEl.addEventListener('touchstart', () => pauseDismiss(toastEl), { passive: true });
+    toastEl.addEventListener('touchend', () => resumeDismiss(toastEl), { passive: true });
+    toastEl.addEventListener('touchcancel', () => resumeDismiss(toastEl), { passive: true });
+
+    container.appendChild(toastEl);
+    return toastEl;
+  }
+
+  function show(msg, type = 'auto', duration = null, options = {}) {
+    if (typeof document === 'undefined') return null;
+    const container = options.container || document.getElementById('toastContainer');
+    if (!container) return null;
+
+    const rawText = String(msg || '').trim();
+    if (!rawText) return null;
+
+    const toastType = detectType(rawText, type);
+    const { icon, cleanMsg } = extractIconAndMessage(rawText, toastType);
+    const closeTitle =
+      options.closeTitle ||
+      (typeof window !== 'undefined' && window.i18n && window.i18n.isReady
+        ? window.i18n.t('common.close')
+        : 'Закрыть');
+
+    let toastEl = container.querySelector('.toast-item.toast-grouped:not(.toast-hiding)');
+    if (!toastEl) {
+      toastEl = createGroupToast(container, closeTitle);
+    }
+
+    const listEl = toastEl.querySelector('.toast-messages-list');
+    if (!listEl) return toastEl;
+
+    const rowKey = `${toastType}::${cleanMsg}`;
+    const existingRows = Array.from(listEl.querySelectorAll('.toast-message-row'));
+    const duplicateRow = existingRows.find((r) => r.dataset.toastKey === rowKey);
+
+    if (duplicateRow) {
+      const nextCount = (parseInt(duplicateRow.dataset.toastCount || '1', 10) || 1) + 1;
+      duplicateRow.dataset.toastCount = String(nextCount);
+      let badge = duplicateRow.querySelector('.toast-dup-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'toast-dup-badge';
+        duplicateRow.appendChild(badge);
+      }
+      badge.textContent = `×${nextCount}`;
+      // Move duplicate to bottom so latest occurrence is immediately visible
+      listEl.appendChild(duplicateRow);
+    } else {
+      if (existingRows.length >= MAX_ROWS) {
+        existingRows[0].remove();
+      }
+      const rowEl = document.createElement('div');
+      rowEl.className = `toast-message-row toast-row-${toastType}`;
+      rowEl.dataset.toastKey = rowKey;
+      rowEl.dataset.toastType = toastType;
+      rowEl.dataset.toastCount = '1';
+      rowEl.innerHTML = `
+        <span class="toast-icon">${escapeHtml(icon)}</span>
+        <span class="toast-text">${escapeHtml(cleanMsg)}</span>
+      `;
+      listEl.appendChild(rowEl);
+    }
+
+    // Update overall group severity (error > warning > success > info)
+    const highestSeverity = getHighestSeverity(toastEl);
+    applySeverityClass(toastEl, highestSeverity);
+
+    // Compute extended timeout (never shorter than group's severity minimum)
+    const severityBaseMs =
+      highestSeverity === 'error' || highestSeverity === 'warning'
+        ? ERROR_DURATION_MS
+        : DEFAULT_DURATION_MS;
+    const requestedMs = Number(duration) || 0;
+    const effectiveDuration = Math.max(severityBaseMs, requestedMs);
+
+    scheduleDismiss(toastEl, effectiveDuration);
+
+    // Keep newest entry scrolled into view
+    listEl.scrollTop = listEl.scrollHeight;
+    return toastEl;
+  }
+
+  return {
+    DEFAULT_DURATION_MS,
+    ERROR_DURATION_MS,
+    show,
+    dismiss
+  };
+})();
+
 if (typeof window !== 'undefined') {
   window.FreshMarketConfig = Object.freeze({
     SUPABASE_URL: 'https://qifazsptdgcskrchfocc.supabase.co',
@@ -264,6 +489,7 @@ if (typeof window !== 'undefined') {
   });
   window.DEFAULT_SUPABASE_URL = window.FreshMarketConfig.SUPABASE_URL;
   window.DEFAULT_SUPABASE_KEY = window.FreshMarketConfig.SUPABASE_ANON_KEY;
+  window.FreshMarketToast = FreshMarketToast;
   window.sanitizeUrl = sanitizeUrl;
   window.escapeHtml = escapeHtml;
   window.generateUUID = generateUUID;
@@ -279,6 +505,7 @@ if (typeof window !== 'undefined') {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    FreshMarketToast,
     sanitizeUrl,
     escapeHtml,
     generateUUID,

@@ -5543,71 +5543,21 @@ class ShopApp {
   }
 
   // ------------------------------------------------------------------------
-  // 13. Helpers & Toast Notifications
+  // 13. Helpers & Toast Notifications (Grouped via FreshMarketToast)
   // ------------------------------------------------------------------------
-  showToast(msg, type = 'auto', duration = 3000) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    let toastType = type;
-    let icon = '';
-    let cleanMsg = String(msg || '').trim();
-
-    if (toastType === 'auto') {
-      if (/^✅|^🎉|успешно|оформлен|сохранен|добавлено/i.test(cleanMsg)) {
-        toastType = 'success';
-      } else if (/^⚠️|^❌|ошибка|не удалось|пуста|заполните/i.test(cleanMsg)) {
-        toastType = 'error';
-      } else if (/^ℹ️|^✨|^☀️|^🌙|^🟢|^📶|офлайн|восстановлено|режиме|профиля/i.test(cleanMsg)) {
-        toastType = 'info';
-      } else {
-        toastType = 'info';
-      }
+  showToast(msg, type = 'auto', duration = null) {
+    if (window.FreshMarketToast && typeof window.FreshMarketToast.show === 'function') {
+      const closeToastTitle = window.i18n && window.i18n.isReady ? window.i18n.t('common.close') : 'Закрыть';
+      return window.FreshMarketToast.show(msg, type, duration, { closeTitle: closeToastTitle });
     }
-
-    const emojiMatch = cleanMsg.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\p{Emoji_Presentation}|\p{Extended_Pictographic})/u);
-    if (emojiMatch) {
-      icon = emojiMatch[0];
-      cleanMsg = cleanMsg.slice(icon.length).trim();
-    } else {
-      if (toastType === 'success') icon = '✅';
-      else if (toastType === 'error') icon = '⚠️';
-      else icon = 'ℹ️';
-    }
-
-    const activeToasts = container.querySelectorAll('.toast-item:not(.toast-hiding)');
-    if (activeToasts.length >= 3) {
-      this.removeToast(activeToasts[0]);
-    }
-
-    const toastEl = document.createElement('div');
-    toastEl.className = `toast-item toast-${toastType}`;
-    toastEl.setAttribute('role', 'status');
-
-    const closeToastTitle = window.i18n ? window.i18n.t('common.close') : 'Закрыть';
-    toastEl.innerHTML = `
-      <span class="toast-icon">${icon}</span>
-      <span class="toast-text">${this.escapeHtml(cleanMsg)}</span>
-      <button type="button" class="toast-close-btn" title="${closeToastTitle}" aria-label="${closeToastTitle}">✕</button>
-    `;
-
-    const closeBtn = toastEl.querySelector('.toast-close-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.removeToast(toastEl);
-      });
-    }
-
-    const timer = setTimeout(() => {
-      this.removeToast(toastEl);
-    }, duration);
-    toastEl._toastTimer = timer;
-
-    container.appendChild(toastEl);
+    return null;
   }
 
   removeToast(toastEl) {
+    if (window.FreshMarketToast && typeof window.FreshMarketToast.dismiss === 'function') {
+      window.FreshMarketToast.dismiss(toastEl);
+      return;
+    }
     if (!toastEl || toastEl.classList.contains('toast-hiding')) return;
     if (toastEl._toastTimer) {
       clearTimeout(toastEl._toastTimer);

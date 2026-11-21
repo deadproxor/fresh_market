@@ -1523,6 +1523,14 @@ flowchart TD
   * **Локализация (`locales/{ru,en,ua,fr,km}.json`):**
     * Синхронизированы ключи `toasts.auth_in_progress` и `toasts.auth_failed` во всех 5 файлах локализации.
   * **Кэширование и версионирование:** Service Worker витрины магазина повышен до `freshmarket-shop-v1.5.42` (`shop.html` `v=1.5.42`, `index.html` `landing.js?v=1.5.42`).
+* [x] **Единый группируемый компонент тостов с расширенным таймаутом и паузой при чтении (v1.5.43 Shop & Admin):**
+  * **Единый контроллер `FreshMarketToast` (`js/shared/utils.js`):**
+    * Все активные уведомления объединяются в одну компактную карточку (`.toast-item.toast-grouped`) с хронологическим списком строк (`.toast-messages-list` → `.toast-message-row`) и мягкой прокруткой (`max-height: 45vh`).
+    * Внедрена склейка дубликатов с компактным счётчиком (`×2`, `×3`, …) в `.toast-dup-badge` и приоритетом цвета левой полосы по максимальной важности в группе (`error` → `warning` → `success` → `info`).
+    * Установлены расширенные таймауты автоскрытия: **20 секунд** для обычных уведомлений и **60 секунд** для ошибок и предупреждений (с перезапуском таймера при каждом новом сообщении и паузой при наведении курсора / касании).
+  * **Стили компонента и наследование (`css/components.css`, `components.html`, `js/shop.js`, `admin/js/admin-catalog.js`):**
+    * Базовые стили группируемого тоста вынесены в мастер-файл `css/components.css`; витрина (`shop.js`), админка (`admin-catalog.js`) и витрина компонентов (`components.html`) переведены на единый контроллер `window.FreshMarketToast`.
+  * **Кэширование и версионирование:** Service Worker витрины повышен до `freshmarket-shop-v1.5.43` (`shop.html` `v=1.5.43`), Service Worker админки повышен до `freshmarket-admin-v1.5.43` (`admin/index.html` `v=1.5.43`), кэш-бастеры `components.css` и `utils.js` обновлены до `v=1.5.43`.
 
 
 
