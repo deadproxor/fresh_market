@@ -24,8 +24,8 @@
     rel="stylesheet" />
 
   <!-- Master Design System, Catalog & Admin Styles -->
-  <link rel="stylesheet" href="../css/components.css?v=1.5.44" />
-  <link rel="stylesheet" href="../css/products.css?v=1.5.41" />
+  <link rel="stylesheet" href="../css/components.css?v=1.5.46" />
+  <link rel="stylesheet" href="../css/products.css?v=1.5.46" />
   <link rel="stylesheet" href="../css/admin.css?v=1.5.32" />
   <script src="../js/shared/branding.js?v=1.5.19"></script>
 </head>
@@ -157,9 +157,19 @@
             </div>
           </div>
 
-          <!-- Products Toolbar: Count & Layout Switcher -->
+          <!-- Products Toolbar: Visibility Filter with Inline Counts & Layout Switcher -->
           <div class="admin-products-toolbar" id="adminProductsToolbar">
-            <div class="admin-products-count" id="adminProductsCount">Товаров: 0</div>
+            <div class="admin-visibility-filter" id="adminVisibilityFilter" role="group" aria-label="Фильтр видимости">
+              <button type="button" class="visibility-filter-btn active" data-visibility="all">
+                <span>Все</span><span class="vis-count" id="visCountAll">0</span>
+              </button>
+              <button type="button" class="visibility-filter-btn" data-visibility="visible">
+                <span>Видимые</span><span class="vis-count" id="visCountVisible">0</span>
+              </button>
+              <button type="button" class="visibility-filter-btn" data-visibility="hidden">
+                <span>Скрытые</span><span class="vis-count" id="visCountHidden">0</span>
+              </button>
+            </div>
             <div class="admin-layout-switcher" id="adminLayoutSwitcher" role="group" aria-label="Вид отображения">
               <button type="button" class="layout-toggle-btn" id="btnLayoutList" data-layout="grid-1" title="1 колонка" aria-label="1 колонка">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -904,6 +914,16 @@
                 placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять..."></textarea>
             </div>
 
+            <div class="form-group">
+              <label class="visibility-toggle-row" for="fieldIsVisible">
+                <span class="visibility-toggle-info">
+                  <span class="visibility-toggle-title">Показывать на витрине</span>
+                  <span class="visibility-toggle-desc">Скрытые товары не видны покупателям в магазине</span>
+                </span>
+                <input type="checkbox" id="fieldIsVisible" name="is_visible" class="visibility-toggle-checkbox" checked />
+              </label>
+            </div>
+
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" id="btnCancelAdd">
                 Отмена
@@ -960,7 +980,7 @@
   <script src="../js/shared/categories.js?v=1.5.15"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
   <script src="../js/shared/qty-selector.js?v=1.5.44"></script>
-  <script src="js/admin-catalog.js?v=1.5.44"></script>
+  <script src="js/admin-catalog.js?v=1.5.46"></script>
   <script src="js/admin-auth.js?v=1.5.44"></script>
 </body>
 

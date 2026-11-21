@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "Search fresh produce (name, Khmer)...",
+    "search_placeholder": "Search fresh produce...",
     "btn_to_shop": "To Shop",
     "btn_profile": "Profile",
     "btn_cart": "Cart"
@@ -291,6 +291,7 @@
     "how_it_works_btn": "How {brand} Works",
     "logout_btn": "Log Out of Account",
     "layout_title": "Showcase layout:",
+    "layout_3_cols": "3 columns",
     "layout_2_cols": "2 columns",
     "layout_1_col": "1 column",
     "login_intro": "Sign in with Google or Facebook to connect with your buyer and place orders:"

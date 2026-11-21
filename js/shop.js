@@ -72,7 +72,8 @@ class ShopApp {
     this.realtimeCartChannel = null;
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
-    this.shopLayout = localStorage.getItem('freshmarket_shop_layout') || 'grid-2';
+    const savedShopLayout = localStorage.getItem('freshmarket_shop_layout');
+    this.shopLayout = ['grid-1', 'grid-2', 'grid-3'].includes(savedShopLayout) ? savedShopLayout : 'grid-2';
     this.isCartAddressCustomized = false;
     this.profileMap = null;
     this.profileCustomerMarker = null;
@@ -316,8 +317,13 @@ class ShopApp {
 
   applyShopLayout() {
     if (!this.shopProductsGrid) return;
-    this.shopProductsGrid.classList.remove('layout-grid-1', 'layout-grid-2');
-    this.shopProductsGrid.classList.add(this.shopLayout === 'grid-1' ? 'layout-grid-1' : 'layout-grid-2');
+    this.shopProductsGrid.classList.remove('layout-grid-1', 'layout-grid-2', 'layout-grid-3');
+    const layoutClass = this.shopLayout === 'grid-1'
+      ? 'layout-grid-1'
+      : this.shopLayout === 'grid-3'
+        ? 'layout-grid-3'
+        : 'layout-grid-2';
+    this.shopProductsGrid.classList.add(layoutClass);
   }
 
   // ------------------------------------------------------------------------
@@ -658,8 +664,9 @@ class ShopApp {
         }
       }
 
-      // C. Shop Layout (grid-1 / grid-2)
-      if (profile.shop_layout && (profile.shop_layout === 'grid-1' || profile.shop_layout === 'grid-2')) {
+      // C. Shop Layout (grid-1 / grid-2 / grid-3) — localStorage takes priority; profile.shop_layout is fallback only when localStorage is empty
+      const localShopLayout = localStorage.getItem('freshmarket_shop_layout');
+      if (!['grid-1', 'grid-2', 'grid-3'].includes(localShopLayout) && profile.shop_layout && ['grid-1', 'grid-2', 'grid-3'].includes(profile.shop_layout)) {
         this.shopLayout = profile.shop_layout;
         localStorage.setItem('freshmarket_shop_layout', profile.shop_layout);
         this.applyShopLayout();
@@ -762,12 +769,17 @@ class ShopApp {
   async updateProfileField(fields) {
     if (!this.sb || !this.currentUser) return;
     try {
-      await this.sb.from('profiles').update({
+      const { error } = await this.sb.from('profiles').update({
         ...fields,
         updated_at: new Date().toISOString()
       }).eq('id', this.currentUser.id);
+      if (error) {
+        console.warn(this.logPrefix, 'Error updating profile fields:', error);
+        return;
+      }
       if (this.userProfile) {
         Object.assign(this.userProfile, fields);
+        localStorage.setItem('freshmarket_user_profile', JSON.stringify(this.userProfile));
       }
     } catch (err) {
       console.warn(this.logPrefix, 'Error updating profile fields:', err);
@@ -1192,6 +1204,16 @@ class ShopApp {
         this.renderProducts();
         if (this.currentView === 'cart') {
           this.renderCartModalList();
+        }
+      } else if (e.key === 'freshmarket_shop_layout') {
+        const nextLayout = e.newValue;
+        this.shopLayout = ['grid-1', 'grid-2', 'grid-3'].includes(nextLayout) ? nextLayout : 'grid-2';
+        this.applyShopLayout();
+        const layoutSelector = document.getElementById('profileLayoutSelector');
+        if (layoutSelector) {
+          layoutSelector.querySelectorAll('.messenger-pill').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.layout === this.shopLayout);
+          });
         }
       }
     });
@@ -1669,7 +1691,8 @@ class ShopApp {
           .order('category', { ascending: true });
 
         if (!error && data && data.length > 0) {
-          this.products = this.enrichProductsWithDict(data);
+          const visibleProducts = data.filter((p) => p.is_visible !== false);
+          this.products = this.enrichProductsWithDict(visibleProducts);
           this.renderProducts();
           this.renderCategories();
           return;
@@ -2025,7 +2048,8 @@ class ShopApp {
     };
   }
 
-  renderPriceBadge(price, unit = '') {
+  renderPriceBadge(price, unit = '', extraClass = '') {
+    const cls = extraClass ? `card-price-badge ${extraClass}` : 'card-price-badge';
     if (price !== null && price !== undefined && price !== '' && !isNaN(Number(price))) {
       const khr = Number(price);
       const usd = (khr / this.khrRate).toFixed(2);
@@ -2034,14 +2058,14 @@ class ShopApp {
       const unitKey = uInfo ? uInfo.key : '';
       const unitSuffix = unitLabel ? ` / <span class="badge-unit-text" ${unitKey ? `data-unit-id="${this.escapeHtml(unitKey)}" data-i18n="units.${this.escapeHtml(unitKey)}"` : ''}>${this.escapeHtml(unitLabel)}</span>` : '';
       return `
-        <div class="card-price-badge">
+        <div class="${cls}">
           <span class="price-khr">${Math.round(khr).toLocaleString('en-US')} ៛${unitSuffix}</span>
           <span class="price-usd">~$${usd}</span>
         </div>
       `;
     }
     return `
-      <div class="card-price-badge price-na">
+      <div class="${cls} price-na">
         <span class="price-na">n/a</span>
       </div>
     `;
@@ -2102,13 +2126,12 @@ class ShopApp {
 
     const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
 
-    // Filter by Search Query (strictly by active UI language name + displayed Khmer subtitle)
+    // Filter by Search Query (strictly by active UI language name)
     if (this.searchQuery) {
       const q = this.searchQuery.toLowerCase();
       filtered = filtered.filter((p) => {
         const primaryName = this.getLocalizedProductName(p, currentLang).toLowerCase();
-        const khSubtitle = this.getKhmerSubtitle(p, currentLang).toLowerCase();
-        return primaryName.includes(q) || khSubtitle.includes(q);
+        return primaryName.includes(q);
       });
     }
 
@@ -2170,7 +2193,6 @@ class ShopApp {
       const formInfo = this.getFormInfo(item.form);
 
       const primaryName = this.getLocalizedProductName(item);
-      const khmerName = this.getKhmerSubtitle(item);
 
       // 1. Photo Container with In-Cart Badge, Price Badge and Add/Edit Button
       const photoBlock = `
@@ -2192,7 +2214,7 @@ class ShopApp {
         </div>
       `;
 
-      // 2. Product Names Block: Primary localized title + Khmer subtitle with phonetic transcription
+      // 2. Product Names Block: Primary localized title (+ inline price shown in 3-col layout)
       const namesBlock = `
         <div class="card-names-block">
           <div class="card-header-row">
@@ -2200,7 +2222,7 @@ class ShopApp {
               <div class="card-name-en card-name-primary">${this.escapeHtml(primaryName)}</div>
             </div>
           </div>
-          ${khmerName ? `<div class="card-name-kh khmer-font">${this.escapeHtml(khmerName)}</div>` : ''}
+          ${this.renderPriceBadge(item.price, item.unit, 'card-price-inline')}
         </div>
       `;
 
@@ -2263,7 +2285,6 @@ class ShopApp {
     const catObj = CATEGORIES.find((c) => c.name === product.category || c.id === product.category);
     const catIcon = catObj ? catObj.icon : '📦';
     const primaryName = this.getLocalizedProductName(product);
-    const khmerName = this.getKhmerSubtitle(product);
     const formInfo = this.getFormInfo(product.form);
 
     if (this.sheetProductMedia) {
@@ -2278,7 +2299,10 @@ class ShopApp {
     }
 
     if (this.sheetProductName) this.sheetProductName.textContent = primaryName;
-    if (this.sheetProductKhmer) this.sheetProductKhmer.textContent = khmerName || '';
+    if (this.sheetProductKhmer) {
+      this.sheetProductKhmer.textContent = '';
+      this.sheetProductKhmer.style.display = 'none';
+    }
 
     // Price tags
     const rate = this.khrRate || 4000;
@@ -2760,7 +2784,6 @@ class ShopApp {
       <div class="cart-item-row" data-id="${product.id}">
         <div class="cart-item-info" title="${window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ'}">
           <div class="cart-item-name">${this.escapeHtml(this.getLocalizedProductName(product))}</div>
-          <div class="cart-item-kh khmer-font">${this.escapeHtml(this.getKhmerSubtitle(product))}</div>
           ${priceHtml}
           ${comment ? `
             <div class="cart-item-comment-row">
@@ -4541,6 +4564,7 @@ class ShopApp {
     const howItWorksText = t('profile.how_it_works_btn', `Как работает ${brandName}`);
     const logoutBtnText = t('profile.logout_btn', 'Выйти из аккаунта');
     const layoutTitle = t('profile.layout_title', 'Вид витрины товаров:');
+    const layout3ColsText = t('profile.layout_3_cols', '3 колонки');
     const layout2ColsText = t('profile.layout_2_cols', '2 колонки');
     const layout1ColText = t('profile.layout_1_col', '1 колонка');
     const loginIntroText = t('profile.login_intro', 'Войдите через Google или Facebook для связи с закупщиком и оформления заказов:');
@@ -4773,6 +4797,9 @@ class ShopApp {
             <div class="form-group" style="margin-bottom: 12px;">
               <label class="form-label">${layoutTitle}</label>
               <div class="messenger-selector" id="profileLayoutSelector">
+                <button type="button" class="messenger-pill ${this.shopLayout === 'grid-3' ? 'active' : ''}" data-layout="grid-3">
+                  ${layout3ColsText}
+                </button>
                 <button type="button" class="messenger-pill ${this.shopLayout === 'grid-2' ? 'active' : ''}" data-layout="grid-2">
                   ${layout2ColsText}
                 </button>

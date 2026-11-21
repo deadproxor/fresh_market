@@ -39,7 +39,7 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.5.44" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.46" />
   <link rel="stylesheet" href="css/shop.css?v=1.5.35" />
   <script src="js/shared/utils.js?v=1.5.43"></script>
   <script src="js/shared/branding.js?v=1.5.19"></script>
@@ -183,7 +183,7 @@
         <div class="shop-sticky-search-wrap">
           <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" id="shopSearchInput" class="search-input" placeholder="Поиск: Mango, Манго, ស្វាយ..."
+            <input type="text" id="shopSearchInput" class="search-input" placeholder="Поиск продуктов..."
               data-i18n-placeholder="header.search_placeholder" autocomplete="off" />
             <button type="button" id="shopSearchClear" class="search-clear-btn" style="display: none;">✕</button>
           </div>
@@ -564,7 +564,7 @@
               <div class="sheet-product-name" id="sheetProductName">Product Name</div>
               <button type="button" class="sheet-close-btn" id="sheetBtnClose" aria-label="Close">✕</button>
             </div>
-            <div class="sheet-product-khmer khmer-font" id="sheetProductKhmer">Khmer Name</div>
+            <div class="sheet-product-khmer khmer-font" id="sheetProductKhmer" style="display: none;"></div>
             <div class="sheet-product-price-row">
               <span class="sheet-price-tag" id="sheetPriceUsd">$0.00</span>
               <span class="sheet-price-khr" id="sheetPriceKhr">~0 ៛</span>
@@ -655,7 +655,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.5.45"></script>
+  <script src="js/shop.js?v=1.5.46"></script>
 </body>
 
 </html>

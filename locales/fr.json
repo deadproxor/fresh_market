@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "Rechercher des produits frais (nom, khmer)...",
+    "search_placeholder": "Rechercher des produits frais...",
     "btn_to_shop": "Vers la boutique",
     "btn_profile": "Profil",
     "btn_cart": "Panier"
@@ -291,6 +291,7 @@
     "how_it_works_btn": "Comment fonctionne {brand}",
     "logout_btn": "Se déconnecter",
     "layout_title": "Affichage de la vitrine :",
+    "layout_3_cols": "3 colonnes",
     "layout_2_cols": "2 colonnes",
     "layout_1_col": "1 colonne",
     "login_intro": "Connectez-vous avec Google ou Facebook pour contacter votre acheteur et passer vos commandes :"

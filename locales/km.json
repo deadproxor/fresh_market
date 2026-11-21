@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "ស្វែងរកបន្លែ ផ្លែឈើ (ឈ្មោះខ្មែរ)...",
+    "search_placeholder": "ស្វែងរកបន្លែ ផ្លែឈើ...",
     "btn_to_shop": "ទៅកាន់ហាង",
     "btn_profile": "គណនី",
     "btn_cart": "កន្ត្រក"
@@ -291,6 +291,7 @@
     "how_it_works_btn": "ស្វែងយល់អំពី {brand}",
     "logout_btn": "ចាកចេញពីគណនី",
     "layout_title": "ប្លង់បង្ហាញទំនិញ៖",
+    "layout_3_cols": "៣ ជួរឈរ",
     "layout_2_cols": "២ ជួរឈរ",
     "layout_1_col": "១ ជួរឈរ",
     "login_intro": "ចូលតាម Google ឬ Facebook ដើម្បីទាក់ទងអ្នកទិញ និងកុម្ម៉ង់ទំនិញ៖"

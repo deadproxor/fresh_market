@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "Пошук продуктів (назва, кхмерська)...",
+    "search_placeholder": "Пошук продуктів...",
     "btn_to_shop": "До магазину",
     "btn_profile": "Профіль",
     "btn_cart": "Кошик"
@@ -291,6 +291,7 @@
     "how_it_works_btn": "Як працює {brand}",
     "logout_btn": "Вийти з акаунту",
     "layout_title": "Вигляд вітрини товарів:",
+    "layout_3_cols": "3 колонки",
     "layout_2_cols": "2 колонки",
     "layout_1_col": "1 колонка",
     "login_intro": "Увійдіть через Google або Facebook для зв'язку із закупником та оформлення замовлень:"

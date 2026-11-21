@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "Поиск продуктов (название, кхмерский)...",
+    "search_placeholder": "Поиск продуктов...",
     "btn_to_shop": "В магазин",
     "btn_profile": "Профиль",
     "btn_cart": "Корзина"
@@ -291,6 +291,7 @@
     "how_it_works_btn": "Как работает {brand}",
     "logout_btn": "Выйти из аккаунта",
     "layout_title": "Вид витрины товаров:",
+    "layout_3_cols": "3 колонки",
     "layout_2_cols": "2 колонки",
     "layout_1_col": "1 колонка",
     "login_intro": "Войдите через Google или Facebook для связи с закупщиком и оформления заказов:"

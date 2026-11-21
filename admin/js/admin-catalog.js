@@ -531,8 +531,10 @@ class SupabaseAdapter {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const errText = `${err.code || ''} ${err.message || ''} ${err.hint || ''}`;
-      if (payload.allowed_units !== undefined && /allowed_units|PGRST204/i.test(errText)) {
-        const { allowed_units, ...fallbackPayload } = payload;
+      if (/allowed_units|is_visible|PGRST204/i.test(errText)) {
+        const fallbackPayload = { ...payload };
+        if (/allowed_units|PGRST204/i.test(errText)) delete fallbackPayload.allowed_units;
+        if (/is_visible|PGRST204/i.test(errText)) delete fallbackPayload.is_visible;
         res = await fetch(`${this.url}/rest/v1/products`, {
           method: 'POST',
           headers: this.headers,
@@ -560,8 +562,15 @@ class SupabaseAdapter {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const errText = `${err.code || ''} ${err.message || ''} ${err.hint || ''}`;
-      if (updatedFields.allowed_units !== undefined && /allowed_units|PGRST204/i.test(errText)) {
-        const { allowed_units, ...fallbackFields } = updatedFields;
+      const keys = Object.keys(updatedFields || {});
+      const isOnlyVisibilityToggle = keys.length === 1 && keys[0] === 'is_visible';
+      if (isOnlyVisibilityToggle && /is_visible|PGRST204/i.test(errText)) {
+        throw new Error('В базе ещё нет колонки is_visible — примените миграцию 20261121010000_product_visibility.sql');
+      }
+      if (!isOnlyVisibilityToggle && /allowed_units|is_visible|PGRST204/i.test(errText)) {
+        const fallbackFields = { ...updatedFields };
+        if (/allowed_units|PGRST204/i.test(errText)) delete fallbackFields.allowed_units;
+        if (/is_visible|PGRST204/i.test(errText)) delete fallbackFields.is_visible;
         res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
           method: 'PATCH',
           headers: this.headers,
@@ -889,6 +898,7 @@ class App {
   constructor() {
     this.products = [];
     this.activeFilterCategory = 'all';
+    this.visibilityFilter = 'all';
     this.searchQuery = '';
     this.currentMainView = 'viewCatalog';
     this.activeCatalogTab = 'categories';
@@ -910,6 +920,7 @@ class App {
     this.renderCategoryFilterPills();
     this.renderCategoriesGrid();
     this.initLayoutSwitcher();
+    this.initVisibilityFilter();
     this.loadData();
     this.initServiceWorker();
     this.renderAppVersion();
@@ -1081,6 +1092,8 @@ class App {
     this.fieldAllowedUnitsContainer = document.getElementById('fieldAllowedUnitsContainer');
     this.priceHint = document.getElementById('priceHint');
     this.fieldDescription = document.getElementById('fieldDescription');
+    this.fieldIsVisible = document.getElementById('fieldIsVisible');
+    this.adminVisibilityFilter = document.getElementById('adminVisibilityFilter');
 
     this.createAllowedUnitsCtrl = null;
     if (this.fieldAllowedUnitsContainer && window.FreshMarketQtySelector && typeof window.FreshMarketQtySelector.renderConfig === 'function') {
@@ -3178,6 +3191,7 @@ class App {
     }
     const unit = this.fieldUnit ? this.fieldUnit.value.trim() : '';
     const allowedUnits = this.createAllowedUnitsCtrl ? this.createAllowedUnitsCtrl.getAllowedUnits() : null;
+    const isVisible = this.fieldIsVisible ? this.fieldIsVisible.checked : true;
 
     const newProduct = {
       name_en: nameEn,
@@ -3187,6 +3201,7 @@ class App {
       form: form,
       price: finalKhrPrice,
       unit: unit,
+      is_visible: isVisible,
       ...(allowedUnits && allowedUnits.length > 0 ? { allowed_units: allowedUnits } : {}),
       description: description,
       img_url: imgUrl
@@ -3223,6 +3238,7 @@ class App {
       this.fieldPrice.placeholder = 'напр. 6000';
     }
     if (this.fieldUnit) this.fieldUnit.value = '1_kg';
+    if (this.fieldIsVisible) this.fieldIsVisible.checked = true;
     if (this.priceHint) this.priceHint.textContent = `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
     if (this.createAllowedUnitsCtrl) {
       this.createAllowedUnitsCtrl.syncWithContext({
@@ -4132,6 +4148,52 @@ class App {
     `;
   }
 
+  initVisibilityFilter() {
+    const filterEl = this.adminVisibilityFilter || document.getElementById('adminVisibilityFilter');
+    if (!filterEl) return;
+    filterEl.querySelectorAll('.visibility-filter-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nextFilter = btn.dataset.visibility || 'all';
+        if (nextFilter === this.visibilityFilter) return;
+        this.visibilityFilter = nextFilter;
+        filterEl.querySelectorAll('.visibility-filter-btn').forEach((b) => {
+          b.classList.toggle('active', b.dataset.visibility === nextFilter);
+        });
+        this.renderProductsList();
+      });
+    });
+  }
+
+  async toggleProductVisibility(productId) {
+    const idx = this.products.findIndex((p) => p.id === productId);
+    if (idx === -1) return;
+    const item = this.products[idx];
+    const prevVisible = item.is_visible !== false;
+    const nextVisible = !prevVisible;
+
+    // Optimistic UI update
+    this.products[idx] = { ...item, is_visible: nextVisible };
+    this.renderProductsList();
+
+    try {
+      const storage = getActiveStorage();
+      await storage.update(item.id, { is_visible: nextVisible });
+      const title = item.name_ru || item.name_en || 'Продукт';
+      this.showToast(
+        nextVisible
+          ? `✅ «${title}» снова показан на витрине`
+          : `ℹ️ «${title}» скрыт из витрины`,
+        nextVisible ? 'success' : 'info'
+      );
+    } catch (err) {
+      // Rollback on failure
+      this.products[idx] = { ...item, is_visible: prevVisible };
+      this.renderProductsList();
+      console.error('Toggle visibility error:', err);
+      this.showToast(`❌ ${err?.message || 'Не удалось изменить видимость товара'}`, 'error');
+    }
+  }
+
   renderProductsList() {
     let list = this.products;
 
@@ -4155,6 +4217,24 @@ class App {
       );
     }
 
+    const totalAllInScope = list.length;
+    const totalHiddenInScope = list.filter((p) => p.is_visible === false).length;
+    const totalVisibleInScope = totalAllInScope - totalHiddenInScope;
+
+    const visCountAllEl = document.getElementById('visCountAll');
+    const visCountVisibleEl = document.getElementById('visCountVisible');
+    const visCountHiddenEl = document.getElementById('visCountHidden');
+    if (visCountAllEl) visCountAllEl.textContent = String(totalAllInScope);
+    if (visCountVisibleEl) visCountVisibleEl.textContent = String(totalVisibleInScope);
+    if (visCountHiddenEl) visCountHiddenEl.textContent = String(totalHiddenInScope);
+
+    // Filter by Visibility (all / visible / hidden)
+    if (this.visibilityFilter === 'visible') {
+      list = list.filter((p) => p.is_visible !== false);
+    } else if (this.visibilityFilter === 'hidden') {
+      list = list.filter((p) => p.is_visible === false);
+    }
+
     // Sort alphabetically according to the active UI language
     const currentLang = (window.i18n ? window.i18n.currentLang : 'ru').toLowerCase();
     const collatorLocale = currentLang === 'ua' || currentLang === 'uk'
@@ -4176,17 +4256,14 @@ class App {
     };
     list = [...list].sort((a, b) => collator.compare(getSortName(a), getSortName(b)));
 
-    if (this.adminProductsCount) {
-      this.adminProductsCount.textContent = `Товаров: ${list.length}`;
-    }
-
     this.applyAdminLayout(this.adminLayout);
     this.productsGrid.innerHTML = '';
 
     if (list.length === 0) {
       this.emptyState.style.display = 'flex';
       if (this.adminProductsToolbar) {
-        this.adminProductsToolbar.style.display = 'none';
+        // Keep toolbar visible when products exist so admin can switch visibility filter back
+        this.adminProductsToolbar.style.display = this.products.length > 0 ? 'flex' : 'none';
       }
       return;
     }
@@ -4196,6 +4273,9 @@ class App {
       this.adminProductsToolbar.style.display = 'flex';
     }
 
+    const eyeSvg = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const eyeOffSvg = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
     list.forEach(item => {
       const catObj = CATEGORIES.find(c => c.name === item.category || c.id === item.category);
       const catIcon = catObj ? catObj.icon : '📦';
@@ -4203,13 +4283,14 @@ class App {
       const catId = catObj ? catObj.id : (item.category || 'other');
       const catName = catObj ? catObj.name : item.category;
       const formInfo = getFormInfo(item.form);
+      const isHidden = item.is_visible === false;
 
       const card = document.createElement('div');
-      card.className = 'product-card shop-product-card admin-product-card';
+      card.className = `product-card shop-product-card admin-product-card${isHidden ? ' is-hidden-product' : ''}`;
       card.setAttribute('data-id', item.id);
 
       card.innerHTML = `
-        <!-- 1. Photo Container with Price Badge and Edit Action Button -->
+        <!-- 1. Photo Container with Price Badge, Visibility & Edit Action Buttons -->
         <div class="card-slider-viewport">
           <div class="card-photo-container" data-id="${item.id}" title="Редактировать">
             ${item.img_url ? `
@@ -4219,7 +4300,11 @@ class App {
                 ${catImg ? `<img src="${catImg}" class="card-empty-brand-img" alt="${this.escapeHtml(catName)}" loading="lazy" />` : catIcon}
               </div>
             `}
+            ${isHidden ? '<span class="card-hidden-badge">Скрыт</span>' : ''}
             ${this.renderPriceBadge(item.price, item.unit)}
+            <button type="button" class="card-btn-visibility${isHidden ? ' is-hidden' : ''}" data-id="${item.id}" title="${isHidden ? 'Показать на витрине' : 'Скрыть из витрины'}" aria-label="${isHidden ? 'Показать на витрине' : 'Скрыть из витрины'}">
+              ${isHidden ? eyeOffSvg : eyeSvg}
+            </button>
             <button type="button" class="card-btn-edit" data-id="${item.id}" title="Редактировать" aria-label="Редактировать">
               ✏️
             </button>
@@ -4252,6 +4337,14 @@ class App {
           ` : ''}
         </div>
       `;
+
+      const visBtn = card.querySelector('.card-btn-visibility');
+      if (visBtn) {
+        visBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleProductVisibility(item.id);
+        });
+      }
 
       card.addEventListener('click', () => {
         this.openEditModal(item);
@@ -4541,6 +4634,17 @@ class App {
             placeholder="Вкус, как выбирать на рынке, в какие блюда добавлять...">${this.escapeHtml(item.description || '')}</textarea>
         </div>
 
+        <!-- 7. STOREFRONT VISIBILITY -->
+        <div class="form-group">
+          <label class="visibility-toggle-row" for="editIsVisible">
+            <span class="visibility-toggle-info">
+              <span class="visibility-toggle-title">Показывать на витрине</span>
+              <span class="visibility-toggle-desc">Скрытые товары не видны покупателям в магазине</span>
+            </span>
+            <input type="checkbox" id="editIsVisible" class="visibility-toggle-checkbox" ${item.is_visible !== false ? 'checked' : ''} />
+          </label>
+        </div>
+
         <!-- FORM ACTIONS (Delete | Cancel | Save) -->
         <div class="form-actions" style="margin-top:14px; display:flex; gap:8px;">
           <button type="button" class="btn btn-danger" id="btnDeleteFromEdit" style="margin-right:auto;">🗑️ Удалить</button>
@@ -4756,6 +4860,8 @@ class App {
       const editUnitInput = document.getElementById('editUnit');
       const finalUnit = editUnitInput ? editUnitInput.value.trim() : '';
       const finalAllowedUnits = editAllowedUnitsCtrl ? editAllowedUnitsCtrl.getAllowedUnits() : item.allowed_units;
+      const editIsVisibleInput = document.getElementById('editIsVisible');
+      const finalIsVisible = editIsVisibleInput ? editIsVisibleInput.checked : (item.is_visible !== false);
 
       const updatedData = {
         category: normalizeCategoryToSlug(finalCat),
@@ -4765,6 +4871,7 @@ class App {
         form: finalForm,
         price: finalPrice,
         unit: finalUnit,
+        is_visible: finalIsVisible,
         ...(Array.isArray(finalAllowedUnits) && finalAllowedUnits.length > 0 ? { allowed_units: finalAllowedUnits } : {}),
         description: finalDesc,
         img_url: this.editModalImageBase64

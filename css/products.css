@@ -906,18 +906,68 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
   margin: 6px 0 12px 0;
-  padding: 0 4px;
+  padding: 0 2px;
 }
 
-.admin-products-count {
-  font-size: 13px;
+.admin-visibility-filter {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.visibility-filter-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: -0.1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.visibility-filter-btn:hover {
+  color: var(--text-primary);
+}
+
+.visibility-filter-btn.active {
+  background: var(--bg-input);
+  color: var(--primary, #10b981);
+}
+
+.visibility-filter-btn .vis-count {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+.visibility-filter-btn.active .vis-count {
+  opacity: 0.95;
 }
 
 .admin-layout-switcher {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -952,11 +1002,21 @@
 }
 
 /* ==========================================================================
-   Admin Product Card in Shop Grid (Edit Action Button)
+   Admin Product Card in Shop Grid (Edit & Visibility Action Buttons)
    ========================================================================== */
 .shop-product-card.admin-product-card {
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.2s ease;
+}
+
+.shop-product-card.admin-product-card.is-hidden-product {
+  opacity: 0.68;
+  border-style: dashed;
+}
+
+.shop-product-card.admin-product-card.is-hidden-product .card-photo-full,
+.shop-product-card.admin-product-card.is-hidden-product .card-empty-brand-img {
+  filter: grayscale(55%);
 }
 
 .shop-product-card.admin-product-card:hover {
@@ -967,9 +1027,26 @@
   transform: scale(0.98);
 }
 
-.shop-product-card .card-btn-edit {
+.card-hidden-badge {
   position: absolute;
-  right: 8px;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(29, 29, 31, 0.82);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 22;
+  pointer-events: none;
+}
+
+.shop-product-card .card-btn-edit,
+.shop-product-card .card-btn-visibility {
+  position: absolute;
   bottom: 8px;
   width: 28px;
   height: 28px;
@@ -985,17 +1062,76 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   z-index: 23;
 }
 
-.shop-product-card .card-btn-edit:hover {
+.shop-product-card .card-btn-edit {
+  right: 8px;
+}
+
+.shop-product-card .card-btn-visibility {
+  right: 42px;
+  color: var(--text-secondary);
+}
+
+.shop-product-card .card-btn-visibility.is-hidden {
+  background: rgba(29, 29, 31, 0.9);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.shop-product-card .card-btn-edit:hover,
+.shop-product-card .card-btn-visibility:hover {
   transform: scale(1.1);
-  background: #ffffff;
   border-color: var(--primary, #10b981);
 }
 
-.shop-product-card .card-btn-edit:active {
+.shop-product-card .card-btn-edit:hover {
+  background: #ffffff;
+}
+
+.shop-product-card .card-btn-edit:active,
+.shop-product-card .card-btn-visibility:active {
   transform: scale(0.92);
+}
+
+/* Visibility Switch Row in Admin Create & Edit Forms */
+.visibility-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-subtle, #f0f0f3);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+}
+
+.visibility-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.visibility-toggle-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.visibility-toggle-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.visibility-toggle-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary, #10b981);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
