@@ -83,7 +83,8 @@ supabase/migrations/
 ├── 20261023020000_server_side_delivery_zone_calculation.sql # Серверный расчет зоны доставки по координатам, защита тарифов
 ├── 20261024000000_normalize_product_categories_to_slugs.sql # Нормализация категорий товаров в языконезависимые slug-и
 ├── 20261121000000_units_and_fix_create_order.sql # Колонка products.allowed_units, нормализация unit, исправление create_order() и восстановление order_items
-└── 20261121010000_product_visibility.sql # Флаг видимости товара на витрине (products.is_visible)
+├── 20261121010000_product_visibility.sql # Флаг видимости товара на витрине (products.is_visible)
+└── 20261121020000_fix_create_order_product_id_text.sql # Исправление сравнения products.id::text и типизации v_product (%ROWTYPE) в create_order()
 ```
 
 ### Применение миграций:

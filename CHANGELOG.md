@@ -1557,6 +1557,11 @@ flowchart TD
     * У скрытых товаров отображается приглушённый вид карточки (`.is-hidden-product`) и бейдж **«Скрыт»**.
     * В тулбар каталога добавлен растянутый фильтр **«Все N / Видимые N / Скрытые N»** (`#adminVisibilityFilter`) со счётчиками прямо внутри пилюль в одну строку с переключателем сетки, а в форму добавления и модалку редактирования — переключатель **«Показывать на витрине»**.
   * **Кэширование и версионирование:** Service Worker витрины и админки повышены до `v1.5.46` (`shop.html`, `admin/index.html`, `sw-shop.js`, `admin/sw-admin.js`).
+* [x] **Исправление ошибки `operator does not exist: text = uuid` при создании заказа (v1.5.47 DB Patch):**
+  * **База данных (`supabase/migrations/20261121020000_fix_create_order_product_id_text.sql`):**
+    * В RPC `create_order()` поиск товара в `public.products` переведён на безопасное сравнение `WHERE id::text = v_raw_product_id LIMIT 1` (совместимо с `TEXT` и `UUID` типом `products.id`).
+    * Переменная `v_product` переведена с `RECORD` на `public.products%ROWTYPE` для безопасного доступа к полям `NULL`, если позиция заказа не найдена в `public.products`, а `v_product_id` приводится в `UUID` с защитой `EXCEPTION WHEN OTHERS`.
+    * Идемпотентный `UPDATE public.order_items` переведён на `oi.product_id::text = p.id::text`.
 
 
 
