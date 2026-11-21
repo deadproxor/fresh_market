@@ -332,7 +332,7 @@ class AdminAuth {
     try {
       const { data, error } = await this.sb
         .from('orders')
-        .select('*, order_items(*)')
+        .select('*, order_items(*, products(id, name_ru, name_en, name_kh, img_url, category, form, price, unit))')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -429,20 +429,42 @@ class AdminAuth {
           <div class="order-admin-items" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 12px;">
             <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">🛍️ Состав заказа (${items.length}):</div>
             ${items.map(it => {
-              const itTitle = this.escapeHtml(it.product_title || it.product_name_ru || it.product_name_en || 'Товар');
+              const linkedProd = it.products || (window.app && Array.isArray(window.app.products) ? window.app.products.find(p => p.id === it.product_id) : null);
+              const rawSavedTitle = (it.product_title && it.product_title !== 'Товар') ? it.product_title : '';
+              const rawSavedRu = (it.product_name_ru && it.product_name_ru !== 'Товар') ? it.product_name_ru : '';
+              const resolvedTitle = rawSavedRu
+                || (linkedProd && linkedProd.name_ru)
+                || rawSavedTitle
+                || it.product_name_en
+                || (linkedProd && linkedProd.name_en)
+                || 'Товар';
+              const resolvedKh = it.product_name_kh || (linkedProd && linkedProd.name_kh) || '';
+              const itTitle = this.escapeHtml(resolvedTitle);
+              const khBadge = resolvedKh ? ` <span class="khmer-font" style="color: var(--text-khmer, #1a6896); font-size: 11px;">(${this.escapeHtml(resolvedKh)})</span>` : '';
               const rawQty = Number(it.quantity || it.requested_qty || 1) || 1;
               const itQty = this.escapeHtml(rawQty);
-              const rawUnit = String(it.unit || 'кг').trim();
-              const itUnit = this.escapeHtml(rawUnit);
+              const rawUnit = String(it.unit || 'kg').trim();
+              const unitDisplay = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
+                ? window.FreshMarketUnits.getUnitLabel(rawUnit)
+                : rawUnit;
+              const itUnit = this.escapeHtml(unitDisplay);
               const itComment = it.customer_comment ? ` <i style="color: var(--text-muted); font-size: 11px;">[💬 ${this.escapeHtml(it.customer_comment)}]</i>` : '';
               const estPrice = Number(it.actual_cost || it.estimated_price || 0);
               let itemUsd = 0;
               if (estPrice > 0 && estPrice < 500) {
                 itemUsd = Number(estPrice.toFixed(2));
               } else if (estPrice >= 500) {
-                const isGrams = /^(г|g|ក្រាម)$/i.test(rawUnit) || rawQty >= 50;
-                const mult = isGrams ? (rawQty / 1000) : rawQty;
-                itemUsd = Number(((estPrice * mult) / khrRate).toFixed(2));
+                if (window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+                  const calc = window.FreshMarketUnits.calculateCost({ price: estPrice, unit: (linkedProd && linkedProd.unit) || '1_kg' }, rawQty, rawUnit, khrRate);
+                  itemUsd = calc.hasPrice ? calc.usd : 0;
+                } else {
+                  const isGrams = /^(г|g|ក្រាម)$/i.test(rawUnit) || rawQty >= 50;
+                  const mult = isGrams ? (rawQty / 1000) : rawQty;
+                  itemUsd = Number(((estPrice * mult) / khrRate).toFixed(2));
+                }
+              } else if (linkedProd && Number(linkedProd.price) > 0 && window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+                const calc = window.FreshMarketUnits.calculateCost(linkedProd, rawQty, rawUnit, khrRate);
+                itemUsd = calc.hasPrice ? calc.usd : 0;
               }
               if (itemUsd > 0) {
                 calcItemsUsd += itemUsd;
@@ -452,7 +474,7 @@ class AdminAuth {
               const priceLabel = itemUsd > 0
                 ? ` — <b>$${itemUsd.toFixed(2)}</b>`
                 : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
-              return `<div style="padding: 2px 0;">• <b>${itTitle}</b> (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
+              return `<div style="padding: 2px 0;">• <b>${itTitle}</b>${khBadge} (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
             }).join('')}
           </div>
         ` : '';

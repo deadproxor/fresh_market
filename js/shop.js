@@ -1965,54 +1965,22 @@ class ShopApp {
 
   calculateItemCost(product, qtyInput, explicitUnit = '') {
     const rate = this.khrRate || 4000;
+    if (window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+      return window.FreshMarketUnits.calculateCost(product, qtyInput, explicitUnit, rate);
+    }
     const rawPrice = Number(product?.price ?? product?.estimated_price ?? 0);
     if (!Number.isFinite(rawPrice) || rawPrice <= 0) {
-      return { hasPrice: false, khr: 0, usd: 0, unitPriceKhr: 0, unitPriceUsd: 0, multiplier: 1 };
+      return { hasPrice: false, incompatibleUnit: false, khr: 0, usd: 0, unitPriceKhr: 0, unitPriceUsd: 0, multiplier: 1 };
     }
 
-    // Catalog prices are in KHR (>= 50), whereas explicit USD prices are < 50
     const unitPriceKhr = rawPrice < 50 ? Math.round(rawPrice * rate) : Math.round(rawPrice);
     const unitPriceUsd = unitPriceKhr / rate;
-
     const qtyStr = String(qtyInput ?? '').trim();
     const numMatch = qtyStr.match(/^([\d.]+)/);
     const qVal = numMatch ? (parseFloat(numMatch[1]) || 1) : 1;
-    const rawQtyUnit = (explicitUnit || qtyStr.replace(/^[\d.\s]+/, '') || '').trim().toLowerCase();
-
-    const uInfo = this.getUnitInfo(product?.unit);
-    const baseKey = uInfo ? uInfo.key : '';
-
-    let multiplier = qVal;
-
-    if (['1_kg', 'kg', '500_g', '250_g', '100_g', 'g'].includes(baseKey)) {
-      const baseKg = baseKey === '500_g' ? 0.5 : baseKey === '250_g' ? 0.25 : baseKey === '100_g' ? 0.1 : baseKey === 'g' ? 0.001 : 1.0;
-      const isReqGrams = /^(г|g|ក្រាម|gram|grams)$/i.test(rawQtyUnit) || qVal >= 50;
-      const reqKg = isReqGrams ? (qVal / 1000) : qVal;
-      multiplier = reqKg / baseKg;
-    } else if (['1_l', '1_bottle', '0_7_l', '0_5_l', '0_2_l'].includes(baseKey)) {
-      const baseL = baseKey === '0_7_l' ? 0.7 : baseKey === '0_5_l' ? 0.5 : baseKey === '0_2_l' ? 0.2 : 1.0;
-      const isReqMl = /^(мл|ml|មីលីលីត្រ)$/i.test(rawQtyUnit) || qVal >= 50;
-      const reqL = isReqMl ? (qVal / 1000) : qVal;
-      multiplier = reqL / baseL;
-    } else if (baseKey === '10_pcs') {
-      multiplier = qVal >= 10 ? (qVal / 10) : qVal;
-    }
-
-    if (!Number.isFinite(multiplier) || multiplier <= 0) {
-      multiplier = 1;
-    }
-
-    const khr = Math.round(unitPriceKhr * multiplier);
+    const khr = Math.round(unitPriceKhr * qVal);
     const usd = Number((khr / rate).toFixed(2));
-
-    return {
-      hasPrice: true,
-      khr,
-      usd,
-      unitPriceKhr,
-      unitPriceUsd: Number(unitPriceUsd.toFixed(2)),
-      multiplier
-    };
+    return { hasPrice: true, incompatibleUnit: false, khr, usd, unitPriceKhr, unitPriceUsd: Number(unitPriceUsd.toFixed(2)), multiplier: qVal };
   }
 
   calculateCartFinancials(overrideDeliveryFee = null) {
@@ -2021,9 +1989,9 @@ class ShopApp {
     let itemsKhr = 0;
     let unknownCount = 0;
 
-    items.forEach(({ product, qty }) => {
+    items.forEach(({ product, qty, qtyNum, unit }) => {
       if (!product) return;
-      const cost = this.calculateItemCost(product, qty);
+      const cost = this.calculateItemCost(product, qtyNum || qty, unit || '');
       if (cost.hasPrice) {
         itemsKhr += cost.khr;
       } else {
@@ -2285,8 +2253,11 @@ class ShopApp {
     const inCart = Boolean(cartItem);
     const optionsConfig = this.getProductOptions(product);
 
-    // Initial selected quantity
+    // Initial selected quantity & unit
     this.activeSheetSelectedQty = inCart ? cartItem.qty : (optionsConfig.defaultQty || optionsConfig.options[0]);
+    this.activeSheetSelectedQtyNum = (inCart && cartItem.qtyNum) ? cartItem.qtyNum : null;
+    this.activeSheetSelectedUnit = (inCart && cartItem.unit) ? cartItem.unit : null;
+    this.activeSheetQtyController = null;
 
     // Product Header Info
     const catObj = CATEGORIES.find((c) => c.name === product.category || c.id === product.category);
@@ -2328,22 +2299,39 @@ class ShopApp {
       }
     }
 
-    // Populate Option Chips
+    // Populate Universal Quantity & Unit Selector
     if (this.sheetOptionsGrid) {
-      this.sheetOptionsGrid.innerHTML = optionsConfig.options.map((opt) => `
-        <button type="button" class="sheet-option-chip ${this.activeSheetSelectedQty === opt ? 'active' : ''}" data-val="${opt}">
-          ${opt}
-        </button>
-      `).join('');
-
-      this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((chip) => {
-        chip.addEventListener('click', () => {
-          this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((c) => c.classList.remove('active'));
-          chip.classList.add('active');
-          this.activeSheetSelectedQty = chip.dataset.val;
-          this.updateSheetSubmitBtnText(product, inCart);
+      if (window.FreshMarketQtySelector && typeof window.FreshMarketQtySelector.renderPicker === 'function') {
+        this.sheetOptionsGrid.classList.add('has-qty-selector');
+        this.activeSheetQtyController = window.FreshMarketQtySelector.renderPicker(this.sheetOptionsGrid, {
+          product,
+          value: inCart ? cartItem.qty : null,
+          unit: inCart && cartItem.unit ? cartItem.unit : null,
+          qty: inCart && cartItem.qtyNum ? cartItem.qtyNum : null,
+          onChange: (nextState) => {
+            this.activeSheetSelectedQty = nextState.formatted;
+            this.activeSheetSelectedQtyNum = nextState.qty;
+            this.activeSheetSelectedUnit = nextState.unit;
+            this.updateSheetSubmitBtnText(product, inCart);
+          }
         });
-      });
+      } else {
+        this.sheetOptionsGrid.classList.remove('has-qty-selector');
+        this.sheetOptionsGrid.innerHTML = optionsConfig.options.map((opt) => `
+          <button type="button" class="sheet-option-chip ${this.activeSheetSelectedQty === opt ? 'active' : ''}" data-val="${opt}">
+            ${opt}
+          </button>
+        `).join('');
+
+        this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            this.sheetOptionsGrid.querySelectorAll('.sheet-option-chip').forEach((c) => c.classList.remove('active'));
+            chip.classList.add('active');
+            this.activeSheetSelectedQty = chip.dataset.val;
+            this.updateSheetSubmitBtnText(product, inCart);
+          });
+        });
+      }
     }
 
     // Customer Comment Input
@@ -2367,9 +2355,15 @@ class ShopApp {
     if (!this.sheetBtnSubmit) return;
 
     let estPrice = '';
-    const cost = this.calculateItemCost(product, this.activeSheetSelectedQty);
+    const cost = this.calculateItemCost(
+      product,
+      this.activeSheetSelectedQtyNum || this.activeSheetSelectedQty,
+      this.activeSheetSelectedUnit || ''
+    );
     if (cost.hasPrice) {
       estPrice = ` • ~$${cost.usd.toFixed(2)}`;
+    } else if (cost.incompatibleUnit) {
+      estPrice = ` • ${this.t('product.by_weight_hint', 'по весу')}`;
     }
 
     if (inCart) {
@@ -2388,6 +2382,9 @@ class ShopApp {
     }
     this.activeSheetProductId = null;
     this.activeSheetSelectedQty = null;
+    this.activeSheetSelectedQtyNum = null;
+    this.activeSheetSelectedUnit = null;
+    this.activeSheetQtyController = null;
   }
 
   submitProductSheet() {
@@ -2395,12 +2392,17 @@ class ShopApp {
     const product = this.products.find((p) => p.id === this.activeSheetProductId);
     if (!product) return;
 
-    const qty = this.activeSheetSelectedQty || '1 кг';
+    const pickerState = this.activeSheetQtyController ? this.activeSheetQtyController.getState() : null;
+    const qty = pickerState ? pickerState.formatted : (this.activeSheetSelectedQty || '1 кг');
+    const qtyNum = pickerState ? pickerState.qty : null;
+    const unit = pickerState ? pickerState.unit : (this.activeSheetSelectedUnit || null);
     const comment = this.sheetCommentInput ? this.sheetCommentInput.value.trim() : '';
 
     this.cart[this.activeSheetProductId] = {
       product: product,
       qty: qty,
+      qtyNum: qtyNum,
+      unit: unit,
       comment: comment
     };
 
@@ -2745,12 +2747,15 @@ class ShopApp {
     const removeTitle = window.i18n ? window.i18n.t('cart.remove_item') : 'Удалить';
 
     const unknownPriceText = this.t('cart.item_price_unknown', 'Цена неизвестна (по чеку)');
+    const byWeightText = this.t('product.by_weight_hint', 'по весу');
+    const byReceiptShortText = this.t('cart.by_receipt_short', 'по чеку');
 
-    this.cartItemsList.innerHTML = items.map(({ product, qty, comment }) => {
-      const itemCost = this.calculateItemCost(product, qty);
+    this.cartItemsList.innerHTML = items.map(({ product, qty, qtyNum, unit, comment }) => {
+      const itemCost = this.calculateItemCost(product, qtyNum || qty, unit || '');
+      const fallbackPriceLabel = itemCost.incompatibleUnit ? `${byWeightText} (${byReceiptShortText})` : unknownPriceText;
       const priceHtml = itemCost.hasPrice
         ? `<div class="cart-item-price" data-price-id="${product.id}">~$${itemCost.usd.toFixed(2)} <span class="cart-item-price-khr">/ ${itemCost.khr.toLocaleString('en-US')} ៛</span></div>`
-        : `<div class="cart-item-price cart-item-price-unknown" data-price-id="${product.id}">${this.escapeHtml(unknownPriceText)}</div>`;
+        : `<div class="cart-item-price cart-item-price-unknown" data-price-id="${product.id}">${this.escapeHtml(fallbackPriceLabel)}</div>`;
       return `
       <div class="cart-item-row" data-id="${product.id}">
         <div class="cart-item-info" title="${window.i18n ? window.i18n.t('product.edit_order') : 'Изменить заказ'}">
@@ -2793,19 +2798,28 @@ class ShopApp {
           const rawVal = e.target.value.trim();
           if (isFinal && !rawVal) {
             this.cart[id].qty = window.i18n ? `1 ${window.i18n.t('common.unit_pcs')}` : '1 шт';
+            this.cart[id].qtyNum = 1;
+            this.cart[id].unit = 'pc';
             e.target.value = this.cart[id].qty;
           } else if (rawVal) {
             this.cart[id].qty = rawVal;
+            if (window.FreshMarketUnits && typeof window.FreshMarketUnits.parseQuantityString === 'function') {
+              const parsedManual = window.FreshMarketUnits.parseQuantityString(rawVal, this.cart[id].unit || this.cart[id].product?.unit || 'kg');
+              this.cart[id].qtyNum = parsedManual.qty;
+              this.cart[id].unit = parsedManual.unit;
+            }
           }
           const priceEl = this.cartItemsList.querySelector(`[data-price-id="${id}"]`);
           if (priceEl && this.cart[id].product) {
-            const cost = this.calculateItemCost(this.cart[id].product, this.cart[id].qty);
+            const cost = this.calculateItemCost(this.cart[id].product, this.cart[id].qtyNum || this.cart[id].qty, this.cart[id].unit || '');
             if (cost.hasPrice) {
               priceEl.classList.remove('cart-item-price-unknown');
               priceEl.innerHTML = `~$${cost.usd.toFixed(2)} <span class="cart-item-price-khr">/ ${cost.khr.toLocaleString('en-US')} ៛</span>`;
             } else {
               priceEl.classList.add('cart-item-price-unknown');
-              priceEl.textContent = this.t('cart.item_price_unknown', 'Цена неизвестна (по чеку)');
+              priceEl.textContent = cost.incompatibleUnit
+                ? `${this.t('product.by_weight_hint', 'по весу')} (${this.t('cart.by_receipt_short', 'по чеку')})`
+                : this.t('cart.item_price_unknown', 'Цена неизвестна (по чеку)');
             }
           }
           this.saveCart();
@@ -3776,30 +3790,57 @@ class ShopApp {
       created_at: new Date().toISOString()
     };
 
-    const orderItemsPayload = items.map(({ product, qty, comment }) => {
+    const orderItemsPayload = items.map(({ product, qty, qtyNum, unit, comment }) => {
       const title = this.getLocalizedProductName(product) || (window.i18n ? window.i18n.t('common.product') : 'Товар');
-      const numMatch = String(qty || '').match(/^([\d.]+)/);
-      const parsedQty = numMatch ? parseFloat(numMatch[1]) : 1;
-      const unitMatch = String(qty || '').replace(/^[\d.\s]+/, '').trim();
-      const finalUnit = unitMatch || product.unit || 'кг';
-      const itemCost = this.calculateItemCost(product, qty);
+      let parsedQty = 1;
+      let finalUnit = 'kg';
+      if (window.FreshMarketUnits && typeof window.FreshMarketUnits.parseQuantityString === 'function') {
+        const parsed = window.FreshMarketUnits.parseQuantityString(qtyNum ? `${qtyNum} ${unit || ''}` : qty, unit || product.unit || 'kg');
+        parsedQty = parsed.qty;
+        finalUnit = parsed.unit;
+      } else {
+        const numMatch = String(qty || '').match(/^([\d.]+)/);
+        parsedQty = numMatch ? parseFloat(numMatch[1]) : 1;
+        const unitMatch = String(qty || '').replace(/^[\d.\s]+/, '').trim();
+        finalUnit = unitMatch || product.unit || 'kg';
+      }
+      const itemCost = this.calculateItemCost(product, parsedQty, finalUnit);
+      const nameRu = product.name_ru || title;
+      const nameEn = product.name_en || '';
+      const nameKh = product.name_kh || '';
+      const imgUrl = product.img_url || '';
+      const category = product.category || '';
+      const form = product.form || '';
+      const estUsd = itemCost.hasPrice ? (itemCost.usd || 0.00) : 0.00;
+
       return {
         id: generateUUID(),
         order_id: orderId,
         product_id: product.id || null,
+        // Canonical prefixed fields
         product_title: title,
-        product_name_en: product.name_en || '',
-        product_name_kh: product.name_kh || '',
-        product_name_ru: product.name_ru || '',
-        product_img_url: product.img_url || '',
-        product_category: product.category || '',
-        product_form: product.form || '',
+        product_name_en: nameEn,
+        product_name_kh: nameKh,
+        product_name_ru: nameRu,
+        product_img_url: imgUrl,
+        product_category: category,
+        product_form: form,
+        customer_comment: comment || '',
+        estimated_price: estUsd,
+        // Backward-compatible short aliases for create_order RPC
+        title: title,
+        name_en: nameEn,
+        name_kh: nameKh,
+        name_ru: nameRu,
+        img_url: imgUrl,
+        category: category,
+        form: form,
+        comment: comment || '',
+        price: estUsd,
         quantity: parsedQty,
         requested_qty: parsedQty,
         unit: finalUnit,
-        customer_comment: comment || '',
         status: 'pending',
-        estimated_price: itemCost.usd || 0.00,
         actual_cost: 0.00,
         created_at: new Date().toISOString()
       };
@@ -3978,7 +4019,7 @@ class ShopApp {
       try {
         const { data, error } = await this.sb
           .from('orders')
-          .select('*, order_items(*)')
+          .select('*, order_items(*, products(id, name_ru, name_en, name_kh, name_ua, name_fr, img_url, category, form, price, unit))')
           .eq('user_id', this.currentUser.id)
           .order('created_at', { ascending: false });
 
@@ -4246,9 +4287,16 @@ class ShopApp {
             <!-- Items preview -->
             <div class="order-card-items">
               ${items.map((item, idx) => {
-                const itemTitle = this.getLocalizedProductName(item) || item.product_title || (window.i18n ? window.i18n.t('common.product') : 'Товар');
+                const linkedProd = item.products || (this.products || []).find((p) => p.id === item.product_id) || null;
+                const rawItemTitle = (item.product_title && item.product_title !== 'Товар') ? item.product_title : '';
+                const itemTitle = (linkedProd ? this.getLocalizedProductName(linkedProd) : '')
+                  || this.getLocalizedProductName(item)
+                  || rawItemTitle
+                  || (window.i18n ? window.i18n.t('common.product') : 'Товар');
                 const itemQty = item.quantity || item.requested_qty || 1;
-                const itemUnit = item.unit || 'кг';
+                const itemUnit = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
+                  ? window.FreshMarketUnits.getUnitLabel(item.unit || 'kg')
+                  : (item.unit || 'кг');
                 const itemUsd = orderFin.itemPricesUsd[idx] || 0;
                 const priceTag = itemUsd > 0
                   ? `<span style="font-weight: 600; color: var(--text-primary); margin-left: 8px; white-space: nowrap;">$${itemUsd.toFixed(2)}</span>`

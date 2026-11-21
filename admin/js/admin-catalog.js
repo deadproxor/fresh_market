@@ -523,14 +523,28 @@ class SupabaseAdapter {
     if (!payload.id) {
       payload.id = generateUUID();
     }
-    const res = await fetch(`${this.url}/rest/v1/products`, {
+    let res = await fetch(`${this.url}/rest/v1/products`, {
       method: 'POST',
       headers: this.headers,
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || err.hint || `Supabase error: ${res.statusText}`);
+      const errText = `${err.code || ''} ${err.message || ''} ${err.hint || ''}`;
+      if (payload.allowed_units !== undefined && /allowed_units|PGRST204/i.test(errText)) {
+        const { allowed_units, ...fallbackPayload } = payload;
+        res = await fetch(`${this.url}/rest/v1/products`, {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify(fallbackPayload)
+        });
+        if (!res.ok) {
+          const err2 = await res.json().catch(() => ({}));
+          throw new Error(err2.message || err2.hint || `Supabase error: ${res.statusText}`);
+        }
+      } else {
+        throw new Error(err.message || err.hint || `Supabase error: ${res.statusText}`);
+      }
     }
     const data = await res.json();
     return (data && data[0]) ? data[0] : payload;
@@ -538,14 +552,28 @@ class SupabaseAdapter {
 
   async update(id, updatedFields) {
     if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
-    const res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
+    let res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: this.headers,
       body: JSON.stringify(updatedFields)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+      const errText = `${err.code || ''} ${err.message || ''} ${err.hint || ''}`;
+      if (updatedFields.allowed_units !== undefined && /allowed_units|PGRST204/i.test(errText)) {
+        const { allowed_units, ...fallbackFields } = updatedFields;
+        res = await fetch(`${this.url}/rest/v1/products?id=eq.${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          headers: this.headers,
+          body: JSON.stringify(fallbackFields)
+        });
+        if (!res.ok) {
+          const err2 = await res.json().catch(() => ({}));
+          throw new Error(err2.message || err2.hint || `Supabase error: ${res.statusText}`);
+        }
+      } else {
+        throw new Error(err.message || err.hint || `Supabase error: ${res.statusText}`);
+      }
     }
     const data = await res.json();
     return data[0];
@@ -1050,8 +1078,23 @@ class App {
     this.fieldCurrency = document.getElementById('fieldCurrency');
     this.fieldPrice = document.getElementById('fieldPrice');
     this.fieldUnit = document.getElementById('fieldUnit');
+    this.fieldAllowedUnitsContainer = document.getElementById('fieldAllowedUnitsContainer');
     this.priceHint = document.getElementById('priceHint');
     this.fieldDescription = document.getElementById('fieldDescription');
+
+    this.createAllowedUnitsCtrl = null;
+    if (this.fieldAllowedUnitsContainer && window.FreshMarketQtySelector && typeof window.FreshMarketQtySelector.renderConfig === 'function') {
+      this.createAllowedUnitsCtrl = window.FreshMarketQtySelector.renderConfig(this.fieldAllowedUnitsContainer, {
+        baseUnit: this.fieldUnit ? this.fieldUnit.value : '1_kg',
+        category: normalizeCategoryToSlug(this.selectedCategory || (CATEGORIES[0] && CATEGORIES[0].id) || 'vegetables'),
+        form: this.selectedForm || 'Целый'
+      });
+    }
+    if (this.fieldUnit && this.createAllowedUnitsCtrl) {
+      this.fieldUnit.addEventListener('change', () => {
+        this.createAllowedUnitsCtrl.syncWithContext({ baseUnit: this.fieldUnit.value });
+      });
+    }
 
     // Settings Modal Elements
     this.btnSettings = document.getElementById('btnSettings');
@@ -1670,6 +1713,9 @@ class App {
         btn.classList.add('active');
         this.selectedCategory = cat.name;
         this.fieldCategory.value = cat.name;
+        if (this.createAllowedUnitsCtrl) {
+          this.createAllowedUnitsCtrl.syncWithContext({ category: cat.id });
+        }
       });
       this.categoryChips.appendChild(btn);
     });
@@ -1695,6 +1741,9 @@ class App {
           this.selectedForm = f.label;
         }
         this.fieldForm.value = this.selectedForm;
+        if (this.createAllowedUnitsCtrl) {
+          this.createAllowedUnitsCtrl.syncWithContext({ form: this.selectedForm });
+        }
       });
       this.formChips.appendChild(btn);
     });
@@ -2986,6 +3035,9 @@ class App {
         this.selectedCategory = chipCat;
         this.fieldCategory.value = chipCat;
         chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        if (this.createAllowedUnitsCtrl) {
+          this.createAllowedUnitsCtrl.syncWithContext({ category: normalizeCategoryToSlug(chipCat) });
+        }
       }
     });
   }
@@ -3125,6 +3177,7 @@ class App {
       finalKhrPrice = currency === 'USD' ? Math.round(num * this.khrRate) : Math.round(num);
     }
     const unit = this.fieldUnit ? this.fieldUnit.value.trim() : '';
+    const allowedUnits = this.createAllowedUnitsCtrl ? this.createAllowedUnitsCtrl.getAllowedUnits() : null;
 
     const newProduct = {
       name_en: nameEn,
@@ -3134,6 +3187,7 @@ class App {
       form: form,
       price: finalKhrPrice,
       unit: unit,
+      ...(allowedUnits && allowedUnits.length > 0 ? { allowed_units: allowedUnits } : {}),
       description: description,
       img_url: imgUrl
     };
@@ -3170,6 +3224,14 @@ class App {
     }
     if (this.fieldUnit) this.fieldUnit.value = '1_kg';
     if (this.priceHint) this.priceHint.textContent = `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`;
+    if (this.createAllowedUnitsCtrl) {
+      this.createAllowedUnitsCtrl.syncWithContext({
+        baseUnit: '1_kg',
+        category: normalizeCategoryToSlug(this.selectedCategory || (CATEGORIES[0] && CATEGORIES[0].id) || 'vegetables'),
+        form: 'Целый',
+        autoReset: true
+      });
+    }
     if (this.activeFilterCategory && this.activeFilterCategory !== 'all') {
       this.selectCategoryByName(this.activeFilterCategory);
     }
@@ -4469,6 +4531,7 @@ class App {
           <div class="form-field-hint" id="editPriceHint" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
             ${item.price !== null && item.price !== undefined && item.price !== '' && !isNaN(Number(item.price)) ? `≈ $${(Number(item.price) / this.khrRate).toFixed(2)} (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)` : `≈ $0.00 (по курсу 1 USD = ${this.khrRate.toLocaleString('en-US')} KHR)`}
           </div>
+          <div id="editAllowedUnitsContainer"></div>
         </div>
 
         <!-- 6. DESCRIPTION / NOTES -->
@@ -4507,10 +4570,36 @@ class App {
     const editCurrency = document.getElementById('editCurrency');
     const editPrice = document.getElementById('editPrice');
     const editUnit = document.getElementById('editUnit');
+    const editAllowedUnitsContainer = document.getElementById('editAllowedUnitsContainer');
     const editPriceHint = document.getElementById('editPriceHint');
     const editDescription = document.getElementById('editDescription');
     const btnCancelEdit = document.getElementById('btnCancelEdit');
     const btnDeleteFromEdit = document.getElementById('btnDeleteFromEdit');
+
+    let editAllowedUnitsCtrl = null;
+    if (editAllowedUnitsContainer && window.FreshMarketQtySelector && typeof window.FreshMarketQtySelector.renderConfig === 'function') {
+      editAllowedUnitsCtrl = window.FreshMarketQtySelector.renderConfig(editAllowedUnitsContainer, {
+        baseUnit: editUnit ? editUnit.value : (item.unit || '1_kg'),
+        allowedUnits: item.allowed_units,
+        category: normalizeCategoryToSlug(item.category || ''),
+        form: item.form || 'Целый'
+      });
+      if (editUnit) {
+        editUnit.addEventListener('change', () => {
+          editAllowedUnitsCtrl.syncWithContext({ baseUnit: editUnit.value });
+        });
+      }
+      if (editCategory) {
+        editCategory.addEventListener('change', () => {
+          editAllowedUnitsCtrl.syncWithContext({ category: normalizeCategoryToSlug(editCategory.value) });
+        });
+      }
+      if (editFormSelect) {
+        editFormSelect.addEventListener('change', () => {
+          editAllowedUnitsCtrl.syncWithContext({ form: editFormSelect.value });
+        });
+      }
+    }
 
     if (btnCancelEdit) {
       btnCancelEdit.addEventListener('click', () => {
@@ -4666,6 +4755,7 @@ class App {
       }
       const editUnitInput = document.getElementById('editUnit');
       const finalUnit = editUnitInput ? editUnitInput.value.trim() : '';
+      const finalAllowedUnits = editAllowedUnitsCtrl ? editAllowedUnitsCtrl.getAllowedUnits() : item.allowed_units;
 
       const updatedData = {
         category: normalizeCategoryToSlug(finalCat),
@@ -4675,6 +4765,7 @@ class App {
         form: finalForm,
         price: finalPrice,
         unit: finalUnit,
+        ...(Array.isArray(finalAllowedUnits) && finalAllowedUnits.length > 0 ? { allowed_units: finalAllowedUnits } : {}),
         description: finalDesc,
         img_url: this.editModalImageBase64
       };

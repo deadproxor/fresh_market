@@ -1531,6 +1531,17 @@ flowchart TD
   * **Стили компонента и наследование (`css/components.css`, `components.html`, `js/shop.js`, `admin/js/admin-catalog.js`):**
     * Базовые стили группируемого тоста вынесены в мастер-файл `css/components.css`; витрина (`shop.js`), админка (`admin-catalog.js`) и витрина компонентов (`components.html`) переведены на единый контроллер `window.FreshMarketToast`.
   * **Кэширование и версионирование:** Service Worker витрины повышен до `freshmarket-shop-v1.5.43` (`shop.html` `v=1.5.43`), Service Worker админки повышен до `freshmarket-admin-v1.5.43` (`admin/index.html` `v=1.5.43`), кэш-бастеры `components.css` и `utils.js` обновлены до `v=1.5.43`.
+* [x] **Универсальный компонент выбора размерности и количества (витрина + админка) и исправление записи позиций заказов (v1.5.44 Shop & Admin):**
+  * **Единый модуль `FreshMarketQtySelector` и реестр `FreshMarketUnits` (`js/shared/qty-selector.js`, `css/components.css`, `components.html`):**
+    * Реализован канонический реестр размерностей (`kg`, `g`, `pc`, `bunch`, `pack`, `tray`, `bottle`, `l`, `ml`) с локализацией на 5 языках, шагами степпера, пресетами, умными дефолтами по категории/форме товара и проверкой совместимости размерностей при расчёте цены.
+    * **Режим покупателя (`mode: 'picker'` в `js/shop.js`):** в шторке товара появилась компактная строка управления `.qty-controls-row` — выпадающий список разрешённых размерностей (`.qty-unit-select`: `кг / г / шт` и др.) слева и степпер `− / поле / +` (`.qty-stepper-row`) справа, а ниже — адаптивные быстрые пресеты. При выборе несовместимой размерности (напр. `3 шт` для товара с ценой за `1 кг`) честно отображается пометка «по весу / по чеку» без ложного перемножения.
+    * **Режим админки (`mode: 'config'` в `admin/index.html` и `admin/js/admin-catalog.js`):** в форму создания и модалку редактирования товара встроен мультиселектор разрешённых размерностей покупателя (`allowed_units`) с кнопкой «Авто» и автосинхронизацией при смене категории/формы/единицы цены. Добавлен мягкий fallback в `SupabaseStorage.create/update` на случай сохранения до применения миграции.
+  * **Исправление отображения «Товар» в заказах (`supabase/migrations/20261121000000_units_and_fix_create_order.sql`, `js/shop.js`, `admin/js/admin-auth.js`):**
+    * В RPC `create_order()` восстановлено обогащение позиций из `public.products` по `product_id`, поддержка обоих форматов ключей (`product_title`/`title`, `product_name_*`/`name_*`, `estimated_price`/`price`, `customer_comment`/`comment`), нормализация `unit` в канонический slug и корректный пересчёт стоимости с учётом `g`/`ml`/несовместимых размерностей.
+    * В миграцию добавлены колонка `public.products.allowed_units TEXT[]`, нормализация `products.unit` и одноразовый `UPDATE public.order_items ... FROM public.products` для восстановления названий у уже созданных заказов.
+    * В `js/shop.js` (отправка заказа и история) и `admin/js/admin-auth.js` (список заявок закупщика) добавлены совместимые ключи и резервная подгрузка связанных `order_items(*, products(...))` с локализацией единиц измерения.
+  * **Локализация (`locales/{ru,en,ua,fr,km}.json`):** добавлены ключи `common.unit_g`, `common.unit_ml`, `common.unit_tray`, `product.select_unit_label`, `product.by_weight_hint`.
+  * **Кэширование и версионирование:** Service Worker витрины повышен до `freshmarket-shop-v1.5.44`, Service Worker админки — до `freshmarket-admin-v1.5.44`, `qty-selector.js` включён в прекэш обоих Service Worker.
 
 
 
