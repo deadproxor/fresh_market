@@ -1542,6 +1542,10 @@ flowchart TD
     * В `js/shop.js` (отправка заказа и история) и `admin/js/admin-auth.js` (список заявок закупщика) добавлены совместимые ключи и резервная подгрузка связанных `order_items(*, products(...))` с локализацией единиц измерения.
   * **Локализация (`locales/{ru,en,ua,fr,km}.json`):** добавлены ключи `common.unit_g`, `common.unit_ml`, `common.unit_tray`, `product.select_unit_label`, `product.by_weight_hint`.
   * **Кэширование и версионирование:** Service Worker витрины повышен до `freshmarket-shop-v1.5.44`, Service Worker админки — до `freshmarket-admin-v1.5.44`, `qty-selector.js` включён в прекэш обоих Service Worker.
+* [x] **Упрощение раздела «Мои заказы» до двух категорий — Текущие и Архивные (v1.5.45 Shop):**
+  * В [shop.html](shop.html) и [js/shop.js](js/shop.js) удалена вкладка «Будущие» (`upcoming`); оставлены две взаимоисключающие вкладки: **«Текущие»** (все активные заказы, включая предзаказы на завтра) и **«Архивные»** (доставленные, отменённые и отклонённые заказы). Детальные бейджи этапов внутри карточек заказов сохранены.
+  * Синхронизированы все 5 файлов локализации (`locales/{ru,en,ua,fr,km}.json`): удалены неиспользуемые ключи `upcoming`, обновлено описание пустого состояния `orders.empty_current_desc`.
+  * Service Worker витрины повышен до `freshmarket-shop-v1.5.45` (`shop.html` `v=1.5.45`).
 
 
 

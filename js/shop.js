@@ -4165,7 +4165,8 @@ class ShopApp {
       orders = this.cachedUserOrders || [];
     }
 
-    const activeTab = this.currentOrdersTab || 'current';
+    const activeTab = this.currentOrdersTab === 'archive' ? 'archive' : 'current';
+    this.currentOrdersTab = activeTab;
     document.querySelectorAll('#ordersSegmentedTabs [data-orders-tab]').forEach((btn) => {
       const isActive = btn.dataset.ordersTab === activeTab;
       btn.classList.toggle('active', isActive);
@@ -4176,32 +4177,22 @@ class ShopApp {
     const todayStr = marketNow.toISOString().slice(0, 10);
 
     const filteredOrders = (orders || []).filter((order) => {
-      const targetDate = order.target_delivery_date || (order.created_at ? order.created_at.slice(0, 10) : todayStr);
       const isTerminal = order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected';
 
-      if (activeTab === 'current') {
-        return !isTerminal && targetDate <= todayStr;
-      }
-      if (activeTab === 'upcoming') {
-        return !isTerminal && targetDate > todayStr;
-      }
       if (activeTab === 'archive') {
-        return isTerminal || targetDate < todayStr;
+        return isTerminal;
       }
-      return true;
+      return !isTerminal;
     });
 
     if (filteredOrders.length === 0) {
       let emptyTitle, emptyDesc;
-      if (activeTab === 'current') {
-        emptyTitle = window.i18n ? window.i18n.t('orders.empty_current_title') : 'Нет активных утренних заказов';
-        emptyDesc = window.i18n ? window.i18n.t('orders.empty_current_desc') : 'Заказы, закупаемые на рынке сегодня утром, отображаются здесь.';
-      } else if (activeTab === 'upcoming') {
-        emptyTitle = window.i18n ? window.i18n.t('orders.empty_upcoming_title') : 'Нет будущих предзаказов';
-        emptyDesc = window.i18n ? window.i18n.t('orders.empty_upcoming_desc') : 'Оформите заказ на завтра или последующие дни.';
-      } else {
+      if (activeTab === 'archive') {
         emptyTitle = window.i18n ? window.i18n.t('orders.empty_archive_title') : 'Архив заказов пуст';
         emptyDesc = window.i18n ? window.i18n.t('orders.empty_archive_desc') : 'Здесь сохраняется история выполненных и закрытых доставок.';
+      } else {
+        emptyTitle = window.i18n ? window.i18n.t('orders.empty_current_title') : 'Нет текущих заказов';
+        emptyDesc = window.i18n ? window.i18n.t('orders.empty_current_desc') : 'Все ваши активные заказы и предзаказы на утренний закуп отображаются здесь.';
       }
       const toCatalogBtn = window.i18n ? window.i18n.t('nav.catalog') : 'Перейти в каталог 🛍️';
       this.ordersModalBody.innerHTML = `
