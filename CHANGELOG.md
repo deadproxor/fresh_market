@@ -1571,6 +1571,11 @@ flowchart TD
   * **Витрина (`js/shop.js`, `css/shop.css`):** введён порог минимальной суммы товаров `minOrderUsd = 10` (по известной сумме товаров `itemsUsd`, с опциональной поддержкой `service_rules.min_order_usd`). Пока сумма меньше \$10, вместо активной кнопки «В заказ →» на плавающей панели (`#btnFloatingToCart`) и вместо «Оформить заказ →» в корзине (`#btnSubmitOrder`) отображается заблокированный счётчик остатка с плавной полосой прогресса (`.is-below-min`, например, *«Ещё \$6.50 до заказа»*), а `submitOrder()` дополнительно блокирует отправку.
   * **Локализация (`locales/{ru,en,ua,fr,km}.json`):** добавлены ключи `cart.min_order_remaining` и `cart.min_order_error` во все 5 языков.
   * **Кэширование и версионирование:** `css/shop.css?v=1.5.49` и `js/shop.js?v=1.5.49` в `shop.html`, Service Worker витрины повышен до `freshmarket-shop-v1.5.49`.
+* [x] **Полная 5-язычная локализация лендинга и уточнение шторки товара (v1.5.50 Landing & Shop):**
+  * **Лендинг (`index.html`, `js/landing.js`):** все видимые и скрытые (`#receiptCalculator`, `.section-showcase`) блоки лендинга переведены на `data-i18n` / `data-i18n-html` / `data-i18n-alt` / `data-i18n-title` / `data-i18n-aria-label`; добавлено динамическое обновление `<title>`, `<meta name="description">` и подписи маркера Leaflet-карты при инициализации `i18n` и смене языка (`freshmarket:langchange`).
+  * **Шторка товара (`shop.html`, `js/shop.js`, `css/shop.css`):** бейдж формы товара (`#sheetFormBadge`) перенесён отдельной строкой под название товара (`align-self: flex-start`), а к цене товара в шторке добавлена локализованная базовая размерность из `product.unit` (например, `$2.50 / 1 кг`).
+  * **Локализации (`locales/{ru,en,ua,fr,km}.json`):** секция `landing` переведена полностью на 5 языков (`meta`, `common`, `header`, `hero`, `calc`, `bento`, `zones`, `showcase`, `timeline`, `cta`, `footer`); удалены неиспользуемые ключи старых прототипов (`landing.journal`, `landing.stalls`, `landing.silk` и лишние ключи `landing.common`).
+  * **Кэширование и версионирование:** `js/landing.js?v=1.5.50` в `index.html`, `css/shop.css?v=1.5.50` и `js/shop.js?v=1.5.50` в `shop.html`, Service Worker витрины повышен до `freshmarket-shop-v1.5.50`.
 
 
 

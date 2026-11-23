@@ -148,9 +148,15 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Center Market Hub Marker with pulse animation
+    var initialHubLabel = (window.i18n && window.i18n.isReady)
+      ? window.i18n.t('landing.zones.hub_marker_label')
+      : 'Market Hub • 5 AM';
+    if (!initialHubLabel || initialHubLabel === 'landing.zones.hub_marker_label') {
+      initialHubLabel = 'Market Hub • 5 AM';
+    }
     var hubIcon = L.divIcon({
       className: 'custom-hub-icon',
-      html: '<div class="leaflet-hub-marker"><div class="hub-pulse-ring"></div><div class="hub-center-dot"></div><div class="hub-label-pill">🌱 Market Hub • 5&nbsp;AM</div></div>',
+      html: '<div class="leaflet-hub-marker"><div class="hub-pulse-ring"></div><div class="hub-center-dot"></div><div class="hub-label-pill">🌱 <span id="landingHubMarkerLabel">' + initialHubLabel + '</span></div></div>',
       iconSize: [24, 24],
       iconAnchor: [12, 12]
     });
@@ -322,4 +328,31 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   } catch (err) { }
+
+  // 4. Reactive i18n sync for document meta & Leaflet hub marker
+  function applyLandingDynamicI18n() {
+    if (!window.i18n || typeof window.i18n.t !== 'function') return;
+
+    var pageTitle = window.i18n.t('landing.meta.title');
+    if (pageTitle && pageTitle !== 'landing.meta.title') {
+      document.title = pageTitle;
+    }
+
+    var metaDesc = document.querySelector('meta[name="description"]');
+    var pageDesc = window.i18n.t('landing.meta.description');
+    if (metaDesc && pageDesc && pageDesc !== 'landing.meta.description') {
+      metaDesc.setAttribute('content', pageDesc);
+    }
+
+    var hubLabelEl = document.getElementById('landingHubMarkerLabel');
+    var hubLabel = window.i18n.t('landing.zones.hub_marker_label');
+    if (hubLabelEl && hubLabel && hubLabel !== 'landing.zones.hub_marker_label') {
+      hubLabelEl.textContent = hubLabel;
+    }
+  }
+
+  if (window.i18n && typeof window.i18n.onReady === 'function') {
+    window.i18n.onReady(applyLandingDynamicI18n);
+  }
+  window.addEventListener('freshmarket:langchange', applyLandingDynamicI18n);
 });

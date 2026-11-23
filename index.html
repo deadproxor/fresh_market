@@ -52,9 +52,9 @@
       <!-- Live Telemetry Pill -->
       <div class="header-telemetry-pill">
         <span class="status-pulse-dot"></span>
-        <span class="telemetry-label">Next Market Run: <strong>5&nbsp;AM</strong></span>
+        <span class="telemetry-label" data-i18n-html="landing.header.telemetry_label_html">Next Market Run: <strong>5&nbsp;AM</strong></span>
         <span class="telemetry-sep">•</span>
-        <span class="telemetry-sub">Cutoff 11&nbsp;PM tonight</span>
+        <span class="telemetry-sub" data-i18n="landing.header.telemetry_sub">Cutoff 11&nbsp;PM tonight</span>
       </div>
 
       <div class="landing-header-controls">
@@ -63,7 +63,7 @@
 
         <!-- Logout Button (if customer is logged in) -->
         <button type="button" class="btn-logout" id="btnLandingLogout" style="display: none;" title="Выйти из аккаунта"
-          data-i18n="common.logout">
+          data-i18n="common.logout" data-i18n-title="landing.common.logout_title">
           Выйти 🚪
         </button>
 
@@ -84,20 +84,20 @@
         <div class="hero-content col-7 col-lg-12">
           <div class="hero-badge">
             <span class="badge-dot"></span>
-            <span>Dawn Market Concierge • Daily Run</span>
+            <span data-i18n="landing.hero.badge">Dawn Market Concierge • Daily Run</span>
           </div>
 
-          <h1 class="hero-title">
+          <h1 class="hero-title" data-i18n="landing.hero.title">
             From the morning market to your door before noon.
           </h1>
 
           <div class="hero-actions">
             <a href="shop.html" class="btn-hero-primary">
-              <span>Explore Market Catalog</span>
+              <span data-i18n="landing.hero.cta_catalog">Explore Market Catalog</span>
               <span class="arrow-glyph">→</span>
             </a>
             <a href="#howItWorks" class="btn-hero-secondary">
-              <span>How It Works</span>
+              <span data-i18n="landing.hero.cta_how">How It Works</span>
               <span class="arrow-glyph">↓</span>
             </a>
           </div>
@@ -105,16 +105,16 @@
           <!-- 3 Value Pillars -->
           <div class="hero-metrics-bar">
             <div class="metric-item">
-              <div class="metric-val">11&nbsp;PM</div>
-              <div class="metric-lbl">Nightly order cutoff</div>
+              <div class="metric-val" data-i18n="landing.hero.metric1_val">11&nbsp;PM</div>
+              <div class="metric-lbl" data-i18n="landing.hero.metric1_lbl">Nightly order cutoff</div>
             </div>
             <div class="metric-item">
-              <div class="metric-val">+10%</div>
-              <div class="metric-lbl">Flat buyer fee only</div>
+              <div class="metric-val" data-i18n="landing.hero.metric2_val">+10%</div>
+              <div class="metric-lbl" data-i18n="landing.hero.metric2_lbl">Flat buyer fee only</div>
             </div>
             <div class="metric-item">
-              <div class="metric-val">9&nbsp;AM – 12&nbsp;PM</div>
-              <div class="metric-lbl">Daily delivery window</div>
+              <div class="metric-val" data-i18n="landing.hero.metric3_val">9&nbsp;AM – 12&nbsp;PM</div>
+              <div class="metric-lbl" data-i18n="landing.hero.metric3_lbl">Daily delivery window</div>
             </div>
           </div>
         </div>
@@ -123,44 +123,48 @@
         <div class="hero-visual col-5 col-lg-12">
           <div class="hero-image-frame">
             <img src="assets/landing/terminal-harvest.jpg"
-              alt="Dawn market harvest counter with fresh greens and peppers" class="hero-photo" loading="eager" />
+              alt="Dawn market harvest counter with fresh greens and peppers"
+              data-i18n-alt="landing.hero.photo_alt" class="hero-photo" loading="eager" />
           </div>
 
           <!-- Interactive Receipt Calculator Card (Hidden for now) -->
           <div class="interactive-receipt-card" id="receiptCalculator" style="display: none;">
             <div class="card-header-bar">
               <div class="card-title-group">
-                <span class="card-eyebrow">Transparent Pricing</span>
-                <h3 class="card-title">Live Order Breakdown</h3>
+                <span class="card-eyebrow" data-i18n="landing.calc.eyebrow">Transparent Pricing</span>
+                <h3 class="card-title" data-i18n="landing.calc.title">Live Order Breakdown</h3>
               </div>
-              <span class="verified-pill">Paper Slip Verified</span>
+              <span class="verified-pill" data-i18n="landing.calc.verified_pill">Paper Slip Verified</span>
             </div>
 
             <!-- Receipt Breakdown Rows -->
             <div class="receipt-table">
               <div class="receipt-line">
-                <span class="line-label">Market stall produce (vendor tally)</span>
+                <span class="line-label" data-i18n="landing.calc.row_produce">Market stall produce (vendor tally)</span>
                 <span class="line-val mono" id="calcStallProduce">$18.50</span>
               </div>
               <div class="receipt-line">
-                <span class="line-label">Personal buyer service fee (10%)</span>
+                <span class="line-label" data-i18n="landing.calc.row_fee">Personal buyer service fee (10%)</span>
                 <span class="line-val mono fee-val" id="calcBuyerFee">+$1.85</span>
               </div>
               <div class="receipt-line">
-                <span class="line-label">Selected delivery zone</span>
+                <span class="line-label" data-i18n="landing.calc.row_delivery">Selected delivery zone</span>
                 <span class="line-val mono delivery-val" id="calcDeliveryFee">+$1.00</span>
               </div>
 
               <!-- Zone Selection Chips -->
               <div class="zone-chips-row">
-                <span class="zone-label-hint">Select zone:</span>
-                <button type="button" class="calc-zone-btn active" data-zone="1" data-fee="1.00">
+                <span class="zone-label-hint" data-i18n="landing.calc.select_zone_hint">Select zone:</span>
+                <button type="button" class="calc-zone-btn active" data-zone="1" data-fee="1.00"
+                  data-i18n="landing.calc.zone1_btn">
                   Zone 1 ($1)
                 </button>
-                <button type="button" class="calc-zone-btn" data-zone="2" data-fee="2.00">
+                <button type="button" class="calc-zone-btn" data-zone="2" data-fee="2.00"
+                  data-i18n="landing.calc.zone2_btn">
                   Zone 2 ($2)
                 </button>
-                <button type="button" class="calc-zone-btn" data-zone="3" data-fee="3.50">
+                <button type="button" class="calc-zone-btn" data-zone="3" data-fee="3.50"
+                  data-i18n="landing.calc.zone3_btn">
                   Zone 3 ($3.50)
                 </button>
               </div>
@@ -170,14 +174,14 @@
               <!-- Total Row -->
               <div class="receipt-line receipt-total-line">
                 <div>
-                  <span class="total-label">Total upon doorstep arrival</span>
+                  <span class="total-label" data-i18n="landing.calc.total_label">Total upon doorstep arrival</span>
                   <div class="total-khr-note" id="calcKhrEquivalent">≈ 85,400 ៛</div>
                 </div>
                 <span class="line-val mono total-val" id="calcTotal">$21.35</span>
               </div>
             </div>
 
-            <div class="card-footer-note">
+            <div class="card-footer-note" data-i18n="landing.calc.footer_note">
               Pay cash or mobile QR bank transfer when you inspect the bag.
             </div>
           </div>
@@ -190,7 +194,8 @@
     <div class="unified-map-wrapper">
       <!-- Live Leaflet Ambient Map Underlay Canvas spanning across both Bento & Delivery Zones -->
       <div class="unified-map-underlay" id="unifiedMapUnderlay">
-        <div id="liveLeafletMap" class="live-leaflet-map" aria-label="Interactive Regional Delivery Map"></div>
+        <div id="liveLeafletMap" class="live-leaflet-map" aria-label="Interactive Regional Delivery Map"
+          data-i18n-aria-label="landing.zones.map_aria_label"></div>
       </div>
 
       <!-- ================= 2.1 BENTO GRID: 4-COLUMN RESPONSIVE MATRIX ================= -->
@@ -198,9 +203,9 @@
         <div class="canvas-container">
 
           <div class="section-head-wide">
-            <div class="section-tag">Logistics & Standards</div>
-            <h2 class="section-heading">How our morning concierge works.</h2>
-            <p class="section-sub">
+            <div class="section-tag" data-i18n="landing.bento.section_tag">Logistics & Standards</div>
+            <h2 class="section-heading" data-i18n="landing.bento.section_heading">How our morning concierge works.</h2>
+            <p class="section-sub" data-i18n="landing.bento.section_sub">
               Traditional market quality without waking up at 5&nbsp;AM or negotiating stall by stall in the heat.
             </p>
           </div>
@@ -211,26 +216,26 @@
             <div class="bento-tile bento-tile-wide bento-sourcing col-6 col-md-12">
               <div class="bento-split-media">
                 <img src="assets/landing/chronicle-market.jpg" alt="Personal buyer inspecting produce in woven baskets"
-                  class="bento-img" loading="lazy" />
+                  data-i18n-alt="landing.bento.tile1_img_alt" class="bento-img" loading="lazy" />
                 <div class="bento-media-overlay">
-                  <span class="badge-time">5&nbsp;AM • At First Light</span>
+                  <span class="badge-time" data-i18n="landing.bento.tile1_badge_time">5&nbsp;AM • At First Light</span>
                 </div>
               </div>
               <div class="bento-split-text">
-                <div class="tile-tag">Dawn Procurement</div>
-                <h3 class="tile-title">Hand-selected at the vendor stalls.</h3>
-                <p class="tile-desc">
+                <div class="tile-tag" data-i18n="landing.bento.tile1_tag">Dawn Procurement</div>
+                <h3 class="tile-title" data-i18n="landing.bento.tile1_title">Hand-selected at the vendor stalls.</h3>
+                <p class="tile-desc" data-i18n="landing.bento.tile1_desc">
                   Our trusted buyer inspects rows of fresh vegetables, leafy herbs, seafood, and tropical fruits as
                   local farmers unload their daily harvest. If a batch isn't top tier, we don't buy it.
                 </p>
                 <div class="tile-features">
                   <div class="feature-item">
                     <span class="check-glyph">✓</span>
-                    <span>Vetted stall vendors across all categories</span>
+                    <span data-i18n="landing.bento.tile1_feat1">Vetted stall vendors across all categories</span>
                   </div>
                   <div class="feature-item">
                     <span class="check-glyph">✓</span>
-                    <span>Zero multi-day warehouse storage</span>
+                    <span data-i18n="landing.bento.tile1_feat2">Zero multi-day warehouse storage</span>
                   </div>
                 </div>
               </div>
@@ -238,34 +243,34 @@
 
             <!-- Bento 2: Cold Chain & Eco Packing -->
             <div class="bento-tile bento-coldchain col-3 col-md-6 col-sm-12">
-              <div class="tile-tag">Thermal Protection</div>
-              <h3 class="tile-title">Insulated bag & kraft paper.</h3>
-              <p class="tile-desc">
+              <div class="tile-tag" data-i18n="landing.bento.tile2_tag">Thermal Protection</div>
+              <h3 class="tile-title" data-i18n="landing.bento.tile2_title">Insulated bag & kraft paper.</h3>
+              <p class="tile-desc" data-i18n="landing.bento.tile2_desc">
                 Morning tropical heat wilts tender greens within an hour. Every order travels in an insulated thermal
                 cooler box, bundled in breathable kraft paper tied with natural twine.
               </p>
               <div class="coldchain-spec-box">
-                <div class="spec-pill">Insulated Cooler Box</div>
-                <div class="spec-pill">Breathable Kraft Paper</div>
-                <div class="spec-pill">Zero Heat Wilting</div>
+                <div class="spec-pill" data-i18n="landing.bento.tile2_pill1">Insulated Cooler Box</div>
+                <div class="spec-pill" data-i18n="landing.bento.tile2_pill2">Breathable Kraft Paper</div>
+                <div class="spec-pill" data-i18n="landing.bento.tile2_pill3">Zero Heat Wilting</div>
               </div>
             </div>
 
             <!-- Bento 3: 10% Flat Model -->
             <div class="bento-tile bento-math col-3 col-md-6 col-sm-12">
-              <div class="tile-tag">Honest Economics</div>
-              <h3 class="tile-title">10% flat fee. Zero markup.</h3>
-              <p class="tile-desc">
+              <div class="tile-tag" data-i18n="landing.bento.tile3_tag">Honest Economics</div>
+              <h3 class="tile-title" data-i18n="landing.bento.tile3_title">10% flat fee. Zero markup.</h3>
+              <p class="tile-desc" data-i18n="landing.bento.tile3_desc">
                 We never mark up stall prices. You receive the original handwritten paper receipt from the vendor. Our
                 sole revenue is the 10% personal concierge fee.
               </p>
               <div class="math-callout">
                 <div class="math-equation">
-                  <span>Stall Receipt</span>
+                  <span data-i18n="landing.bento.tile3_eq_receipt">Stall Receipt</span>
                   <span class="op">+</span>
-                  <span class="hl">10% Fee</span>
+                  <span class="hl" data-i18n="landing.bento.tile3_eq_fee">10% Fee</span>
                   <span class="op">+</span>
-                  <span>Delivery</span>
+                  <span data-i18n="landing.bento.tile3_eq_delivery">Delivery</span>
                 </div>
               </div>
             </div>
@@ -284,9 +289,9 @@
           <!-- Right Column: Schedule & Interactive Zone Tiers -->
           <div class="map-details-pane col-5 col-lg-12">
             <div class="map-pane-header">
-              <div class="tile-tag">Logistics & Coverage</div>
-              <h3 class="tile-title map-pane-title">Three fixed radius tiers. One morning arrival.</h3>
-              <p class="tile-desc map-pane-desc">
+              <div class="tile-tag" data-i18n="landing.zones.tag">Logistics & Coverage</div>
+              <h3 class="tile-title map-pane-title" data-i18n="landing.zones.title">Three fixed radius tiers. One morning arrival.</h3>
+              <p class="tile-desc map-pane-desc" data-i18n="landing.zones.desc">
                 Transparent courier dispatch with zero markups on distance. 100% of the delivery fee is handed directly
                 to your morning driver.
               </p>
@@ -294,17 +299,17 @@
 
             <!-- 4-Card Coverage & Schedule Matrix -->
             <div class="map-coverage-matrix map-zones-interactive" role="tablist"
-              aria-label="Delivery Zone Tiers & Schedule">
+              aria-label="Delivery Zone Tiers & Schedule" data-i18n-aria-label="landing.zones.tablist_aria">
 
               <!-- Card 1: Single Slot Schedule Card -->
               <div class="map-slot-card">
                 <div class="map-slot-left">
-                  <div class="map-slot-badge">Fixed Schedule</div>
-                  <div class="map-slot-time">9&nbsp;AM — 12&nbsp;PM</div>
+                  <div class="map-slot-badge" data-i18n="landing.zones.slot_badge">Fixed Schedule</div>
+                  <div class="map-slot-time" data-i18n="landing.zones.slot_time">9&nbsp;AM — 12&nbsp;PM</div>
                 </div>
                 <div class="map-slot-right">
-                  <div class="map-slot-status">Single Morning Delivery Slot</div>
-                  <div class="map-slot-text">
+                  <div class="map-slot-status" data-i18n="landing.zones.slot_status">Single Morning Delivery Slot</div>
+                  <div class="map-slot-text" data-i18n="landing.zones.slot_text">
                     Procured at sunrise, delivered cold directly to your kitchen in time for lunch prep.
                   </div>
                 </div>
@@ -314,13 +319,13 @@
               <div class="zone-interactive-row active" data-zone="1" tabindex="0" role="tab" aria-selected="true">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$1.00</span>
-                  <span class="zir-radius">0 – 1 km</span>
+                  <span class="zir-radius" data-i18n="landing.zones.zone1_radius">0 – 1 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
-                    <span class="zir-name">Zone 1: Center</span>
+                    <span class="zir-name" data-i18n="landing.zones.zone1_name">Zone 1: Center</span>
                   </div>
-                  <div class="zir-desc">Town center and immediate central neighborhoods (up to 1 km).</div>
+                  <div class="zir-desc" data-i18n="landing.zones.zone1_desc">Town center and immediate central neighborhoods (up to 1 km).</div>
                 </div>
               </div>
 
@@ -328,13 +333,13 @@
               <div class="zone-interactive-row" data-zone="2" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$2.00</span>
-                  <span class="zir-radius">1 – 3 km</span>
+                  <span class="zir-radius" data-i18n="landing.zones.zone2_radius">1 – 3 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
-                    <span class="zir-name">Zone 2: Mid Districts</span>
+                    <span class="zir-name" data-i18n="landing.zones.zone2_name">Zone 2: Mid Districts</span>
                   </div>
-                  <div class="zir-desc">Inner residential areas and adjacent city districts (1 to 3 km).</div>
+                  <div class="zir-desc" data-i18n="landing.zones.zone2_desc">Inner residential areas and adjacent city districts (1 to 3 km).</div>
                 </div>
               </div>
 
@@ -342,13 +347,13 @@
               <div class="zone-interactive-row" data-zone="3" tabindex="0" role="tab" aria-selected="false">
                 <div class="zir-rate-col">
                   <span class="zir-rate">$3.50</span>
-                  <span class="zir-radius">3 – 6 km</span>
+                  <span class="zir-radius" data-i18n="landing.zones.zone3_radius">3 – 6 km</span>
                 </div>
                 <div class="zir-info-col">
                   <div class="zir-title-row">
-                    <span class="zir-name">Zone 3: Outskirts</span>
+                    <span class="zir-name" data-i18n="landing.zones.zone3_name">Zone 3: Outskirts</span>
                   </div>
-                  <div class="zir-desc">Outer residential areas, villas, and perimeter districts (3 to 6 km).</div>
+                  <div class="zir-desc" data-i18n="landing.zones.zone3_desc">Outer residential areas, villas, and perimeter districts (3 to 6 km).</div>
                 </div>
               </div>
 
@@ -357,7 +362,7 @@
             <!-- Courier Guarantee Footer -->
             <div class="map-pane-footnote">
               <span class="footnote-live-dot"></span>
-              <span>100% of zone delivery fee goes directly to the courier • Zero platform surcharge</span>
+              <span data-i18n="landing.zones.footnote">100% of zone delivery fee goes directly to the courier • Zero platform surcharge</span>
             </div>
           </div>
 
@@ -371,14 +376,14 @@
 
         <div class="showcase-header-row">
           <div>
-            <div class="section-tag">Morning Market Produce</div>
-            <h2 class="section-heading">Direct from open-air stalls.</h2>
-            <p class="section-sub">
+            <div class="section-tag" data-i18n="landing.showcase.tag">Morning Market Produce</div>
+            <h2 class="section-heading" data-i18n="landing.showcase.heading">Direct from open-air stalls.</h2>
+            <p class="section-sub" data-i18n="landing.showcase.sub">
               Actual seasonal items cataloged with honest morning market prices.
             </p>
           </div>
           <a href="shop.html" class="btn-showcase-all">
-            <span>View 160+ Products</span>
+            <span data-i18n="landing.showcase.btn_all">View 160+ Products</span>
             <span class="arrow-glyph">→</span>
           </a>
         </div>
@@ -389,13 +394,13 @@
             <div class="showcase-img-wrap">
               <img
                 src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790760589/FreshMarket/rmb5tqn9wx0g6ua7umkw.jpg"
-                alt="Fresh Ginger root" class="showcase-img" loading="lazy" />
+                alt="Fresh Ginger root" data-i18n-alt="landing.showcase.item1_alt" class="showcase-img" loading="lazy" />
               <div class="showcase-price-tag">$1.50 <span class="khr">~6,000 ៛</span></div>
             </div>
             <div class="showcase-info">
-              <span class="showcase-cat">Herbs & Roots</span>
-              <h4 class="showcase-name">Fresh Ginger</h4>
-              <span class="showcase-link">Open in shop →</span>
+              <span class="showcase-cat" data-i18n="landing.showcase.item1_cat">Herbs & Roots</span>
+              <h4 class="showcase-name" data-i18n="landing.showcase.item1_name">Fresh Ginger</h4>
+              <span class="showcase-link" data-i18n="landing.showcase.open_in_shop">Open in shop →</span>
             </div>
           </a>
 
@@ -404,13 +409,13 @@
             <div class="showcase-img-wrap">
               <img
                 src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790946564/FreshMarket/clhu6sjvxvy3louc6flk.jpg"
-                alt="Thai round eggplant" class="showcase-img" loading="lazy" />
+                alt="Thai round eggplant" data-i18n-alt="landing.showcase.item2_alt" class="showcase-img" loading="lazy" />
               <div class="showcase-price-tag">$1.00 <span class="khr">~4,000 ៛</span></div>
             </div>
             <div class="showcase-info">
-              <span class="showcase-cat">Vegetables</span>
-              <h4 class="showcase-name">Thai Eggplant</h4>
-              <span class="showcase-link">Open in shop →</span>
+              <span class="showcase-cat" data-i18n="landing.showcase.item2_cat">Vegetables</span>
+              <h4 class="showcase-name" data-i18n="landing.showcase.item2_name">Thai Eggplant</h4>
+              <span class="showcase-link" data-i18n="landing.showcase.open_in_shop">Open in shop →</span>
             </div>
           </a>
 
@@ -419,13 +424,13 @@
             <div class="showcase-img-wrap">
               <img
                 src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986536/FreshMarket/hjtibffxgkb4jqg5yplq.jpg"
-                alt="Young green tamarind pods" class="showcase-img" loading="lazy" />
+                alt="Young green tamarind pods" data-i18n-alt="landing.showcase.item3_alt" class="showcase-img" loading="lazy" />
               <div class="showcase-price-tag">$1.25 <span class="khr">~5,000 ៛</span></div>
             </div>
             <div class="showcase-info">
-              <span class="showcase-cat">Fruits & Seasoning</span>
-              <h4 class="showcase-name">Green Tamarind</h4>
-              <span class="showcase-link">Open in shop →</span>
+              <span class="showcase-cat" data-i18n="landing.showcase.item3_cat">Fruits & Seasoning</span>
+              <h4 class="showcase-name" data-i18n="landing.showcase.item3_name">Green Tamarind</h4>
+              <span class="showcase-link" data-i18n="landing.showcase.open_in_shop">Open in shop →</span>
             </div>
           </a>
 
@@ -434,13 +439,13 @@
             <div class="showcase-img-wrap">
               <img
                 src="https://res.cloudinary.com/xzoeawbu/image/upload/v1790986604/FreshMarket/jfoqxhzrb9wspum7eewk.jpg"
-                alt="Fresh rabbitfish catch" class="showcase-img" loading="lazy" />
+                alt="Fresh rabbitfish catch" data-i18n-alt="landing.showcase.item4_alt" class="showcase-img" loading="lazy" />
               <div class="showcase-price-tag">$4.50 <span class="khr">~18,000 ៛</span></div>
             </div>
             <div class="showcase-info">
-              <span class="showcase-cat">Fresh Seafood</span>
-              <h4 class="showcase-name">Rabbitfish</h4>
-              <span class="showcase-link">Open in shop →</span>
+              <span class="showcase-cat" data-i18n="landing.showcase.item4_cat">Fresh Seafood</span>
+              <h4 class="showcase-name" data-i18n="landing.showcase.item4_name">Rabbitfish</h4>
+              <span class="showcase-link" data-i18n="landing.showcase.open_in_shop">Open in shop →</span>
             </div>
           </a>
         </div>
@@ -453,48 +458,48 @@
       <div class="canvas-container">
 
         <div class="section-head-wide">
-          <div class="section-tag">Daily Operational Rhythm</div>
-          <h2 class="section-heading">From evening request to noon delivery.</h2>
-          <p class="section-sub">
+          <div class="section-tag" data-i18n="landing.timeline.tag">Daily Operational Rhythm</div>
+          <h2 class="section-heading" data-i18n="landing.timeline.heading">From evening request to noon delivery.</h2>
+          <p class="section-sub" data-i18n="landing.timeline.sub">
             A precise timeline designed around morning market arrivals and natural produce coolness.
           </p>
         </div>
 
         <div class="timeline-matrix-row">
           <div class="timeline-matrix-card">
-            <div class="step-badge">Phase 01</div>
-            <div class="matrix-hour">11&nbsp;PM</div>
-            <h4 class="matrix-title">Evening Order Cutoff</h4>
-            <p class="matrix-desc">
+            <div class="step-badge" data-i18n="landing.timeline.step1_badge">Phase 01</div>
+            <div class="matrix-hour" data-i18n="landing.timeline.step1_hour">11&nbsp;PM</div>
+            <h4 class="matrix-title" data-i18n="landing.timeline.step1_title">Evening Order Cutoff</h4>
+            <p class="matrix-desc" data-i18n="landing.timeline.step1_desc">
               Select items in our catalog before turning in. The morning procurement list is dispatched to our buyer's
               handset.
             </p>
           </div>
 
           <div class="timeline-matrix-card">
-            <div class="step-badge">Phase 02</div>
-            <div class="matrix-hour">5&nbsp;AM</div>
-            <h4 class="matrix-title">Dawn Market Selection</h4>
-            <p class="matrix-desc">
+            <div class="step-badge" data-i18n="landing.timeline.step2_badge">Phase 02</div>
+            <div class="matrix-hour" data-i18n="landing.timeline.step2_hour">5&nbsp;AM</div>
+            <h4 class="matrix-title" data-i18n="landing.timeline.step2_title">Dawn Market Selection</h4>
+            <p class="matrix-desc" data-i18n="landing.timeline.step2_desc">
               Our buyer enters the bustling morning stalls, inspecting daily arrivals from local farmers and fishermen.
             </p>
           </div>
 
           <div class="timeline-matrix-card">
-            <div class="step-badge">Phase 03</div>
-            <div class="matrix-hour">7:30&nbsp;AM</div>
-            <h4 class="matrix-title">Weighing & Vendor Receipt</h4>
-            <p class="matrix-desc">
+            <div class="step-badge" data-i18n="landing.timeline.step3_badge">Phase 03</div>
+            <div class="matrix-hour" data-i18n="landing.timeline.step3_hour">7:30&nbsp;AM</div>
+            <h4 class="matrix-title" data-i18n="landing.timeline.step3_title">Weighing & Vendor Receipt</h4>
+            <p class="matrix-desc" data-i18n="landing.timeline.step3_desc">
               Items are weighed at vendor scales. The handwritten paper receipt is recorded, adding only the flat 10%
               fee.
             </p>
           </div>
 
           <div class="timeline-matrix-card">
-            <div class="step-badge">Phase 04</div>
-            <div class="matrix-hour">9&nbsp;AM — 12&nbsp;PM</div>
-            <h4 class="matrix-title">Doorstep Cold Delivery</h4>
-            <p class="matrix-desc">
+            <div class="step-badge" data-i18n="landing.timeline.step4_badge">Phase 04</div>
+            <div class="matrix-hour" data-i18n="landing.timeline.step4_hour">9&nbsp;AM — 12&nbsp;PM</div>
+            <h4 class="matrix-title" data-i18n="landing.timeline.step4_title">Doorstep Cold Delivery</h4>
+            <p class="matrix-desc" data-i18n="landing.timeline.step4_desc">
               Dispatched in insulated cooler bags to keep produce fresh. You inspect goods at the door and pay via cash
               or KHQR.
             </p>
@@ -508,18 +513,18 @@
     <section class="section-final-cta">
       <div class="canvas-container grid-12">
         <div class="cta-banner-card col-12">
-          <div class="cta-pill">Tonight's Orders Open</div>
-          <h2 class="cta-heading">Ready for tomorrow's market harvest?</h2>
-          <p class="cta-desc">
+          <div class="cta-pill" data-i18n="landing.cta.pill">Tonight's Orders Open</div>
+          <h2 class="cta-heading" data-i18n="landing.cta.heading">Ready for tomorrow's market harvest?</h2>
+          <p class="cta-desc" data-i18n="landing.cta.desc">
             Place your order before 11&nbsp;PM. Your personal buyer handles the early morning market run for you.
           </p>
           <div class="cta-buttons">
             <a href="shop.html" class="btn-cta-main">
-              <span>Open Customer Storefront</span>
+              <span data-i18n="landing.cta.btn_main">Open Customer Storefront</span>
               <span class="arrow-glyph">→</span>
             </a>
           </div>
-          <div class="cta-footnote">
+          <div class="cta-footnote" data-i18n="landing.cta.footnote">
             Zero markup • Paper vendor receipt • Insulated cooler transit • Pay upon arrival
           </div>
         </div>
@@ -543,18 +548,18 @@
         </div>
 
         <div class="footer-links-group col-4 col-md-12">
-          <a href="shop.html">Customer Shop</a>
+          <a href="shop.html" data-i18n="landing.footer.link_shop">Customer Shop</a>
           <a href="privacy-geodata.html" data-i18n="cart.geodata_modal_title">Privacy &amp; Geodata</a>
-          <a href="components.html">UI Workbench</a>
-          <a href="admin/index.html">Buyer Workspace 🔒</a>
+          <a href="components.html" data-i18n="landing.footer.link_workbench">UI Workbench</a>
+          <a href="admin/index.html" data-i18n="landing.footer.link_admin">Buyer Workspace 🔒</a>
         </div>
       </div>
 
       <div class="footer-bottom grid-12 grid-gap-md grid-items-center">
         <div class="footer-copy col-8 col-md-12">
-          <span data-brand-name>FreshBuddy</span> • Honest morning market produce delivered before noon.<br />
+          <span data-brand-name>FreshBuddy</span> <span data-i18n="landing.footer.copy_headline">• Honest morning market produce delivered before noon.</span><br />
           <span style="font-size: 12px; color: var(--text-muted, #94a3b8); opacity: 0.85;">
-            Delivery routing and geocoding powered by OpenStreetMap &amp; OSRM servers. Personal details are never shared with third parties.
+            <span data-i18n="landing.footer.copy_geo_note">Delivery routing and geocoding powered by OpenStreetMap &amp; OSRM servers. Personal details are never shared with third parties.</span>
             <a href="privacy-geodata.html" style="color: var(--brand-emerald, #10b981); text-decoration: underline; margin-left: 4px;" data-i18n="cart.geodata_modal_link">Policy details →</a>
           </span>
         </div>
@@ -566,7 +571,7 @@
   </footer>
 
   <!-- ================= INTERACTIVE CONTROLLER SCRIPT ================= -->
-  <script src="js/landing.js?v=1.5.42"></script>
+  <script src="js/landing.js?v=1.5.50"></script>
 </body>
 
 </html>

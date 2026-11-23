@@ -87,6 +87,11 @@
   filter: none;
 }
 
+/* Product Bottom Sheet: keep form badge compact under product name */
+.shop-app .sheet-product-details #sheetFormBadge {
+  align-self: flex-start;
+}
+
 .shop-controls-section {
   padding: 0;
   display: flex;

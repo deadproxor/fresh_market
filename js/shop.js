@@ -2316,11 +2316,16 @@ class ShopApp {
       this.sheetProductKhmer.style.display = 'none';
     }
 
-    // Price tags
+    // Price tags with localized base unit from DB (product.unit)
     const rate = this.khrRate || 4000;
     const hasPrice = product.price !== null && product.price !== undefined && product.price !== '' && !isNaN(Number(product.price)) && Number(product.price) > 0;
     const khrPrice = hasPrice ? Number(product.price) : 0;
-    const priceUsd = hasPrice ? `$${(khrPrice / rate).toFixed(2)}` : (window.i18n ? window.i18n.t('product.price_na') : 'n/a');
+    const uInfo = this.getUnitInfo(product.unit);
+    const unitLabel = uInfo ? uInfo.label : (product.unit || '');
+    const unitSuffix = unitLabel ? ` / ${unitLabel}` : '';
+    const priceUsd = hasPrice
+      ? `$${(khrPrice / rate).toFixed(2)}${unitSuffix}`
+      : (window.i18n ? window.i18n.t('product.price_na') : 'n/a');
     const priceKhr = hasPrice ? `~${Math.round(khrPrice).toLocaleString('en-US')} ៛` : '';
 
     if (this.sheetPriceUsd) this.sheetPriceUsd.textContent = priceUsd;
