@@ -217,6 +217,8 @@
     "auth_required_hint": "Veuillez vous connecter avec Google pour confirmer votre commande",
     "floating_items": "articles",
     "floating_to_cart": "Voir la commande →",
+    "min_order_remaining": "Encore {amount} pour commander",
+    "min_order_error": "Commande minimum : {min}. Ajoutez encore {remaining}.",
     "item_wish_prefix": "Note :",
     "specify_contact": "Veuillez préciser un contact",
     "messenger_phone": "appel téléphonique",

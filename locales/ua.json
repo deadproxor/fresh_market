@@ -217,6 +217,8 @@
     "auth_required_hint": "Для підтвердження замовлення увійдіть через Google",
     "floating_items": "позицій",
     "floating_to_cart": "До замовлення →",
+    "min_order_remaining": "Ще {amount} до замовлення",
+    "min_order_error": "Мінімальна сума замовлення — {min}. Додайте товарів ще на {remaining}.",
     "item_wish_prefix": "Побажання:",
     "specify_contact": "Вкажіть контакт для зв'язку",
     "messenger_phone": "телефонний дзвінок",

@@ -217,6 +217,8 @@
     "auth_required_hint": "Для подтверждения заказа войдите через Google",
     "floating_items": "позиций",
     "floating_to_cart": "В заказ →",
+    "min_order_remaining": "Ещё {amount} до заказа",
+    "min_order_error": "Минимальная сумма заказа — {min}. Добавьте товаров ещё на {remaining}.",
     "item_wish_prefix": "Пожелание:",
     "specify_contact": "Укажите контакт для связи",
     "messenger_phone": "телефонный звонок",

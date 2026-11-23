@@ -35,7 +35,7 @@
   },
   "header": {
     "brand_title": "{brand}",
-    "search_placeholder": "Search fresh produce...",
+    "search_placeholder": "Search produce...",
     "btn_to_shop": "To Shop",
     "btn_profile": "Profile",
     "btn_cart": "Cart"
@@ -217,6 +217,8 @@
     "auth_required_hint": "Please sign in with Google to confirm your order",
     "floating_items": "items",
     "floating_to_cart": "To Order →",
+    "min_order_remaining": "{amount} more to order",
+    "min_order_error": "Minimum order is {min}. Please add {remaining} more.",
     "item_wish_prefix": "Note:",
     "specify_contact": "Please specify contact information",
     "messenger_phone": "phone call",

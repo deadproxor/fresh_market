@@ -57,6 +57,36 @@
   padding: 6px;
 }
 
+/* Minimum Order Progress Counter State (Floating Bar & Checkout Submit) */
+.shop-app .floating-cart-btn.is-below-min,
+.shop-app .cart-floating-btn-submit.is-below-min {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.28) 0%,
+    rgba(16, 185, 129, 0.28) var(--min-progress, 0%),
+    rgba(255, 255, 255, 0.12) var(--min-progress, 0%),
+    rgba(255, 255, 255, 0.12) 100%
+  );
+  color: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+  transform: none;
+  filter: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shop-app .floating-cart-btn.is-below-min:hover,
+.shop-app .cart-floating-btn-submit.is-below-min:hover {
+  transform: none;
+  filter: none;
+}
+
 .shop-controls-section {
   padding: 0;
   display: flex;

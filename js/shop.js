@@ -72,6 +72,7 @@ class ShopApp {
     this.realtimeCartChannel = null;
     this.currentSlide = 0;
     this.khrRate = this.getKhrRate();
+    this.minOrderUsd = 10;
     const savedShopLayout = localStorage.getItem('freshmarket_shop_layout');
     this.shopLayout = ['grid-1', 'grid-2', 'grid-3'].includes(savedShopLayout) ? savedShopLayout : 'grid-2';
     this.isCartAddressCustomized = false;
@@ -270,6 +271,9 @@ class ShopApp {
     if (!rules || typeof rules !== 'object') return;
     if (typeof rules.service_fee_percent === 'number' && rules.service_fee_percent >= 0) {
       this.serviceFeePercent = rules.service_fee_percent;
+    }
+    if (typeof rules.min_order_usd === 'number' && rules.min_order_usd >= 0) {
+      this.minOrderUsd = rules.min_order_usd;
     }
     if (rules.zones && typeof rules.zones === 'object') {
       if (typeof window.DELIVERY_ZONES === 'object') {
@@ -2457,6 +2461,16 @@ class ShopApp {
     this.closeProductSheet();
   }
 
+  getMinOrderState(totals = null) {
+    const t = totals || this.calculateCartFinancials();
+    const minUsd = (typeof this.minOrderUsd === 'number' && this.minOrderUsd > 0) ? this.minOrderUsd : 10;
+    const currentUsd = Number(t.itemsUsd || 0);
+    const remainingUsd = Math.max(0, Number((minUsd - currentUsd).toFixed(2)));
+    const isBelowMin = remainingUsd > 0;
+    const progressPct = minUsd > 0 ? Math.min(100, Math.max(0, Math.round((currentUsd / minUsd) * 100))) : 100;
+    return { minUsd, currentUsd, remainingUsd, isBelowMin, progressPct };
+  }
+
   updateFloatingCartBar() {
     if (!this.floatingCartBar) return;
     const totals = this.calculateCartFinancials();
@@ -2477,6 +2491,23 @@ class ShopApp {
           this.floatingCartTotal.textContent = byReceiptShort;
         } else {
           this.floatingCartTotal.textContent = '';
+        }
+      }
+
+      if (this.btnFloatingToCart) {
+        const minState = this.getMinOrderState(totals);
+        if (minState.isBelowMin) {
+          const remainingText = this.t('cart.min_order_remaining', 'Ещё {amount} до заказа')
+            .replace('{amount}', `$${minState.remainingUsd.toFixed(2)}`);
+          this.btnFloatingToCart.disabled = true;
+          this.btnFloatingToCart.classList.add('is-below-min');
+          this.btnFloatingToCart.style.setProperty('--min-progress', `${minState.progressPct}%`);
+          this.btnFloatingToCart.textContent = remainingText;
+        } else {
+          this.btnFloatingToCart.disabled = false;
+          this.btnFloatingToCart.classList.remove('is-below-min');
+          this.btnFloatingToCart.style.removeProperty('--min-progress');
+          this.btnFloatingToCart.textContent = this.t('cart.floating_to_cart', 'В заказ →');
         }
       }
 
@@ -2630,7 +2661,20 @@ class ShopApp {
     const plusByReceipt = this.t('cart.plus_by_receipt', '+ по чеку');
 
     if (submitBtn) {
-      submitBtn.textContent = submitBaseText;
+      const minState = this.getMinOrderState(totals);
+      if (totals.count > 0 && minState.isBelowMin) {
+        const remainingText = this.t('cart.min_order_remaining', 'Ещё {amount} до заказа')
+          .replace('{amount}', `$${minState.remainingUsd.toFixed(2)}`);
+        submitBtn.disabled = true;
+        submitBtn.classList.add('is-below-min');
+        submitBtn.style.setProperty('--min-progress', `${minState.progressPct}%`);
+        submitBtn.textContent = remainingText;
+      } else {
+        submitBtn.disabled = totals.count === 0;
+        submitBtn.classList.remove('is-below-min');
+        submitBtn.style.removeProperty('--min-progress');
+        submitBtn.textContent = submitBaseText;
+      }
     }
 
     if (!summaryBox) return;
@@ -3671,6 +3715,16 @@ class ShopApp {
     const items = Object.values(this.cart);
     if (items.length === 0) {
       this.showToast(window.i18n ? window.i18n.t('toasts.cart_is_empty') : '⚠️ Корзина пуста');
+      return;
+    }
+
+    // Client Pre-Validation: Minimum order amount (known items subtotal >= minOrderUsd)
+    const minState = this.getMinOrderState();
+    if (minState.isBelowMin) {
+      const minMsg = this.t('cart.min_order_error', 'Минимальная сумма заказа — {min}. Добавьте товаров ещё на {remaining}.')
+        .replace('{min}', `$${minState.minUsd.toFixed(2)}`)
+        .replace('{remaining}', `$${minState.remainingUsd.toFixed(2)}`);
+      this.showToast(minMsg, 'warning', 4500);
       return;
     }
 

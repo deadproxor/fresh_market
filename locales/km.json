@@ -217,6 +217,8 @@
     "auth_required_hint": "សូមចូលតាម Google ដើម្បីបញ្ជាក់ការកុម្ម៉ង់",
     "floating_items": "មុខ",
     "floating_to_cart": "ទៅការកុម្ម៉ង់ →",
+    "min_order_remaining": "នៅសល់ {amount} ទៀត",
+    "min_order_error": "ការកុម្ម៉ង់អប្បបរមាគឺ {min}។ សូមបន្ថែម {remaining} ទៀត។",
     "item_wish_prefix": "បំណងប្រាថ្នា៖",
     "specify_contact": "សូមបញ្ជាក់ព័ត៌មានទំនាក់ទំនង",
     "messenger_phone": "ការហៅទូរស័ព្ទ",
