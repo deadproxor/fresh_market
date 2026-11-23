@@ -316,14 +316,16 @@ class ShopApp {
   }
 
   applyShopLayout() {
+    const normalizedLayout = ['grid-1', 'grid-2', 'grid-3'].includes(this.shopLayout)
+      ? this.shopLayout
+      : 'grid-2';
+    const appEl = document.getElementById('app');
+    if (appEl) {
+      appEl.setAttribute('data-shop-layout', normalizedLayout);
+    }
     if (!this.shopProductsGrid) return;
     this.shopProductsGrid.classList.remove('layout-grid-1', 'layout-grid-2', 'layout-grid-3');
-    const layoutClass = this.shopLayout === 'grid-1'
-      ? 'layout-grid-1'
-      : this.shopLayout === 'grid-3'
-        ? 'layout-grid-3'
-        : 'layout-grid-2';
-    this.shopProductsGrid.classList.add(layoutClass);
+    this.shopProductsGrid.classList.add(`layout-${normalizedLayout}`);
   }
 
   // ------------------------------------------------------------------------
@@ -1185,11 +1187,17 @@ class ShopApp {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && this.currentUser && this.sb) {
         this.loadUserProfileAndSyncCart();
+        if (this.currentView === 'orders') {
+          this.loadOrders(true);
+        }
       }
     });
     window.addEventListener('focus', () => {
       if (this.currentUser && this.sb) {
         this.loadUserProfileAndSyncCart();
+        if (this.currentView === 'orders') {
+          this.loadOrders(true);
+        }
       }
     });
 
@@ -4015,20 +4023,22 @@ class ShopApp {
     this.switchView('catalog');
   }
 
-  async loadOrders() {
+  async loadOrders(silent = false) {
     if (!this.ordersModalBody) return;
     if (!this.isUserAuthenticated()) {
       this.switchView('catalog');
       return;
     }
 
-    const ordersLoading = window.i18n ? window.i18n.t('orders.loading') : 'Загрузка заказов...';
-    this.ordersModalBody.innerHTML = `
-      <div class="empty-state" style="padding: 30px 20px;">
-        <div class="empty-icon">⏳</div>
-        <div class="empty-title">${ordersLoading}</div>
-      </div>
-    `;
+    if (!silent) {
+      const ordersLoading = window.i18n ? window.i18n.t('orders.loading') : 'Загрузка заказов...';
+      this.ordersModalBody.innerHTML = `
+        <div class="empty-state" style="padding: 30px 20px;">
+          <div class="empty-icon">⏳</div>
+          <div class="empty-title">${ordersLoading}</div>
+        </div>
+      `;
+    }
 
     // 1. Sync any locally pending orders first if online and authenticated
     if (this.sb && this.currentUser) {
@@ -4036,8 +4046,9 @@ class ShopApp {
     }
 
     let orders = [];
+    let fetchedFromServer = false;
 
-    // 2. Fetch authenticated user's orders from Supabase
+    // 2. Fetch authenticated user's orders from Supabase (DB is always the source of truth)
     if (this.sb && this.currentUser) {
       try {
         const { data, error } = await this.sb
@@ -4046,7 +4057,8 @@ class ShopApp {
           .eq('user_id', this.currentUser.id)
           .order('created_at', { ascending: false });
 
-        if (!error && data && data.length > 0) {
+        if (!error && Array.isArray(data)) {
+          fetchedFromServer = true;
           orders = data.map((o) => ({
             ...o,
             items: o.order_items || [],
@@ -4059,8 +4071,8 @@ class ShopApp {
       }
     }
 
-    // 3. Fallback or merge with local storage history (only authenticated user orders)
-    if (orders.length === 0 && this.currentUser) {
+    // 3. Offline fallback ONLY if server fetch failed
+    if (!fetchedFromServer && this.currentUser) {
       orders = JSON.parse(localStorage.getItem('freshmarket_my_orders') || '[]')
         .filter((o) => o.user_id === this.currentUser.id);
     }

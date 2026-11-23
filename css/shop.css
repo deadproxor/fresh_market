@@ -21,6 +21,42 @@
 }
 
 /* 2. Controls & Shop-specific Catalog Additions */
+.shop-app .shop-sticky-search-wrap {
+  height: 70px;
+}
+
+.shop-app .shop-sticky-pills-wrap {
+  top: calc(66px + var(--safe-top) + 70px);
+}
+
+.shop-app .shop-sticky-search-wrap .search-icon {
+  left: 16px;
+  font-size: 18px;
+}
+
+.shop-app .shop-sticky-search-wrap #shopSearchInput {
+  height: 54px;
+  font-size: 16px;
+  padding: 0 44px 0 46px;
+  border-radius: 10px;
+}
+
+.shop-app .shop-sticky-search-wrap #shopSearchInput::placeholder {
+  font-weight: 300;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.shop-app[data-shop-layout="grid-3"] .shop-sticky-search-wrap #shopSearchInput {
+  border-radius: var(--radius-sm);
+}
+
+.shop-app .shop-sticky-search-wrap #shopSearchClear {
+  right: 12px;
+  font-size: 16px;
+  padding: 6px;
+}
+
 .shop-controls-section {
   padding: 0;
   display: flex;

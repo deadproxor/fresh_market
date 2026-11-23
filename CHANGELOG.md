@@ -1562,6 +1562,11 @@ flowchart TD
     * В RPC `create_order()` поиск товара в `public.products` переведён на безопасное сравнение `WHERE id::text = v_raw_product_id LIMIT 1` (совместимо с `TEXT` и `UUID` типом `products.id`).
     * Переменная `v_product` переведена с `RECORD` на `public.products%ROWTYPE` для безопасного доступа к полям `NULL`, если позиция заказа не найдена в `public.products`, а `v_product_id` приводится в `UUID` с защитой `EXCEPTION WHEN OTHERS`.
     * Идемпотентный `UPDATE public.order_items` переведён на `oi.product_id::text = p.id::text`.
+* [x] **Увеличенное поле поиска на витрине и строгая синхронизация заказов с базой (v1.5.48 Shop):**
+  * **Витрина (`css/shop.css`, `js/shop.js`, `shop.html`):** поле `#shopSearchInput` увеличено до `height: 54px` (`font-size: 16px`, `padding: 0 44px 0 46px`), плейсхолдер оформлен тонким курсивом (`font-weight: 300; font-style: italic`, догружено начертание `Inter 300 Italic`), пропорционально увеличены иконка лупы (`18px`) и кнопка очистки (`16px`). В `applyShopLayout()` добавлен атрибут `data-shop-layout` на `#app`, чтобы скругление поиска автоматически совпадало со скруглением карточек во всех раскладках (`10px` в режимах 1–2 колонок, `8px` / `--radius-sm` в 3-колоночном режиме).
+  * **Липкая шапка поиска:** высота `.shop-app .shop-sticky-search-wrap` увеличена до `70px`, а отступ `.shop-app .shop-sticky-pills-wrap` синхронизирован (`top: calc(66px + var(--safe-top) + 70px)`).
+  * **Синхронизация заказов с БД (`js/shop.js`):** в `loadOrders()` ответ Supabase всегда является источником правды — при успешном ответе `localStorage['freshmarket_my_orders']` перезаписывается даже при пустом списке `[]` (удалённые в базе заказы больше не возвращаются из кэша; локальный фолбэк используется только при ошибке сети/офлайне). Добавлена обработка Realtime-события `DELETE` в `handleRemoteOrderUpdate()` и тихая ре-синхронизация заказов при возврате фокуса/видимости вкладки.
+  * **Кэширование и версионирование:** `css/shop.css?v=1.5.48` и `js/shop.js?v=1.5.48` в `shop.html`, Service Worker витрины повышен до `freshmarket-shop-v1.5.48`.
 
 
 
