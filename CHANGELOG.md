@@ -1576,6 +1576,11 @@ flowchart TD
   * **Шторка товара (`shop.html`, `js/shop.js`, `css/shop.css`):** бейдж формы товара (`#sheetFormBadge`) перенесён отдельной строкой под название товара (`align-self: flex-start`), а к цене товара в шторке добавлена локализованная базовая размерность из `product.unit` (например, `$2.50 / 1 кг`).
   * **Локализации (`locales/{ru,en,ua,fr,km}.json`):** секция `landing` переведена полностью на 5 языков (`meta`, `common`, `header`, `hero`, `calc`, `bento`, `zones`, `showcase`, `timeline`, `cta`, `footer`); удалены неиспользуемые ключи старых прототипов (`landing.journal`, `landing.stalls`, `landing.silk` и лишние ключи `landing.common`).
   * **Кэширование и версионирование:** `js/landing.js?v=1.5.50` в `index.html`, `css/shop.css?v=1.5.50` и `js/shop.js?v=1.5.50` в `shop.html`, Service Worker витрины повышен до `freshmarket-shop-v1.5.50`.
+* [x] **Перенос баннера графика закупа в Корзину с кнопкой закрытия (v1.5.51 Shop):**
+  * **Витрина (`shop.html`, `js/shop.js`, `css/components.css`, `css/shop.css`, `components.html`):** блок `.market-schedule-banner` перенесён с главной страницы каталога в `#viewCart` первой секцией под заголовком корзины.
+  * **Кнопка закрытия:** в `.market-schedule-banner` добавлена кнопка-крестик `.schedule-close-btn` (`#btnCloseScheduleBanner`, локализация `common.close`), состояние скрытия запоминается в `sessionStorage` (`freshmarket_schedule_banner_dismissed`) на текущую сессию.
+  * **Компенсация нижнего отступа (`js/shop.js`, `css/shop.css`):** при видимом `#floatingCartBar` на `#app` добавляется класс `has-floating-cart`, задающий `padding-bottom: 34px` для `#shopCategoryGrid` и `#shopProductsGrid`, чтобы плавающая панель не перекрывала нижний ряд карточек.
+  * **Кэширование и версионирование:** `css/components.css?v=1.5.51`, `css/shop.css?v=1.5.51`, `js/shop.js?v=1.5.51` в `shop.html`, `css/components.css?v=1.5.51` в `admin/index.html`, Service Worker витрины повышен до `freshmarket-shop-v1.5.51`.
 
 
 

@@ -1133,6 +1133,25 @@ class ShopApp {
     if (this.btnFloatingToCart) {
       this.btnFloatingToCart.addEventListener('click', () => this.switchView('cart'));
     }
+
+    // Dismissible market schedule banner in Cart (remembered in sessionStorage)
+    const scheduleBanner = document.getElementById('marketScheduleBanner');
+    const btnCloseScheduleBanner = document.getElementById('btnCloseScheduleBanner');
+    if (scheduleBanner) {
+      try {
+        if (sessionStorage.getItem('freshmarket_schedule_banner_dismissed') === '1') {
+          scheduleBanner.style.display = 'none';
+        }
+      } catch (_) {}
+      if (btnCloseScheduleBanner) {
+        btnCloseScheduleBanner.addEventListener('click', () => {
+          scheduleBanner.style.display = 'none';
+          try {
+            sessionStorage.setItem('freshmarket_schedule_banner_dismissed', '1');
+          } catch (_) {}
+        });
+      }
+    }
     if (this.sheetTagsRow) {
       this.sheetTagsRow.querySelectorAll('.sheet-tag-btn').forEach((tagBtn) => {
         tagBtn.addEventListener('click', () => {
@@ -2481,6 +2500,8 @@ class ShopApp {
     const totals = this.calculateCartFinancials();
     const count = totals.count;
 
+    const appEl = document.getElementById('app');
+
     // Only show on catalog view when items > 0
     if (count > 0 && this.currentView === 'catalog') {
       if (this.floatingCartCount) this.floatingCartCount.textContent = count;
@@ -2517,8 +2538,10 @@ class ShopApp {
       }
 
       this.floatingCartBar.style.display = 'flex';
+      if (appEl) appEl.classList.add('has-floating-cart');
     } else {
       this.floatingCartBar.style.display = 'none';
+      if (appEl) appEl.classList.remove('has-floating-cart');
     }
   }
 

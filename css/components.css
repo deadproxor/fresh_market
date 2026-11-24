@@ -2604,6 +2604,8 @@ body {
 }
 
 .schedule-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -2618,6 +2620,33 @@ body {
 .schedule-sub {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.schedule-close-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.schedule-close-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+}
+
+.schedule-close-btn:active {
+  transform: scale(0.92);
 }
 
 .empty-state {

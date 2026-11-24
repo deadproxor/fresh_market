@@ -39,8 +39,8 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Master Design System Components & Shop Dedicated Styles -->
-  <link rel="stylesheet" href="css/components.css?v=1.5.46" />
-  <link rel="stylesheet" href="css/shop.css?v=1.5.50" />
+  <link rel="stylesheet" href="css/components.css?v=1.5.51" />
+  <link rel="stylesheet" href="css/shop.css?v=1.5.51" />
   <script src="js/shared/utils.js?v=1.5.43"></script>
   <script src="js/shared/branding.js?v=1.5.19"></script>
   <script src="js/shared/categories.js?v=1.5.17"></script>
@@ -222,21 +222,24 @@
             <!-- Cards injected dynamically -->
           </div>
         </div>
-
-        <!-- Schedule Info Banner (Market schedule footer) -->
-        <div class="market-schedule-banner" style="margin-top: 24px;">
-          <span class="schedule-icon">🌅</span>
-          <div class="schedule-info">
-            <span class="schedule-title" data-i18n="shop.schedule_title">Прием заказов до 23:00</span>
-            <span class="schedule-sub" data-i18n="shop.schedule_sub">Закупка на рассвете • Доставка 9:00–12:00</span>
-          </div>
-        </div>
       </section>
 
       <!-- ================= VIEW 2: CART & CHECKOUT ================= -->
       <section class="shop-view-page" id="viewCart" style="display: none;">
         <div class="view-page-header">
           <h2 class="view-page-title" data-i18n="cart.modal_title">Корзина заказа</h2>
+        </div>
+
+        <!-- Schedule Info Banner (First section in Cart, dismissible per session) -->
+        <div class="market-schedule-banner" id="marketScheduleBanner">
+          <span class="schedule-icon">🌅</span>
+          <div class="schedule-info">
+            <span class="schedule-title" data-i18n="shop.schedule_title">Прием заказов до 23:00</span>
+            <span class="schedule-sub" data-i18n="shop.schedule_sub">Закупка на рассвете • Доставка 9:00–12:00</span>
+          </div>
+          <button type="button" class="schedule-close-btn" id="btnCloseScheduleBanner"
+            title="Закрыть" aria-label="Закрыть"
+            data-i18n-title="common.close" data-i18n-aria-label="common.close">✕</button>
         </div>
 
         <!-- 0. Standalone Cart Empty State (Shown when cart is empty, avoiding nested card) -->
@@ -655,7 +658,7 @@
   </div>
 
   <!-- Shop Application Logic -->
-  <script src="js/shop.js?v=1.5.50"></script>
+  <script src="js/shop.js?v=1.5.51"></script>
 </body>
 
 </html>

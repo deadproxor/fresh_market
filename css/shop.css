@@ -92,6 +92,17 @@
   align-self: flex-start;
 }
 
+/* Schedule banner placed at the top of Cart view */
+#viewCart .market-schedule-banner {
+  margin-bottom: 12px;
+}
+
+/* Compensate bottom cards visibility when floatingCartBar is shown */
+.shop-app.has-floating-cart #shopCategoryGrid,
+.shop-app.has-floating-cart #shopProductsGrid {
+  padding-bottom: 34px;
+}
+
 .shop-controls-section {
   padding: 0;
   display: flex;
