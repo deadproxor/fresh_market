@@ -1616,9 +1616,9 @@ class ShopApp {
     }
     try {
       const fetchOpts = { cache: 'no-cache' };
-      let resp = await fetch('./data/products_dictionary.json?v=1.5.39', fetchOpts);
-      if (!resp.ok) resp = await fetch('../data/products_dictionary.json?v=1.5.39', fetchOpts);
-      if (!resp.ok) resp = await fetch('./products_dictionary.json?v=1.5.39', fetchOpts);
+      let resp = await fetch('./data/products_dictionary.json?v=1.5.56', fetchOpts);
+      if (!resp.ok) resp = await fetch('../data/products_dictionary.json?v=1.5.56', fetchOpts);
+      if (!resp.ok) resp = await fetch('./products_dictionary.json?v=1.5.56', fetchOpts);
       if (resp.ok) {
         const data = await resp.json();
         const core = Array.isArray(data.core) ? data.core : [];

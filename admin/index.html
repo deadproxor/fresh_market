@@ -26,7 +26,7 @@
   <!-- Master Design System, Catalog & Admin Styles -->
   <link rel="stylesheet" href="../css/components.css?v=1.5.51" />
   <link rel="stylesheet" href="../css/products.css?v=1.5.46" />
-  <link rel="stylesheet" href="../css/admin.css?v=1.5.32" />
+  <link rel="stylesheet" href="../css/admin.css?v=1.5.54" />
   <script src="../js/shared/branding.js?v=1.5.19"></script>
 </head>
 
@@ -965,7 +965,68 @@
       </div>
     </div>
 
-    <!-- 4. Toast Container -->
+    <!-- 4. MODAL: ORDER ASSEMBLY (FULL-WIDTH MARKET PICKER) -->
+    <div id="orderAssemblyModal" class="modal-overlay order-assembly-overlay" style="display: none;">
+      <div class="modal-card order-assembly-card">
+        <!-- Sticky Top Header -->
+        <div class="modal-header order-assembly-header">
+          <div class="assembly-header-title-wrap">
+            <h3 class="modal-title" id="assemblyModalTitle">Сборка заказа</h3>
+            <span class="assembly-status-badge" id="assemblyModalStatusBadge">Новый</span>
+          </div>
+          <div class="assembly-header-actions">
+            <span class="assembly-rate-badge" id="assemblyRateBadge">Курс: $1 = 4,000 ៛</span>
+            <button type="button" class="modal-close-btn" id="assemblyModalCloseBtn" aria-label="Закрыть">✕</button>
+          </div>
+        </div>
+
+        <!-- Scrollable Middle Content -->
+        <div class="order-assembly-scroll-area" id="assemblyScrollArea">
+          <!-- 1. Customer & Order Context Bar -->
+          <div class="assembly-meta-card" id="assemblyMetaCard"></div>
+
+          <!-- 2. Assembly Progress & Filter Tabs -->
+          <div class="assembly-progress-wrap">
+            <div class="assembly-progress-top">
+              <span class="assembly-progress-label" id="assemblyProgressLabel">Собрано: 0 из 0</span>
+              <span class="assembly-progress-pct" id="assemblyProgressPct">0%</span>
+            </div>
+            <div class="assembly-progress-track">
+              <div class="assembly-progress-fill" id="assemblyProgressFill" style="width: 0%;"></div>
+            </div>
+            <div class="assembly-filter-tabs" id="assemblyFilterTabs" role="tablist" aria-label="Фильтр позиций">
+              <button type="button" class="assembly-filter-tab active" data-assembly-filter="all">
+                Все <span class="tab-count" id="assemblyCountAll">0</span>
+              </button>
+              <button type="button" class="assembly-filter-tab tab-pending" data-assembly-filter="pending">
+                ⏳ Осталось <span class="tab-count" id="assemblyCountPending">0</span>
+              </button>
+              <button type="button" class="assembly-filter-tab tab-picked" data-assembly-filter="picked">
+                ✅ Куплено <span class="tab-count" id="assemblyCountPicked">0</span>
+              </button>
+              <button type="button" class="assembly-filter-tab tab-missing" data-assembly-filter="missing">
+                ❌ Нет <span class="tab-count" id="assemblyCountMissing">0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Single-Column Horizontal Row Checklist -->
+          <div class="assembly-rows-list" id="assemblyItemsList"></div>
+        </div>
+
+        <!-- 4. Sticky Bottom Totals & Single Save Action (Switches order status to "Закупка") -->
+        <div class="assembly-sticky-footer" id="assemblyStickyFooter">
+          <div class="assembly-totals-rows" id="assemblyTotalsBox"></div>
+          <div class="assembly-footer-actions">
+            <button type="button" class="btn btn-primary assembly-btn-save" id="btnSaveOrderAssembly">
+              Сохранить
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
   </div>
@@ -980,8 +1041,8 @@
   <script src="../js/shared/categories.js?v=1.5.15"></script>
   <script src="../js/shared/forms.js?v=1.5.0"></script>
   <script src="../js/shared/qty-selector.js?v=1.5.44"></script>
-  <script src="js/admin-catalog.js?v=1.5.46"></script>
-  <script src="js/admin-auth.js?v=1.5.44"></script>
+  <script src="js/admin-catalog.js?v=1.5.56"></script>
+  <script src="js/admin-auth.js?v=1.5.55"></script>
 </body>
 
 </html>

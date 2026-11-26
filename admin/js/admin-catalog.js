@@ -493,14 +493,31 @@ class SupabaseAdapter {
 
   async getAll() {
     if (!this.url || !this.key) throw new Error('Параметры Supabase не настроены');
-    const res = await fetch(`${this.url}/rest/v1/products?select=*&order=created_at.desc`, {
-      headers: this.headers
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Supabase error: ${res.statusText}`);
+    const endpoint = `${this.url}/rest/v1/products?select=*&order=created_at.desc`;
+    let lastErr = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(endpoint, { headers: this.headers });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || `Supabase error: ${res.statusText}`);
+        }
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          } catch (_) {}
+        }
+        return data;
+      } catch (err) {
+        lastErr = err;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 700));
+        }
+      }
     }
-    return await res.json();
+    throw lastErr || new Error('Ошибка сети при загрузке каталога');
   }
 
   async getById(id) {
@@ -3123,15 +3140,45 @@ class App {
   // Data Operations
   // ------------------------------------------------------------------------
   async loadData() {
+    if (!this._onlineRetryBound) {
+      this._onlineRetryBound = true;
+      window.addEventListener('online', () => {
+        if (!this.products || this.products.length === 0 || this._usingOfflineCatalogFallback) {
+          this.loadData();
+        }
+      });
+    }
+
     try {
       this.products = await storage.getAll();
+      this._usingOfflineCatalogFallback = false;
       this.updateStats();
       this.renderRecentList();
       this.renderProductsList();
       this.loadCloudServiceSettings();
     } catch (e) {
       console.error(e);
-      this.showToast('Ошибка загрузки данных');
+      let restoredFromCache = false;
+      try {
+        const rawCache = localStorage.getItem(STORAGE_KEY);
+        if (rawCache) {
+          const parsedCache = JSON.parse(rawCache);
+          if (Array.isArray(parsedCache) && parsedCache.length > 0) {
+            this.products = parsedCache;
+            this._usingOfflineCatalogFallback = true;
+            restoredFromCache = true;
+            this.updateStats();
+            this.renderRecentList();
+            this.renderProductsList();
+          }
+        }
+      } catch (_) {}
+
+      if (restoredFromCache) {
+        this.showToast('⚠️ Сбой сети: показана локальная копия каталога', 'warning');
+      } else {
+        this.showToast('Ошибка загрузки данных');
+      }
     }
   }
 
@@ -3956,7 +4003,8 @@ class App {
 
       // 5. Reload updated catalog from Supabase and refresh UI
       this.products = await adapter.getAll();
-      this.saveData();
+      this.updateStats();
+      this.renderRecentList();
       this.renderProductsList();
       this.renderCategoriesGrid();
       this.renderCategoryStatsBreakdown();

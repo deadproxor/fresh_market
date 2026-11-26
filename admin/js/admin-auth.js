@@ -212,6 +212,13 @@ class AdminAuth {
   }
 
   onSignedIn(user) {
+    const isAlreadySignedIn = Boolean(
+      this._signedInInitialized &&
+      this.currentUser &&
+      user &&
+      String(this.currentUser.id) === String(user.id)
+    );
+
     this.currentUser = user;
     window.adminUser = user;
 
@@ -220,6 +227,11 @@ class AdminAuth {
     }
 
     this.hideLoginGate();
+
+    if (isAlreadySignedIn) {
+      return;
+    }
+    this._signedInInitialized = true;
 
     // Initialize or refresh catalog app
     if (window.app && typeof window.app.init === 'function') {
@@ -234,6 +246,7 @@ class AdminAuth {
   }
 
   onSignedOut() {
+    this._signedInInitialized = false;
     this.teardownRealtimeOrdersSync();
     this.clearOrdersBadge();
     this.currentUser = null;
@@ -314,6 +327,59 @@ class AdminAuth {
     return new Date(utcMs + (7 * 3600000));
   }
 
+  isNightDeferredOrder(order, nowMs = Date.now()) {
+    const rawStatus = String(order?.status || 'pending').trim().toLowerCase();
+    const isNewStatus = rawStatus === 'pending' || rawStatus === 'new';
+    if (!isNewStatus) return false;
+    if (!order?.created_at) return false;
+
+    const createdMs = Date.parse(order.created_at);
+    if (!Number.isFinite(createdMs)) return false;
+
+    // Convert created_at to market local time (UTC+7)
+    const tzOffsetMs = 7 * 3600000;
+    const createdMkt = new Date(createdMs + tzOffsetMs);
+    const createdHour = createdMkt.getUTCHours();
+
+    // Only new orders created in the night window (23:00 - 04:59 UTC+7) enter "upcoming"
+    const isCreatedInNightWindow = createdHour >= 23 || createdHour < 5;
+    if (!isCreatedInNightWindow) return false;
+
+    // Nearest 05:00 AM (UTC+7) after creation time
+    const unlockMkt = new Date(createdMs + tzOffsetMs);
+    if (createdHour >= 23) {
+      unlockMkt.setUTCDate(unlockMkt.getUTCDate() + 1);
+    }
+    unlockMkt.setUTCHours(5, 0, 0, 0);
+
+    const nowMktMs = nowMs + tzOffsetMs;
+    return nowMktMs < unlockMkt.getTime();
+  }
+
+  getOrderTabBucket(order, nowMs = Date.now()) {
+    const rawStatus = String(order?.status || 'pending').trim().toLowerCase();
+    const isTerminal = rawStatus === 'completed' || rawStatus === 'cancelled' || rawStatus === 'rejected';
+    if (isTerminal) return 'archive';
+    if (this.isNightDeferredOrder(order, nowMs)) return 'upcoming';
+    return 'current';
+  }
+
+  ensureMorningRolloverTimer() {
+    if (this._morningRolloverTimer) return;
+    this._lastUpcomingCount = null;
+    this._morningRolloverTimer = setInterval(() => {
+      if (!Array.isArray(this.cachedAdminOrders) || this.cachedAdminOrders.length === 0) return;
+      const nowMs = Date.now();
+      const upcomingCount = this.cachedAdminOrders.filter((o) => this.getOrderTabBucket(o, nowMs) === 'upcoming').length;
+      if (this._lastUpcomingCount !== null && upcomingCount !== this._lastUpcomingCount) {
+        this._lastUpcomingCount = upcomingCount;
+        this.renderAdminOrders();
+      } else {
+        this._lastUpcomingCount = upcomingCount;
+      }
+    }, 30000);
+  }
+
   async loadAdminOrders(isSilent = false) {
     const listEl = document.getElementById('adminOrdersList');
     if (!listEl) return;
@@ -342,6 +408,7 @@ class AdminAuth {
       }
 
       this.cachedAdminOrders = data || [];
+      this.ensureMorningRolloverTimer();
       this.renderAdminOrders();
     } catch (err) {
       console.warn('[AdminAuth] Orders load error:', err);
@@ -355,53 +422,41 @@ class AdminAuth {
 
     try {
       const activeTab = this.currentAdminOrdersTab || 'current';
-    document.querySelectorAll('#adminOrdersSegmentedTabs [data-orders-tab]').forEach((btn) => {
-      const isActive = btn.dataset.ordersTab === activeTab;
-      btn.classList.toggle('active', isActive);
-      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
+      document.querySelectorAll('#adminOrdersSegmentedTabs [data-orders-tab]').forEach((btn) => {
+        const isActive = btn.dataset.ordersTab === activeTab;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
 
-    const marketNow = this.getMarketLocalTime();
-    const todayStr = marketNow.toISOString().slice(0, 10);
-    const orders = this.cachedAdminOrders || [];
+      const nowMs = Date.now();
+      const orders = this.cachedAdminOrders || [];
+      this._lastUpcomingCount = orders.filter((o) => this.getOrderTabBucket(o, nowMs) === 'upcoming').length;
 
-    const filteredOrders = orders.filter((order) => {
-      const targetDate = order.target_delivery_date || (order.created_at ? order.created_at.slice(0, 10) : todayStr);
-      const isTerminal = order.status === 'completed' || order.status === 'cancelled' || order.status === 'rejected';
+      const filteredOrders = orders.filter((order) => {
+        return this.getOrderTabBucket(order, nowMs) === activeTab;
+      });
 
-      if (activeTab === 'current') {
-        return !isTerminal && targetDate <= todayStr;
+      if (filteredOrders.length === 0) {
+        let emptyTitle, emptyDesc;
+        if (activeTab === 'current') {
+          emptyTitle = 'Нет активных заявок';
+          emptyDesc = 'Текущие заказы в работе и заявки на ближайший закуп отображаются здесь.';
+        } else if (activeTab === 'upcoming') {
+          emptyTitle = 'Нет ночных предзаказов';
+          emptyDesc = 'Новые заказы, оформленные после 23:00, отображаются здесь до 05:00 утра.';
+        } else {
+          emptyTitle = 'Архив заявок пуст';
+          emptyDesc = 'Здесь сохраняется история доставленных и отмененных заказов.';
+        }
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">${this.escapeHtml(emptyTitle)}</div>
+            <div class="empty-desc">${this.escapeHtml(emptyDesc)}</div>
+          </div>
+        `;
+        return;
       }
-      if (activeTab === 'upcoming') {
-        return !isTerminal && targetDate > todayStr;
-      }
-      if (activeTab === 'archive') {
-        return isTerminal || targetDate < todayStr;
-      }
-      return true;
-    });
-
-    if (filteredOrders.length === 0) {
-      let emptyTitle, emptyDesc;
-      if (activeTab === 'current') {
-        emptyTitle = 'Нет активных заявок';
-        emptyDesc = 'Заявки на утренний закуп сегодня отображаются здесь.';
-      } else if (activeTab === 'upcoming') {
-        emptyTitle = 'Нет будущих предзаказов';
-        emptyDesc = 'Заявки с датой доставки на завтра и последующие дни отображаются здесь.';
-      } else {
-        emptyTitle = 'Архив заявок пуст';
-        emptyDesc = 'Здесь сохраняется история выполненных и закрытых доставок.';
-      }
-      listEl.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">📋</div>
-          <div class="empty-title">${this.escapeHtml(emptyTitle)}</div>
-          <div class="empty-desc">${this.escapeHtml(emptyDesc)}</div>
-        </div>
-      `;
-      return;
-    }
 
     listEl.innerHTML = filteredOrders.map(order => {
         const safeNum = this.escapeHtml(order.order_number || 'FM-ЗАКАЗ');
@@ -466,15 +521,20 @@ class AdminAuth {
                 const calc = window.FreshMarketUnits.calculateCost(linkedProd, rawQty, rawUnit, khrRate);
                 itemUsd = calc.hasPrice ? calc.usd : 0;
               }
-              if (itemUsd > 0) {
+              if (it.status === 'missing') {
+                itemUsd = 0;
+              } else if (itemUsd > 0) {
                 calcItemsUsd += itemUsd;
               } else {
                 unknownCount += 1;
               }
-              const priceLabel = itemUsd > 0
-                ? ` — <b>$${itemUsd.toFixed(2)}</b>`
-                : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
-              return `<div style="padding: 2px 0;">• <b>${itTitle}</b>${khBadge} (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
+              const priceLabel = it.status === 'missing'
+                ? ` — <s style="color: var(--accent-rose, #ef4444);">нет в наличии</s>`
+                : itemUsd > 0
+                  ? ` — <b>$${itemUsd.toFixed(2)}</b>`
+                  : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
+              const statusDot = it.status === 'picked' ? '✅ ' : it.status === 'missing' ? '❌ ' : '• ';
+              return `<div style="padding: 2px 0;">${statusDot}<b>${itTitle}</b>${khBadge} (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
             }).join('')}
           </div>
         ` : '';
@@ -540,8 +600,7 @@ class AdminAuth {
           </div>
           ${itemsListHtml}
           <div class="order-admin-actions">
-            <button type="button" class="btn btn-secondary btn-sm" data-action="view-items" data-order-id="${this.escapeHtml(order.id)}">🔍 Позиции</button>
-            <button type="button" class="btn btn-primary btn-sm" data-action="enter-receipt" data-order-id="${this.escapeHtml(order.id)}">📝 Ввести чек</button>
+            <button type="button" class="btn btn-primary btn-sm" style="width: 100%;" data-action="assemble-order" data-order-id="${this.escapeHtml(order.id)}">🧺 Сборка заказа</button>
           </div>
         </div>
       `;
@@ -553,10 +612,9 @@ class AdminAuth {
           const btn = e.target.closest('[data-action]');
           if (!btn) return;
           const action = btn.dataset.action;
-          if (action === 'view-items') {
-            alert('Детализация и сборка заказа на рынке будут доступны в следующей фазе');
-          } else if (action === 'enter-receipt') {
-            alert('Ввод суммы чека и смена статуса будут доступны в следующей фазе');
+          const orderId = btn.dataset.orderId;
+          if (action === 'assemble-order' && orderId) {
+            this.openOrderAssemblyModal(orderId);
           }
         });
 
@@ -658,6 +716,767 @@ class AdminAuth {
       zone_outside: 'Вне стандартной зоны (6–10 км)'
     };
     return map[zone] || zone || 'Зона 1: Центр ($1.00)';
+  }
+
+  // ------------------------------------------------------------------------
+  // Order Assembly Modal (Single-Column Row Market Picker, KHR -> USD calc)
+  // ------------------------------------------------------------------------
+  setAssemblyCardState(card, nextStatus) {
+    if (!card) return;
+    card.dataset.itemStatus = nextStatus;
+    card.classList.toggle('is-pending', nextStatus === 'pending');
+    card.classList.toggle('is-picked', nextStatus === 'picked');
+    card.classList.toggle('is-missing', nextStatus === 'missing');
+
+    const checkBtn = card.querySelector('[data-assembly-toggle-pick]');
+    if (checkBtn) {
+      checkBtn.textContent = nextStatus === 'picked' ? '✓' : nextStatus === 'missing' ? '✕' : '○';
+      checkBtn.setAttribute(
+        'aria-label',
+        nextStatus === 'picked' ? 'Отмечено как купленное' : nextStatus === 'missing' ? 'Отмечено как отсутствующее' : 'Отметить как купленное'
+      );
+    }
+
+    const statePill = card.querySelector('.assembly-state-pill');
+    if (statePill) {
+      statePill.textContent = nextStatus === 'picked'
+        ? '✅ Куплено'
+        : nextStatus === 'missing'
+          ? '❌ Нет в наличии'
+          : '⏳ Осталось купить';
+    }
+
+    card.querySelectorAll('[data-assembly-status]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.assemblyStatus === nextStatus);
+    });
+
+    const khrInput = card.querySelector('.assembly-khr-input');
+    if (khrInput) {
+      if (nextStatus === 'missing') {
+        if (khrInput.value && khrInput.value !== '0') {
+          khrInput.dataset.prevKhr = khrInput.value;
+        }
+        khrInput.value = '0';
+        khrInput.disabled = true;
+      } else if (nextStatus === 'pending') {
+        if (khrInput.value && khrInput.value !== '0') {
+          khrInput.dataset.prevKhr = khrInput.value;
+        }
+        khrInput.value = '';
+        khrInput.disabled = false;
+      } else if (nextStatus === 'picked') {
+        khrInput.disabled = false;
+        if (khrInput.value === '0' || khrInput.value === '') {
+          if (khrInput.dataset.prevKhr && Number(khrInput.dataset.prevKhr) > 0) {
+            khrInput.value = khrInput.dataset.prevKhr;
+          } else if (khrInput.dataset.estKhr && Number(khrInput.dataset.estKhr) > 0) {
+            khrInput.value = khrInput.dataset.estKhr;
+          }
+        }
+      }
+    }
+  }
+
+  commitAssemblyTitleEdit(card) {
+    if (!card) return;
+    const editWrap = card.querySelector('.assembly-title-edit-wrap');
+    const titleInput = card.querySelector('.assembly-item-title-input');
+    const titleDisplay = card.querySelector('.assembly-title-display');
+    const editBtn = card.querySelector('[data-assembly-edit-title]');
+    if (!titleInput) return;
+
+    const committed = titleInput.value.trim() || titleInput.dataset.committedTitle || 'Товар';
+    titleInput.value = committed;
+    titleInput.dataset.committedTitle = committed;
+    if (titleDisplay) titleDisplay.textContent = committed;
+    editWrap?.classList.remove('is-open');
+    editBtn?.classList.remove('active');
+  }
+
+  revertAssemblyTitleEdit(card) {
+    if (!card) return;
+    const editWrap = card.querySelector('.assembly-title-edit-wrap');
+    const titleInput = card.querySelector('.assembly-item-title-input');
+    const titleDisplay = card.querySelector('.assembly-title-display');
+    const editBtn = card.querySelector('[data-assembly-edit-title]');
+    if (!titleInput) return;
+
+    const original = titleInput.dataset.committedTitle || 'Товар';
+    titleInput.value = original;
+    if (titleDisplay) titleDisplay.textContent = original;
+    editWrap?.classList.remove('is-open');
+    editBtn?.classList.remove('active');
+  }
+
+  revertAllOpenAssemblyTitleEdits(exceptCard = null) {
+    const openWraps = document.querySelectorAll('#assemblyItemsList .assembly-title-edit-wrap.is-open');
+    let revertedAny = false;
+    openWraps.forEach((wrap) => {
+      const card = wrap.closest('.assembly-item-card');
+      if (card && card !== exceptCard) {
+        this.revertAssemblyTitleEdit(card);
+        revertedAny = true;
+      }
+    });
+    return revertedAny;
+  }
+
+  recalculateCardEstimateFromQty(card) {
+    if (!card) return;
+    const khrRate = (window.app && Number(window.app.khrRate)) || 4000;
+    const basePrice = Number(card.dataset.basePrice || 0);
+    const baseUnit = card.dataset.baseUnit || '1_kg';
+    const qtyInput = card.querySelector('.assembly-qty-input');
+    const unitSelect = card.querySelector('.assembly-unit-select');
+    const khrInput = card.querySelector('.assembly-khr-input');
+    if (!qtyInput || !unitSelect || !khrInput) return;
+
+    const curQty = Math.max(0.01, Number(qtyInput.value || 1) || 1);
+    const curUnit = unitSelect.value || 'kg';
+
+    if (basePrice > 0 && window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+      const calc = window.FreshMarketUnits.calculateCost({ price: basePrice, unit: baseUnit }, curQty, curUnit, khrRate);
+      if (calc.hasPrice && !calc.incompatibleUnit && calc.khr > 0) {
+        const newEstKhr = Math.round(calc.khr);
+        const oldEstKhr = khrInput.dataset.estKhr || '';
+        khrInput.dataset.estKhr = String(newEstKhr);
+        khrInput.placeholder = String(newEstKhr);
+        if (card.dataset.itemStatus === 'picked' && (khrInput.value === '' || khrInput.value === oldEstKhr)) {
+          khrInput.value = String(newEstKhr);
+        }
+      }
+    }
+  }
+
+  applyAssemblyFilter(filterVal) {
+    this.activeAssemblyFilter = filterVal || this.activeAssemblyFilter || 'all';
+    const tabsWrap = document.getElementById('assemblyFilterTabs');
+    tabsWrap?.querySelectorAll('[data-assembly-filter]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.assemblyFilter === this.activeAssemblyFilter);
+    });
+
+    const cards = Array.from(document.querySelectorAll('#assemblyItemsList .assembly-item-card'));
+    cards.forEach((card) => {
+      const st = card.dataset.itemStatus || 'pending';
+      const visible = this.activeAssemblyFilter === 'all' || st === this.activeAssemblyFilter;
+      card.classList.toggle('is-hidden-by-filter', !visible);
+    });
+  }
+
+  ensureAssemblyModalListeners() {
+    if (this._assemblyListenersBound) return;
+    this._assemblyListenersBound = true;
+
+    const modal = document.getElementById('orderAssemblyModal');
+    const closeBtn = document.getElementById('assemblyModalCloseBtn');
+    const saveBtn = document.getElementById('btnSaveOrderAssembly');
+    const itemsList = document.getElementById('assemblyItemsList');
+    const filterTabs = document.getElementById('assemblyFilterTabs');
+
+    closeBtn?.addEventListener('click', () => this.closeOrderAssemblyModal());
+
+    // Click outside open inline edit fields reverts them to initial state
+    modal?.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.assembly-title-edit-wrap') || e.target.closest('[data-assembly-edit-title]')) {
+        return;
+      }
+      this.revertAllOpenAssemblyTitleEdits();
+    });
+
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) this.closeOrderAssemblyModal();
+    });
+
+    // Global Escape handler: first reverts any open inline edit field; if none open, closes assembly modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!modal || modal.style.display === 'none') return;
+      const reverted = this.revertAllOpenAssemblyTitleEdits();
+      if (reverted) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      this.closeOrderAssemblyModal();
+    });
+
+    saveBtn?.addEventListener('click', () => this.saveOrderAssembly());
+
+    filterTabs?.addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('[data-assembly-filter]');
+      if (!tabBtn) return;
+      this.applyAssemblyFilter(tabBtn.dataset.assemblyFilter);
+    });
+
+    itemsList?.addEventListener('click', (e) => {
+      const card = e.target.closest('.assembly-item-card');
+      if (!card) return;
+
+      // 1. Left 44x44 1-tap check-off button
+      const quickToggleBtn = e.target.closest('[data-assembly-toggle-pick]');
+      if (quickToggleBtn) {
+        const currentStatus = card.dataset.itemStatus || 'pending';
+        const nextStatus = currentStatus === 'picked' ? 'pending' : 'picked';
+        this.setAssemblyCardState(card, nextStatus);
+        this.recalculateAssemblyModal();
+        return;
+      }
+
+      // 2. Inline replacement title toggle button
+      const editTitleBtn = e.target.closest('[data-assembly-edit-title]');
+      if (editTitleBtn) {
+        this.revertAllOpenAssemblyTitleEdits(card);
+        const editWrap = card.querySelector('.assembly-title-edit-wrap');
+        const titleInput = card.querySelector('.assembly-item-title-input');
+        if (editWrap) {
+          if (editWrap.classList.contains('is-open')) {
+            this.revertAssemblyTitleEdit(card);
+          } else {
+            editWrap.classList.add('is-open');
+            editTitleBtn.classList.add('active');
+            if (titleInput) {
+              titleInput.value = titleInput.dataset.committedTitle || titleInput.value;
+              titleInput.focus();
+              titleInput.select();
+            }
+          }
+        }
+        return;
+      }
+
+      // 2b. Confirm replacement title button (✓)
+      const confirmTitleBtn = e.target.closest('[data-assembly-confirm-title]');
+      if (confirmTitleBtn) {
+        this.commitAssemblyTitleEdit(card);
+        return;
+      }
+
+      // 2c. Cancel replacement title button (✕)
+      const cancelTitleBtn = e.target.closest('[data-assembly-cancel-title]');
+      if (cancelTitleBtn) {
+        this.revertAssemblyTitleEdit(card);
+        return;
+      }
+
+      // 3. Explicit Status Buttons (Куплено / Нет в наличии)
+      const statusBtn = e.target.closest('[data-assembly-status]');
+      if (statusBtn) {
+        const targetStatus = statusBtn.dataset.assemblyStatus; // 'picked' | 'missing'
+        const currentStatus = card.dataset.itemStatus || 'pending';
+        const nextStatus = currentStatus === targetStatus ? 'pending' : targetStatus;
+        this.setAssemblyCardState(card, nextStatus);
+        this.recalculateAssemblyModal();
+      }
+    });
+
+    itemsList?.addEventListener('keydown', (e) => {
+      if (!e.target.classList.contains('assembly-item-title-input')) return;
+      const card = e.target.closest('.assembly-item-card');
+      if (!card) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.commitAssemblyTitleEdit(card);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.revertAssemblyTitleEdit(card);
+      }
+    });
+
+    itemsList?.addEventListener('input', (e) => {
+      const card = e.target.closest('.assembly-item-card');
+      if (!card) return;
+
+      if (e.target.classList.contains('assembly-item-title-input')) {
+        const titleDisplay = card.querySelector('.assembly-title-display');
+        if (titleDisplay) {
+          titleDisplay.textContent = e.target.value.trim() || e.target.dataset.committedTitle || 'Товар';
+        }
+        return;
+      }
+
+      if (e.target.classList.contains('assembly-qty-input')) {
+        this.recalculateCardEstimateFromQty(card);
+        this.recalculateAssemblyModal();
+        return;
+      }
+
+      if (e.target.classList.contains('assembly-khr-input')) {
+        const rawStr = String(e.target.value || '').trim();
+        const valKhr = Number(rawStr || 0);
+        if (rawStr !== '' && valKhr > 0 && card.dataset.itemStatus !== 'picked') {
+          this.setAssemblyCardState(card, 'picked');
+        } else if (rawStr === '' && card.dataset.itemStatus === 'picked') {
+          this.setAssemblyCardState(card, 'pending');
+        }
+      }
+      this.recalculateAssemblyModal();
+    });
+
+    itemsList?.addEventListener('change', (e) => {
+      const card = e.target.closest('.assembly-item-card');
+      if (!card) return;
+      if (e.target.classList.contains('assembly-unit-select') || e.target.classList.contains('assembly-qty-input')) {
+        this.recalculateCardEstimateFromQty(card);
+        this.recalculateAssemblyModal();
+      }
+    });
+  }
+
+  buildCustomerContactLinks(order) {
+    const rawPhone = String(order.customer_phone || '').trim();
+    const messenger = String(order.customer_messenger || '').trim().toLowerCase();
+    if (!rawPhone) return '';
+
+    const links = [];
+    const digits = rawPhone.replace(/[^0-9+]/g, '');
+
+    if (rawPhone.startsWith('@') || messenger === 'telegram') {
+      const tgHandle = rawPhone.startsWith('@') ? rawPhone.slice(1) : rawPhone.replace(/[^a-zA-Z0-9_+]/g, '');
+      if (tgHandle) {
+        links.push(`<a href="https://t.me/${this.escapeHtml(tgHandle)}" target="_blank" rel="noopener" class="assembly-contact-pill">✈️ Telegram</a>`);
+      }
+    }
+    if (messenger === 'whatsapp' && digits) {
+      const waDigits = digits.replace(/^\+/, '');
+      links.push(`<a href="https://wa.me/${this.escapeHtml(waDigits)}" target="_blank" rel="noopener" class="assembly-contact-pill">💬 WhatsApp</a>`);
+    }
+    if (digits.length >= 6) {
+      links.push(`<a href="tel:${this.escapeHtml(digits)}" class="assembly-contact-pill">📞 ${this.escapeHtml(rawPhone)}</a>`);
+    } else {
+      links.push(`<span class="assembly-contact-pill">💬 ${this.escapeHtml(rawPhone)}</span>`);
+    }
+    return links.join('');
+  }
+
+  openOrderAssemblyModal(orderId) {
+    this.ensureAssemblyModalListeners();
+    const order = (this.cachedAdminOrders || []).find((o) => String(o.id) === String(orderId));
+    if (!order) return;
+
+    this.activeAssemblyOrderId = order.id;
+    this.activeAssemblyFilter = 'all';
+    const modal = document.getElementById('orderAssemblyModal');
+    const titleEl = document.getElementById('assemblyModalTitle');
+    const statusBadge = document.getElementById('assemblyModalStatusBadge');
+    const metaCard = document.getElementById('assemblyMetaCard');
+    const rateBadge = document.getElementById('assemblyRateBadge');
+    const itemsList = document.getElementById('assemblyItemsList');
+    if (!modal || !itemsList) return;
+
+    const khrRate = (window.app && Number(window.app.khrRate)) || 4000;
+    const orderNum = order.order_number || 'FM-ЗАКАЗ';
+    if (titleEl) titleEl.textContent = `Сборка ${orderNum}`;
+    if (statusBadge) statusBadge.textContent = this.formatStatus(order.status);
+    if (rateBadge) rateBadge.textContent = `Курс: $1 = ${Math.round(khrRate).toLocaleString('en-US')} ៛`;
+
+    const safeName = this.escapeHtml(order.customer_name || 'Клиент');
+    const safeAddress = this.escapeHtml(order.delivery_address || '—');
+    const safeZone = this.escapeHtml(this.formatZone(order.delivery_zone));
+    const safePolicy = this.escapeHtml(this.formatReplacementPolicy(order.replacement_policy || order.replace_rule));
+    const notes = order.customer_notes || order.customer_comment || '';
+    const notesHtml = notes ? `<div>💬 Пожелание к заказу: <b>${this.escapeHtml(notes)}</b></div>` : '';
+
+    if (metaCard) {
+      metaCard.innerHTML = `
+        <div class="assembly-meta-top">
+          <span class="assembly-customer-name">👤 ${safeName}</span>
+          <div class="assembly-contact-links">${this.buildCustomerContactLinks(order)}</div>
+        </div>
+        <div>📍 <b>${safeZone}</b> • ${safeAddress} • 🔄 Замены: <b>${safePolicy}</b></div>
+        ${notesHtml}
+      `;
+    }
+
+    const items = order.order_items || [];
+    const unitOptions = [
+      { value: 'kg', label: 'кг' },
+      { value: 'g', label: 'г' },
+      { value: 'pc', label: 'шт' },
+      { value: 'bunch', label: 'пучок' },
+      { value: 'pack', label: 'упак' },
+      { value: 'tray', label: 'лоток' },
+      { value: 'bottle', label: 'бут' },
+      { value: 'l', label: 'л' },
+      { value: 'ml', label: 'мл' }
+    ];
+
+    itemsList.innerHTML = items.map((it) => {
+      const linkedProd = it.products || (window.app && Array.isArray(window.app.products) ? window.app.products.find((p) => String(p.id) === String(it.product_id)) : null);
+      const rawSavedTitle = (it.product_title && it.product_title !== 'Товар') ? it.product_title : '';
+      const rawSavedRu = (it.product_name_ru && it.product_name_ru !== 'Товар') ? it.product_name_ru : '';
+      const resolvedTitle = rawSavedRu
+        || rawSavedTitle
+        || (linkedProd && linkedProd.name_ru)
+        || it.product_name_en
+        || (linkedProd && linkedProd.name_en)
+        || 'Товар';
+      const resolvedKh = it.product_name_kh || (linkedProd && linkedProd.name_kh) || '';
+      const resolvedForm = it.product_form || (linkedProd && linkedProd.form) || '';
+      const imgUrl = it.product_img_url || (linkedProd && linkedProd.img_url) || '';
+
+      const reqQty = Number(it.requested_qty || it.quantity || 1) || 1;
+      const curQty = Number(it.quantity || it.requested_qty || 1) || 1;
+      const rawUnit = String(it.unit || 'kg').trim();
+      const canonicalUnit = (window.FreshMarketUnits && typeof window.FreshMarketUnits.normalizeUnitSlug === 'function')
+        ? window.FreshMarketUnits.normalizeUnitSlug(rawUnit, 'kg')
+        : rawUnit;
+      const reqUnitLabel = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
+        ? window.FreshMarketUnits.getUnitLabel(canonicalUnit)
+        : canonicalUnit;
+
+      // 1. Base Unit Price Badge (from catalog product or derived from estimated_price)
+      const baseProdPrice = Number(linkedProd?.price || 0);
+      const baseProdUnitRaw = (linkedProd && linkedProd.unit) || '1_kg';
+      let unitPriceBadgeHtml = '<span class="assembly-unit-price-badge is-by-receipt">🏷️ Цена: по чеку</span>';
+      if (baseProdPrice > 0) {
+        const basePriceKey = (window.FreshMarketUnits && typeof window.FreshMarketUnits.normalizePriceUnitKey === 'function')
+          ? window.FreshMarketUnits.normalizePriceUnitKey(baseProdUnitRaw)
+          : '1_kg';
+        const baseUnitLabel = window.FreshMarketUnits?.PRICE_UNIT_META?.[basePriceKey]?.label || baseProdUnitRaw || '1 кг';
+        const unitPriceKhr = baseProdPrice < 50 ? Math.round(baseProdPrice * khrRate) : Math.round(baseProdPrice);
+        const unitPriceUsd = (unitPriceKhr / khrRate).toFixed(2);
+        unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">🏷️ ${unitPriceKhr.toLocaleString('en-US')} ៛ / ${this.escapeHtml(baseUnitLabel)} ($${unitPriceUsd})</span>`;
+      }
+
+      // 2. Estimated cost for current quantity
+      const estRaw = Number(it.estimated_price || 0);
+      let estUsd = 0;
+      if (baseProdPrice > 0 && window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+        const calc = window.FreshMarketUnits.calculateCost({ price: baseProdPrice, unit: baseProdUnitRaw }, curQty, canonicalUnit, khrRate);
+        if (calc.hasPrice && !calc.incompatibleUnit) {
+          estUsd = calc.usd;
+        }
+      }
+      if (estUsd <= 0 && estRaw > 0) {
+        estUsd = estRaw < 500 ? estRaw : Number((estRaw / khrRate).toFixed(2));
+        if (baseProdPrice <= 0 && reqQty > 0) {
+          const derivedUnitUsd = estUsd / reqQty;
+          const derivedUnitKhr = Math.round(derivedUnitUsd * khrRate);
+          unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">🏷️ ${derivedUnitKhr.toLocaleString('en-US')} ៛ / 1 ${this.escapeHtml(reqUnitLabel)} ($${derivedUnitUsd.toFixed(2)})</span>`;
+        }
+      }
+      const estKhr = estUsd > 0 ? Math.round(estUsd * khrRate) : 0;
+
+      // 3. Item status & initial KHR value (ONLY pre-fill value if item is explicitly 'picked')
+      const itemStatus = it.status === 'picked' ? 'picked' : it.status === 'missing' ? 'missing' : 'pending';
+      const actRaw = Number(it.actual_cost || 0);
+      const savedKhr = actRaw > 0 ? (actRaw >= 500 ? Math.round(actRaw) : Math.round(actRaw * khrRate)) : 0;
+
+      let initialKhr = 0;
+      if (itemStatus === 'picked') {
+        initialKhr = savedKhr > 0 ? savedKhr : estKhr;
+      }
+
+      const stateClass = itemStatus === 'picked' ? 'is-picked' : itemStatus === 'missing' ? 'is-missing' : 'is-pending';
+      const stateBadgeText = itemStatus === 'picked'
+        ? '✅ Куплено'
+        : itemStatus === 'missing'
+          ? '❌ Нет в наличии'
+          : '⏳ Осталось купить';
+      const checkIcon = itemStatus === 'picked' ? '✓' : itemStatus === 'missing' ? '✕' : '○';
+      const initialUsd = initialKhr > 0 ? (initialKhr / khrRate).toFixed(2) : '0.00';
+
+      return `
+        <div class="assembly-item-card ${stateClass}"
+             data-item-id="${this.escapeHtml(it.id)}"
+             data-item-status="${itemStatus}"
+             data-base-price="${baseProdPrice > 0 ? baseProdPrice : 0}"
+             data-base-unit="${this.escapeHtml(baseProdUnitRaw)}">
+          <!-- Left Lead Zone: 1-Tap Check + Thumbnail + Product Details -->
+          <div class="assembly-row-lead">
+            <button type="button" class="assembly-quick-check" data-assembly-toggle-pick="1"
+                    aria-label="Отметить как купленное">${checkIcon}</button>
+            <div class="assembly-item-thumb">
+              ${imgUrl ? `<img src="${this.escapeHtml(imgUrl)}" alt="${this.escapeHtml(resolvedTitle)}" loading="lazy" />` : '🥬'}
+            </div>
+            <div class="assembly-item-info">
+              <div class="assembly-title-line">
+                <span class="assembly-state-pill">${stateBadgeText}</span>
+                ${resolvedKh ? `<span class="assembly-item-kh khmer-font">${this.escapeHtml(resolvedKh)}</span>` : ''}
+              </div>
+              <div class="assembly-title-line">
+                <span class="assembly-title-display">${this.escapeHtml(resolvedTitle)}</span>
+                <button type="button" class="assembly-btn-replace-toggle" data-assembly-edit-title="1" title="Заменить позицию">
+                  ✏️ Замена
+                </button>
+              </div>
+              <div class="assembly-title-edit-wrap">
+                <div class="assembly-title-edit-row">
+                  <input type="text" class="assembly-item-title-input"
+                         value="${this.escapeHtml(resolvedTitle)}"
+                         data-committed-title="${this.escapeHtml(resolvedTitle)}"
+                         aria-label="Название позиции (замена)" />
+                  <button type="button" class="assembly-title-confirm-btn" data-assembly-confirm-title="1" title="Применить (Enter)">✓</button>
+                  <button type="button" class="assembly-title-cancel-btn" data-assembly-cancel-title="1" title="Отмена (Esc)">✕</button>
+                </div>
+              </div>
+              <div class="assembly-item-submeta">
+                ${unitPriceBadgeHtml}
+                <span class="assembly-req-badge">Заказано: ${this.escapeHtml(reqQty)} ${this.escapeHtml(reqUnitLabel)}</span>
+                ${resolvedForm ? `<span class="assembly-est-badge">• ${this.escapeHtml(resolvedForm)}</span>` : ''}
+              </div>
+              ${it.customer_comment ? `<div class="assembly-item-wish">💬 ${this.escapeHtml(it.customer_comment)}</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Right Controls Zone: Fact Qty + Riels Cost + Status -->
+          <div class="assembly-row-controls">
+            <div class="assembly-ctrl-qty">
+              <span class="assembly-field-label">Факт. кол-во</span>
+              <div class="assembly-qty-group">
+                <input type="number" class="assembly-qty-input" step="any" min="0.01" max="5000" value="${this.escapeHtml(curQty)}" aria-label="Количество" />
+                <select class="assembly-unit-select" aria-label="Размерность">
+                  ${unitOptions.map((u) => `<option value="${u.value}" ${u.value === canonicalUnit ? 'selected' : ''}>${u.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="assembly-ctrl-khr">
+              <div class="assembly-field-label-row">
+                <span class="assembly-field-label">Сумма по чеку (៛)</span>
+              </div>
+              <div class="assembly-khr-wrap">
+                <span class="assembly-khr-prefix">៛</span>
+                <input type="number" class="assembly-khr-input" inputmode="numeric" step="100" min="0"
+                       value="${initialKhr > 0 ? initialKhr : ''}"
+                       data-est-khr="${estKhr}"
+                       data-prev-khr="${savedKhr > 0 ? savedKhr : ''}"
+                       placeholder="${estKhr > 0 ? estKhr : '0'}"
+                       ${itemStatus === 'missing' ? 'disabled' : ''}
+                       aria-label="Стоимость в риелях" />
+                <span class="assembly-khr-usd-hint">≈ $${initialUsd}</span>
+              </div>
+            </div>
+
+            <div class="assembly-status-btns">
+              <button type="button" class="assembly-status-btn btn-pick ${itemStatus === 'picked' ? 'active' : ''}" data-assembly-status="picked">
+                ✅ Куплено
+              </button>
+              <button type="button" class="assembly-status-btn btn-miss ${itemStatus === 'missing' ? 'active' : ''}" data-assembly-status="missing">
+                ❌ Нет
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    this.applyAssemblyFilter('all');
+    this.recalculateAssemblyModal();
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+  }
+
+  closeOrderAssemblyModal() {
+    this.revertAllOpenAssemblyTitleEdits();
+    const modal = document.getElementById('orderAssemblyModal');
+    if (modal) modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    this.activeAssemblyOrderId = null;
+  }
+
+  recalculateAssemblyModal() {
+    const order = (this.cachedAdminOrders || []).find((o) => String(o.id) === String(this.activeAssemblyOrderId));
+    if (!order) return;
+
+    const khrRate = (window.app && Number(window.app.khrRate)) || 4000;
+    const cards = Array.from(document.querySelectorAll('#assemblyItemsList .assembly-item-card'));
+    const totalCount = cards.length;
+    let pickedCount = 0;
+    let missingCount = 0;
+    let pendingCount = 0;
+    let totalMarketKhr = 0;
+
+    cards.forEach((card) => {
+      const st = card.dataset.itemStatus || 'pending';
+      const khrInput = card.querySelector('.assembly-khr-input');
+      const usdHint = card.querySelector('.assembly-khr-usd-hint');
+      const rawKhr = st === 'picked' ? Math.max(0, Number(khrInput?.value || 0)) : 0;
+      const itemUsd = Number((rawKhr / khrRate).toFixed(2));
+
+      if (usdHint) {
+        usdHint.textContent = `≈ $${itemUsd.toFixed(2)}`;
+      }
+
+      if (st === 'picked') {
+        pickedCount += 1;
+        totalMarketKhr += rawKhr;
+      } else if (st === 'missing') {
+        missingCount += 1;
+      } else {
+        pendingCount += 1;
+      }
+    });
+
+    const processedCount = pickedCount + missingCount;
+    const pct = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
+
+    const progressLabel = document.getElementById('assemblyProgressLabel');
+    const progressPct = document.getElementById('assemblyProgressPct');
+    const progressFill = document.getElementById('assemblyProgressFill');
+    if (progressLabel) {
+      progressLabel.textContent = `Куплено: ${pickedCount} из ${totalCount} • Осталось: ${pendingCount}${missingCount > 0 ? ` • Нет: ${missingCount}` : ''}`;
+    }
+    if (progressPct) {
+      progressPct.textContent = `${pct}%`;
+    }
+    if (progressFill) {
+      progressFill.style.width = `${pct}%`;
+    }
+
+    const countAllEl = document.getElementById('assemblyCountAll');
+    const countPendingEl = document.getElementById('assemblyCountPending');
+    const countPickedEl = document.getElementById('assemblyCountPicked');
+    const countMissingEl = document.getElementById('assemblyCountMissing');
+    if (countAllEl) countAllEl.textContent = String(totalCount);
+    if (countPendingEl) countPendingEl.textContent = String(pendingCount);
+    if (countPickedEl) countPickedEl.textContent = String(pickedCount);
+    if (countMissingEl) countMissingEl.textContent = String(missingCount);
+
+    this.applyAssemblyFilter(this.activeAssemblyFilter || 'all');
+
+    const marketTotalUsd = Number((totalMarketKhr / khrRate).toFixed(2));
+    const servicePercent = typeof order.service_percent === 'number' ? order.service_percent : 10;
+    const serviceFeeUsd = Number((marketTotalUsd * (servicePercent / 100.0)).toFixed(2));
+    const deliveryFeeUsd = Number(order.delivery_fee || 1.00);
+    const grandTotalUsd = Number((marketTotalUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
+    const grandTotalKhr = Math.round(grandTotalUsd * khrRate);
+
+    const totalsBox = document.getElementById('assemblyTotalsBox');
+    if (totalsBox) {
+      totalsBox.innerHTML = `
+        <div class="assembly-total-row">
+          <span>Рынок (чеки):</span>
+          <b>${Math.round(totalMarketKhr).toLocaleString('en-US')} ៛ (~$${marketTotalUsd.toFixed(2)})</b>
+        </div>
+        <div class="assembly-total-row">
+          <span>Сбор (${servicePercent}%):</span>
+          <b>$${serviceFeeUsd.toFixed(2)}</b>
+        </div>
+        <div class="assembly-total-row">
+          <span>Доставка:</span>
+          <b>$${deliveryFeeUsd.toFixed(2)}</b>
+        </div>
+        <div class="assembly-total-row is-grand">
+          <span>Итого к оплате:</span>
+          <span class="grand-val">$${grandTotalUsd.toFixed(2)} (~${grandTotalKhr.toLocaleString('en-US')} ៛)</span>
+        </div>
+      `;
+    }
+
+    return {
+      totalMarketKhr,
+      marketTotalUsd,
+      servicePercent,
+      serviceFeeUsd,
+      deliveryFeeUsd,
+      grandTotalUsd
+    };
+  }
+
+  async saveOrderAssembly() {
+    const order = (this.cachedAdminOrders || []).find((o) => String(o.id) === String(this.activeAssemblyOrderId));
+    if (!order || !this.sb) return;
+
+    const saveBtn = document.getElementById('btnSaveOrderAssembly');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Сохранение...';
+    }
+
+    const khrRate = (window.app && Number(window.app.khrRate)) || 4000;
+    const cards = Array.from(document.querySelectorAll('#assemblyItemsList .assembly-item-card'));
+    const totals = this.recalculateAssemblyModal();
+    const nowIso = new Date().toISOString();
+
+    try {
+      const updatedItems = [];
+
+      for (const card of cards) {
+        const itemId = card.dataset.itemId;
+        const itemStatus = card.dataset.itemStatus || 'pending';
+        const titleInput = card.querySelector('.assembly-item-title-input');
+        const qtyInput = card.querySelector('.assembly-qty-input');
+        const unitSelect = card.querySelector('.assembly-unit-select');
+        const khrInput = card.querySelector('.assembly-khr-input');
+
+        const newTitle = (titleInput?.dataset.committedTitle || titleInput?.value || '').trim() || 'Товар';
+        const newQty = Math.max(0.01, Number(qtyInput?.value || 1) || 1);
+        const newUnit = unitSelect?.value || 'kg';
+        const rawKhr = itemStatus === 'picked' ? Math.max(0, Number(khrInput?.value || 0)) : 0;
+        const actualCostUsd = itemStatus === 'picked' ? Number((rawKhr / khrRate).toFixed(2)) : 0;
+
+        const payload = {
+          product_title: newTitle,
+          product_name_ru: newTitle,
+          quantity: newQty,
+          unit: newUnit,
+          actual_cost: actualCostUsd,
+          status: itemStatus
+        };
+
+        const { data: itemRows, error: itemErr } = await this.sb
+          .from('order_items')
+          .update(payload)
+          .eq('id', itemId)
+          .select('id');
+
+        if (itemErr) throw itemErr;
+        if (!itemRows || itemRows.length === 0) {
+          throw new Error(`Позиция ${newTitle} не обновлена (проверьте права доступа)`);
+        }
+
+        updatedItems.push({ id: itemId, ...payload });
+      }
+
+      const orderUpdatePayload = {
+        status: 'shopping',
+        actual_market_total: totals.marketTotalUsd,
+        market_items_total: totals.marketTotalUsd > 0 ? totals.marketTotalUsd : Number(order.estimated_total || 0),
+        service_fee: totals.serviceFeeUsd,
+        grand_total: totals.grandTotalUsd,
+        updated_at: nowIso
+      };
+
+      const { data: orderRows, error: orderErr } = await this.sb
+        .from('orders')
+        .update(orderUpdatePayload)
+        .eq('id', order.id)
+        .select('id');
+
+      if (orderErr) throw orderErr;
+      if (!orderRows || orderRows.length === 0) {
+        throw new Error('Заказ не обновлен в базе данных');
+      }
+
+      // Update local cache
+      Object.assign(order, orderUpdatePayload);
+      if (Array.isArray(order.order_items)) {
+        order.order_items = order.order_items.map((orig) => {
+          const patch = updatedItems.find((u) => String(u.id) === String(orig.id));
+          return patch ? { ...orig, ...patch } : orig;
+        });
+      }
+
+      if (typeof window.showToast === 'function') {
+        window.showToast(`✅ Сборка ${order.order_number || ''} сохранена (статус: Закупка)`, 'success', 3500);
+      }
+
+      this.syncInitialPendingOrdersCount();
+      this.renderAdminOrders();
+      this.closeOrderAssemblyModal();
+    } catch (err) {
+      console.error('[AdminAuth] Save order assembly error:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Ошибка сохранения сборки: ${err.message || 'Ошибка сети'}`, 'error', 5000);
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Сохранить';
+      }
+    }
   }
 
   // ------------------------------------------------------------------------
