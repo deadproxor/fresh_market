@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="css/components.css?v=1.5.51" />
   <link rel="stylesheet" href="css/shop.css?v=1.5.51" />
   <script src="js/shared/utils.js?v=1.5.43"></script>
-  <script src="js/shared/branding.js?v=1.5.19"></script>
+  <script src="js/shared/branding.js?v=1.5.57"></script>
   <script src="js/shared/categories.js?v=1.5.17"></script>
   <script src="js/shared/forms.js?v=1.5.0"></script>
   <script src="js/shared/i18n.js?v=1.5.19"></script>
@@ -54,9 +54,9 @@
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
       <div class="splash-icon-wrap">
-        <span class="splash-icon" data-brand-logo="splash">🥬</span>
+        <span class="splash-icon" data-brand-logo="splash">🧺</span>
       </div>
-      <div class="splash-title" data-i18n="splash.title" data-brand-name>FreshBuddy</div>
+      <div class="splash-title" data-i18n="splash.title" data-brand-name>Riper</div>
       <div class="splash-subtitle" data-i18n="splash.subtitle" data-brand-slogan>Доставка свежих продуктов</div>
       <div class="splash-version" id="splashVersion">v1.5.19</div>
     </div>
@@ -72,13 +72,13 @@
         <div class="onboarding-slide active" data-slide="0">
           <div class="onboarding-media-wrap">
             <img src="assets/onboarding/slide-1-market.png" class="onboarding-illustration"
-              alt="Свежесть утреннего рынка" />
+              alt="Утренний рынок-консьерж" />
             <div class="onboarding-media-fade"></div>
           </div>
           <div class="onboarding-content-wrap">
-            <h2 class="onboarding-title" data-i18n="onboarding.slide1_title">Свежесть утреннего рынка</h2>
+            <h2 class="onboarding-title" data-i18n="onboarding.slide1_title">Утренний рынок-консьерж</h2>
             <p class="onboarding-desc" data-i18n="onboarding.slide1_desc">
-              Отборные фермерские овощи, фрукты, травы и специи прямо с первого утреннего привоза без посредников.
+              Отборные овощи и фрукты, травы и специи, мясо и морепродукты прямо с утреннего привоза без посредников.
             </p>
           </div>
         </div>
@@ -142,7 +142,7 @@
       <div class="brand">
         <div class="brand-icon" data-brand-logo="header">🥬</div>
         <div class="brand-text">
-          <span class="brand-title" data-brand-name>FreshBuddy</span>
+          <span class="brand-title" data-brand-name>Riper</span>
           <span class="brand-subtitle" data-i18n="splash.subtitle" data-brand-slogan>Доставка свежих продуктов</span>
         </div>
       </div>
@@ -235,7 +235,7 @@
           <span class="schedule-icon">🌅</span>
           <div class="schedule-info">
             <span class="schedule-title" data-i18n="shop.schedule_title">Прием заказов до 23:00</span>
-            <span class="schedule-sub" data-i18n="shop.schedule_sub">Закупка на рассвете • Доставка 9:00–12:00</span>
+            <span class="schedule-sub" data-i18n="shop.schedule_sub">Закупка ранним утром • Доставка 9:00–12:00</span>
           </div>
           <button type="button" class="schedule-close-btn" id="btnCloseScheduleBanner"
             title="Закрыть" aria-label="Закрыть"
@@ -246,7 +246,7 @@
         <div id="cartEmptyState" class="empty-state" style="display: none;">
           <div class="empty-icon">🛒</div>
           <div class="empty-title" data-i18n="cart.empty_title">Корзина пока пуста</div>
-          <div class="empty-desc" data-i18n="cart.empty_desc">Выберите свежие продукты на витрине</div>
+          <div class="empty-desc" data-i18n="cart.empty_desc">Выберите продукты на рынке</div>
           <button type="button" class="btn btn-primary" id="btnCartEmptyToCatalog" data-i18n="nav.catalog">Перейти в
             каталог 🛍️</button>
         </div>
@@ -256,7 +256,7 @@
           <div class="cart-auth-gate-icon">🔐</div>
           <div class="cart-auth-gate-title" data-i18n="cart.auth_gate_title">Оформление доступно после входа</div>
           <div class="cart-auth-gate-desc" data-i18n="cart.auth_gate_desc">
-            Войдите через Google или Facebook, чтобы оформить доставку на утренний закуп.
+            Войдите через Google или Facebook, чтобы завершить оформление заказа.
           </div>
           <button type="button" class="btn btn-primary btn-auth-gate" id="btnCartAuthGate"
             data-i18n="cart.auth_gate_btn">Войти →</button>

@@ -3,7 +3,7 @@
  * Strategy: Network-First with Cache Fallback for offline market resilience
  */
 
-const CACHE_NAME = 'freshmarket-admin-v1.5.56';
+const CACHE_NAME = 'freshmarket-admin-v1.5.57';
 const STATIC_ASSETS = [
   './index.html',
   './manifest.json',
@@ -21,7 +21,7 @@ const STATIC_ASSETS = [
   '../data/products_dictionary.json',
   '../assets/icon-192.svg',
   '../assets/icon-512.svg',
-  '../assets/brand/logo-default.png',
+  '../assets/brand/logo-riper.png',
   '../assets/categories/all.png',
   '../assets/categories/vegetables.png',
   '../assets/categories/roots_tubers.png',

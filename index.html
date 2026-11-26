@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FreshBuddy — Morning Market Concierge Delivery</title>
+  <title>Riper — Morning Market Concierge Delivery</title>
   <meta name="description"
     content="Personal morning shopper for dawn market produce. Direct paper vendor receipts, 10% flat fee, delivery before noon in insulated cooler packs." />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.cloudinary.com https://res.cloudinary.com https://*.supabase.co https://*.tile.openstreetmap.org https://*.tile.openstreetmap.fr https://unpkg.com https://*.googleusercontent.com https://*.fbcdn.net https://*.facebook.com; connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org https://unpkg.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';" />
@@ -35,7 +35,7 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <script src="js/shared/branding.js?v=1.5.19"></script>
+  <script src="js/shared/branding.js?v=1.5.57"></script>
   <script src="js/shared/i18n.js?v=1.5.19"></script>
 </head>
 
@@ -46,7 +46,7 @@
     <div class="header-inner">
       <a href="index.html" class="landing-brand">
         <span class="brand-glyph" data-brand-logo="landing">🌱</span>
-        <span class="brand-name" data-brand-name>FreshBuddy</span>
+        <span class="brand-name" data-brand-name>Riper</span>
       </a>
 
       <!-- Live Telemetry Pill -->
@@ -222,20 +222,20 @@
                 </div>
               </div>
               <div class="bento-split-text">
-                <div class="tile-tag" data-i18n="landing.bento.tile1_tag">Dawn Procurement</div>
-                <h3 class="tile-title" data-i18n="landing.bento.tile1_title">Hand-selected at the vendor stalls.</h3>
+                <div class="tile-tag" data-i18n="landing.bento.tile1_tag">Handpicked Quality</div>
+                <h3 class="tile-title" data-i18n="landing.bento.tile1_title">Personal selection across all stalls.</h3>
                 <p class="tile-desc" data-i18n="landing.bento.tile1_desc">
-                  Our trusted buyer inspects rows of fresh vegetables, leafy herbs, seafood, and tropical fruits as
-                  local farmers unload their daily harvest. If a batch isn't top tier, we don't buy it.
+                  Our buyer personally selects every item across all categories — meat, poultry, seafood, vegetables, and
+                  fruit. We purchase only verified, top-quality goods directly from market vendors.
                 </p>
                 <div class="tile-features">
                   <div class="feature-item">
                     <span class="check-glyph">✓</span>
-                    <span data-i18n="landing.bento.tile1_feat1">Vetted stall vendors across all categories</span>
+                    <span data-i18n="landing.bento.tile1_feat1">Vetted vendors across all categories</span>
                   </div>
                   <div class="feature-item">
                     <span class="check-glyph">✓</span>
-                    <span data-i18n="landing.bento.tile1_feat2">Zero multi-day warehouse storage</span>
+                    <span data-i18n="landing.bento.tile1_feat2">Direct selection without warehouse storage</span>
                   </div>
                 </div>
               </div>
@@ -243,26 +243,27 @@
 
             <!-- Bento 2: Cold Chain & Eco Packing -->
             <div class="bento-tile bento-coldchain col-3 col-md-6 col-sm-12">
-              <div class="tile-tag" data-i18n="landing.bento.tile2_tag">Thermal Protection</div>
-              <h3 class="tile-title" data-i18n="landing.bento.tile2_title">Insulated bag & kraft paper.</h3>
+              <div class="tile-tag" data-i18n="landing.bento.tile2_tag">Eco-Packaging & Thermal Care</div>
+              <h3 class="tile-title" data-i18n="landing.bento.tile2_title">Insulated boxes & biodegradable materials.</h3>
               <p class="tile-desc" data-i18n="landing.bento.tile2_desc">
-                Morning tropical heat wilts tender greens within an hour. Every order travels in an insulated thermal
-                cooler box, bundled in breathable kraft paper tied with natural twine.
+                Every order travels in an insulated cooler box packed in breathable kraft paper and certified
+                biodegradable packaging. Food stays cold and fresh without single-use plastic.
               </p>
               <div class="coldchain-spec-box">
                 <div class="spec-pill" data-i18n="landing.bento.tile2_pill1">Insulated Cooler Box</div>
-                <div class="spec-pill" data-i18n="landing.bento.tile2_pill2">Breathable Kraft Paper</div>
-                <div class="spec-pill" data-i18n="landing.bento.tile2_pill3">Zero Heat Wilting</div>
+                <div class="spec-pill" data-i18n="landing.bento.tile2_pill2">100% Biodegradable</div>
+                <div class="spec-pill" data-i18n="landing.bento.tile2_pill3">Breathable Kraft Paper</div>
               </div>
             </div>
 
             <!-- Bento 3: 10% Flat Model -->
             <div class="bento-tile bento-math col-3 col-md-6 col-sm-12">
               <div class="tile-tag" data-i18n="landing.bento.tile3_tag">Honest Economics</div>
-              <h3 class="tile-title" data-i18n="landing.bento.tile3_title">10% flat fee. Zero markup.</h3>
+              <h3 class="tile-title" data-i18n="landing.bento.tile3_title">10% flat fee. Direct support for local vendors.</h3>
               <p class="tile-desc" data-i18n="landing.bento.tile3_desc">
-                We never mark up stall prices. You receive the original handwritten paper receipt from the vendor. Our
-                sole revenue is the 10% personal concierge fee.
+                We buy directly from market sellers at their own stall prices, bringing consistent revenue to local
+                family stalls. You receive the original handwritten paper receipt — our sole charge is the transparent
+                10% fee.
               </p>
               <div class="math-callout">
                 <div class="math-equation">
@@ -270,7 +271,7 @@
                   <span class="op">+</span>
                   <span class="hl" data-i18n="landing.bento.tile3_eq_fee">10% Fee</span>
                   <span class="op">+</span>
-                  <span data-i18n="landing.bento.tile3_eq_delivery">Delivery</span>
+                  <span data-i18n="landing.bento.tile3_eq_delivery">Direct Local Support</span>
                 </div>
               </div>
             </div>

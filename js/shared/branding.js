@@ -1,22 +1,16 @@
 /**
- * Fresh Buddy / FreshMarket — Centralized Brand Identity & Naming System (branding.js)
+ * Riper — Centralized Brand Identity & Naming System (branding.js)
  * Single Source of Truth for Brand Name, Logos, Slogans, Keywords, and Core Service Aspects.
- * Change ACTIVE_BRAND_ID or edit the preset fields below to rebrand the entire application at once.
  */
 
 (function () {
   'use strict';
 
-  const STORAGE_PRESET_KEY = 'freshmarket_brand_preset';
+  const LEGACY_PRESET_KEY = 'freshmarket_brand_preset';
   const STORAGE_LOGO_MODE_KEY = 'freshmarket_brand_logo_mode';
 
   // ==========================================================================
-  // 1. DEFAULT ACTIVE BRAND ID ('fresh_buddy' | 'freshmarket' | 'riper')
-  // ==========================================================================
-  const DEFAULT_BRAND_ID = 'fresh_buddy';
-
-  // ==========================================================================
-  // 2. SHARED MULTILINGUAL SLOGANS, TAGLINES, KEYWORDS & SERVICE ASPECTS
+  // 1. SHARED MULTILINGUAL SLOGANS, TAGLINES, KEYWORDS & SERVICE ASPECTS
   // ==========================================================================
   const BASE_SLOGANS = {
     ru: 'Доставка свежих продуктов',
@@ -50,101 +44,46 @@
   };
 
   // ==========================================================================
-  // 3. BRAND PRESETS REGISTRY
+  // 2. PRIMARY BRAND CONFIGURATION (RIPER)
   // ==========================================================================
-  const BRAND_PRESETS = {
-    fresh_buddy: {
-      id: 'fresh_buddy',
-      name: 'FreshBuddy',
-      shortName: 'FreshBuddy',
-      adminTitle: 'FreshBuddy Admin',
-      orderPrefix: 'FB',
-      adminEmailPlaceholder: 'admin@freshbuddy.app',
-      logos: {
-        mode: 'image', // 'image' | 'svg' | 'emoji'
-        headerLogo: 'assets/brand/logo-default.png',
-        splashLogo: 'assets/brand/logo-default.png',
-        pwaIcon192: 'assets/icon-192.svg',
-        pwaIcon512: 'assets/icon-512.svg',
-        emojiShop: '🥬',
-        emojiDefault: '🌱'
-      },
-      slogans: { ...BASE_SLOGANS },
-      taglines: { ...BASE_TAGLINES },
-      keywords: { ...BASE_KEYWORDS },
-      aspects: { ...BASE_ASPECTS }
+  const BRAND_CONFIG = {
+    id: 'riper',
+    name: 'Riper',
+    shortName: 'Riper',
+    adminTitle: 'Riper Admin',
+    orderPrefix: 'RP',
+    adminEmailPlaceholder: 'admin@riper.app',
+    logos: {
+      mode: 'image', // 'image' | 'svg' | 'emoji'
+      headerLogo: 'assets/brand/logo-riper.png',
+      splashLogo: 'assets/brand/logo-riper.png',
+      pwaIcon192: 'assets/icon-192.svg',
+      pwaIcon512: 'assets/icon-512.svg',
+      emojiShop: '🧺',
+      emojiDefault: '🌱'
     },
-
-    freshmarket: {
-      id: 'freshmarket',
-      name: 'FreshMarket',
-      shortName: 'FreshMarket',
-      adminTitle: 'FreshMarket Admin',
-      orderPrefix: 'FM',
-      adminEmailPlaceholder: 'admin@freshmarket.com',
-      logos: {
-        mode: 'image',
-        headerLogo: 'assets/brand/logo-freshmarket.png',
-        splashLogo: 'assets/brand/logo-freshmarket.png',
-        pwaIcon192: 'assets/icon-192.svg',
-        pwaIcon512: 'assets/icon-512.svg',
-        emojiShop: '🥬',
-        emojiDefault: '🌱'
-      },
-      slogans: { ...BASE_SLOGANS },
-      taglines: { ...BASE_TAGLINES },
-      keywords: { ...BASE_KEYWORDS },
-      aspects: { ...BASE_ASPECTS }
-    },
-
-    riper: {
-      id: 'riper',
-      name: 'Riper',
-      shortName: 'Riper',
-      adminTitle: 'Riper Admin',
-      orderPrefix: 'RP',
-      adminEmailPlaceholder: 'admin@riper.app',
-      logos: {
-        mode: 'image',
-        headerLogo: 'assets/brand/logo-riper.png',
-        splashLogo: 'assets/brand/logo-riper.png',
-        pwaIcon192: 'assets/icon-192.svg',
-        pwaIcon512: 'assets/icon-512.svg',
-        emojiShop: '🧺',
-        emojiDefault: '🌱'
-      },
-      slogans: { ...BASE_SLOGANS },
-      taglines: { ...BASE_TAGLINES },
-      keywords: { ...BASE_KEYWORDS },
-      aspects: { ...BASE_ASPECTS }
-    }
+    slogans: { ...BASE_SLOGANS },
+    taglines: { ...BASE_TAGLINES },
+    keywords: { ...BASE_KEYWORDS },
+    aspects: { ...BASE_ASPECTS }
   };
 
   class BrandManager {
     constructor() {
-      let savedPresetId = DEFAULT_BRAND_ID;
       let savedLogoMode = null;
       try {
-        const fromStorage = localStorage.getItem(STORAGE_PRESET_KEY);
-        if (fromStorage && BRAND_PRESETS[fromStorage]) {
-          savedPresetId = fromStorage;
-        }
+        localStorage.removeItem(LEGACY_PRESET_KEY);
         const modeFromStorage = localStorage.getItem(STORAGE_LOGO_MODE_KEY);
         if (modeFromStorage && ['image', 'svg', 'emoji'].includes(modeFromStorage)) {
           savedLogoMode = modeFromStorage;
         }
       } catch (_) { }
 
-      this.presets = BRAND_PRESETS;
-      this.activeId = savedPresetId;
-      this.current = this._clonePreset(BRAND_PRESETS[this.activeId] || BRAND_PRESETS[DEFAULT_BRAND_ID]);
+      this.activeId = BRAND_CONFIG.id;
+      this.current = JSON.parse(JSON.stringify(BRAND_CONFIG));
       if (savedLogoMode) {
         this.current.logos.mode = savedLogoMode;
       }
-    }
-
-    _clonePreset(preset) {
-      return JSON.parse(JSON.stringify(preset));
     }
 
     getLang() {
@@ -179,10 +118,10 @@
     }
 
     /**
-     * Returns formatted console log prefix, e.g. "[FreshBuddy]" or "[FreshBuddy Shop]"
+     * Returns formatted console log prefix, e.g. "[Riper]" or "[Riper Shop]"
      */
     getLogPrefix(scope = '') {
-      const name = this.current?.name || 'FreshBuddy';
+      const name = this.current?.name || 'Riper';
       return scope ? `[${name} ${scope}]` : `[${name}]`;
     }
 
@@ -216,7 +155,7 @@
 
       if (mode === 'emoji') {
         const emoji = role === 'shop' || role === 'splash-shop'
-          ? (logos.emojiShop || '🥬')
+          ? (logos.emojiShop || '🧺')
           : (logos.emojiDefault || '🌱');
         el.innerHTML = `<span class="brand-logo-emoji">${emoji}</span>`;
         return;
@@ -297,31 +236,6 @@
     }
 
     /**
-     * Switch active brand preset on the fly and re-render DOM + i18n
-     */
-    setBrandPreset(presetId, persist = true) {
-      if (!this.presets[presetId]) {
-        console.warn(`[Brand] Unknown preset "${presetId}"`);
-        return false;
-      }
-      const prevMode = this.current?.logos?.mode;
-      this.activeId = presetId;
-      this.current = this._clonePreset(this.presets[presetId]);
-      if (prevMode) {
-        this.current.logos.mode = prevMode;
-      }
-
-      if (persist) {
-        try {
-          localStorage.setItem(STORAGE_PRESET_KEY, presetId);
-        } catch (_) { }
-      }
-
-      this.refreshAll();
-      return true;
-    }
-
-    /**
      * Switch logo rendering mode ('image' | 'svg' | 'emoji')
      */
     setLogoMode(mode, persist = true) {
@@ -385,4 +299,3 @@
     });
   }
 })();
-
