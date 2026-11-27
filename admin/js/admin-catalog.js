@@ -7,7 +7,7 @@
 // 1. CONSTANTS & INITIAL DATA
 // ==========================================================================
 
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.58';
 window.APP_VERSION = APP_VERSION;
 
 function getBrandLogPrefix(scope = '') {

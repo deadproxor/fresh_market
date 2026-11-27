@@ -3,7 +3,7 @@
  * Architecture: Vanilla JS + Supabase Client + PWA Ready
  */
 
-const SHOP_VERSION = '1.5.0';
+const SHOP_VERSION = '1.5.58';
 window.SHOP_VERSION = SHOP_VERSION;
 
 const FAB_ICONS = {

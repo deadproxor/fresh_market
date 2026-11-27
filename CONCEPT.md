@@ -87,7 +87,7 @@ FreshMarket/
 │   └── utils.js           # Общие утилиты
 │
 ├── assets/brand/
-│   └── logo-default.png   # Оптимизированный логотип бренда (160×160 px)
+│   └── logo-riper.png     # Оптимизированный логотип бренда Riper (160×160 px)
 │
 ├── data/
 │   ├── products_dictionary.json # Справочник камбоджийских продуктов
