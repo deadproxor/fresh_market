@@ -53,7 +53,7 @@ function generateOrderNumber() {
   const marketDate = new Date(utcMs + (7 * 3600000));
   const dateStr = marketDate.toISOString().slice(2, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(100 + Math.random() * 900);
-  const prefix = window.FreshMarketBrand?.current?.orderPrefix || 'FB';
+  const prefix = window.FreshMarketBrand?.current?.orderPrefix || 'RP';
   return `${prefix}-${dateStr}-${randomSuffix}`;
 }
 
@@ -132,7 +132,7 @@ class ShopApp {
   get logPrefix() {
     return window.FreshMarketBrand && typeof window.FreshMarketBrand.getLogPrefix === 'function'
       ? window.FreshMarketBrand.getLogPrefix('Shop')
-      : '[FreshBuddy Shop]';
+      : '[Riper Shop]';
   }
 
   initCachedUser() {
@@ -957,7 +957,7 @@ class ShopApp {
     const { eventType, new: newRecord } = payload;
     if (eventType === 'UPDATE' && newRecord) {
       const orderId = newRecord.id;
-      const orderNum = newRecord.order_number || 'FM-ЗАКАЗ';
+      const orderNum = newRecord.order_number || 'RP-ЗАКАЗ';
       const newStatus = newRecord.status || 'pending';
 
       if (Array.isArray(this.cachedUserOrders)) {
@@ -4655,7 +4655,7 @@ class ShopApp {
 
     const t = (key, fallback) => (window.i18n ? window.i18n.t(key) : fallback);
 
-    const brandName = window.FreshMarketBrand?.current?.name || 'FreshBuddy';
+    const brandName = window.FreshMarketBrand?.current?.name || 'Riper';
     const defaultCustomer = t('common.customer', 'Покупатель');
     const contactsTitle = t('profile.contacts_title', 'Контакты и доставка');
     const langTitle = t('profile.lang_title', 'Язык интерфейса');
@@ -5715,7 +5715,7 @@ class ShopApp {
 
     window.addEventListener('appinstalled', () => {
       this.deferredInstallPrompt = null;
-      const brandName = window.FreshMarketBrand?.current?.name || 'FreshBuddy';
+      const brandName = window.FreshMarketBrand?.current?.name || 'Riper';
       this.showToast(window.i18n ? window.i18n.t('toasts.app_installed') : `🎉 Приложение ${brandName} успешно установлено!`);
     });
   }

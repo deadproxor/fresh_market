@@ -459,7 +459,7 @@ class AdminAuth {
       }
 
     listEl.innerHTML = filteredOrders.map(order => {
-        const safeNum = this.escapeHtml(order.order_number || 'FM-ЗАКАЗ');
+        const safeNum = this.escapeHtml(order.order_number || 'RP-ЗАКАЗ');
         const rawStatus = order.status || 'pending';
         const safeStatus = this.escapeHtml(rawStatus);
         const statusLabel = this.escapeHtml(this.formatStatus(rawStatus));
@@ -1068,7 +1068,7 @@ class AdminAuth {
     if (!modal || !itemsList) return;
 
     const khrRate = (window.app && Number(window.app.khrRate)) || 4000;
-    const orderNum = order.order_number || 'FM-ЗАКАЗ';
+    const orderNum = order.order_number || 'RP-ЗАКАЗ';
     if (titleEl) titleEl.textContent = `Сборка ${orderNum}`;
     if (statusBadge) statusBadge.textContent = this.formatStatus(order.status);
     if (rateBadge) rateBadge.textContent = `Курс: $1 = ${Math.round(khrRate).toLocaleString('en-US')} ៛`;
@@ -1633,7 +1633,7 @@ class AdminAuth {
     const currentView = window.app?.currentMainView || 'viewCatalog';
 
     if (eventType === 'INSERT') {
-      const orderNum = newRecord?.order_number || 'FM-ЗАКАЗ';
+      const orderNum = newRecord?.order_number || 'RP-ЗАКАЗ';
       const custName = newRecord?.customer_name || 'Клиент';
 
       this.playOrderNotificationSound();

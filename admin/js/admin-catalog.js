@@ -13,7 +13,7 @@ window.APP_VERSION = APP_VERSION;
 function getBrandLogPrefix(scope = '') {
   return window.FreshMarketBrand && typeof window.FreshMarketBrand.getLogPrefix === 'function'
     ? window.FreshMarketBrand.getLogPrefix(scope)
-    : (scope ? `[FreshBuddy ${scope}]` : '[FreshBuddy]');
+    : (scope ? `[Riper ${scope}]` : '[Riper]');
 }
 
 // Shared product categories from categories.js (excluding 'all' used only for storefront filtering)
@@ -2415,7 +2415,7 @@ class App {
 
   collectSettingsPayload() {
     return {
-      app: window.FreshMarketBrand?.current?.name || 'FreshBuddy',
+      app: window.FreshMarketBrand?.current?.name || 'Riper',
       version: APP_VERSION,
       exportedAt: new Date().toISOString(),
       settings: {
