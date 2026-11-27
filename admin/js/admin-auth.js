@@ -488,8 +488,8 @@ class AdminAuth {
               const rawSavedTitle = (it.product_title && it.product_title !== 'Товар') ? it.product_title : '';
               const rawSavedRu = (it.product_name_ru && it.product_name_ru !== 'Товар') ? it.product_name_ru : '';
               const resolvedTitle = rawSavedRu
-                || (linkedProd && linkedProd.name_ru)
                 || rawSavedTitle
+                || (linkedProd && linkedProd.name_ru)
                 || it.product_name_en
                 || (linkedProd && linkedProd.name_en)
                 || 'Товар';
@@ -540,11 +540,14 @@ class AdminAuth {
         ` : '';
 
         const dbActualMarket = Number(order.actual_market_total || 0);
+        const hasAssemblyStatuses = items.some(it => it.status === 'picked' || it.status === 'missing');
         const effectiveUnknown = dbActualMarket > 0 ? 0 : unknownCount;
-        const dbMarketTotal = dbActualMarket > 0 ? dbActualMarket : Number(order.market_items_total || order.estimated_total || 0);
+        const dbMarketTotal = dbActualMarket > 0
+          ? dbActualMarket
+          : (hasAssemblyStatuses ? calcItemsUsd : Number(order.market_items_total || order.estimated_total || 0));
         const marketTotalUsd = (dbMarketTotal > 0 && dbMarketTotal < 500) ? dbMarketTotal : Number(calcItemsUsd.toFixed(2));
         const servicePercent = typeof order.service_percent === 'number' ? order.service_percent : 10;
-        const serviceFeeUsd = Number(order.service_fee || 0) > 0 ? Number(order.service_fee) : Number((marketTotalUsd * (servicePercent / 100.0)).toFixed(2));
+        const serviceFeeUsd = (dbActualMarket > 0 && Number(order.service_fee || 0) > 0) ? Number(order.service_fee) : Number((marketTotalUsd * (servicePercent / 100.0)).toFixed(2));
         const deliveryFeeUsd = Number(order.delivery_fee || 1.00);
         const grandTotalUsd = Number((marketTotalUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
 

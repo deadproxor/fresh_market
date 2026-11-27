@@ -973,8 +973,14 @@ class ShopApp {
           } catch (_) {}
 
           if (oldStatus !== newStatus) {
-            const statusKey = newStatus === 'new' ? 'status_pending' : `status_${newStatus}`;
-            const statusLabel = (window.i18n ? window.i18n.t(`orders.${statusKey}`) : '') || newStatus;
+            const statusKeyMap = {
+              new: 'status_pending',
+              shopping: 'status_purchasing',
+              needs_confirmation: 'status_clarify'
+            };
+            const statusKey = statusKeyMap[newStatus] || `status_${newStatus}`;
+            const rawTranslation = window.i18n ? window.i18n.t(`orders.${statusKey}`) : '';
+            const statusLabel = (rawTranslation && rawTranslation !== `orders.${statusKey}`) ? rawTranslation : newStatus;
             const toastText = window.i18n
               ? `${orderNum}: ${statusLabel}`
               : `Заказ ${orderNum}: ${statusLabel}`;
@@ -984,12 +990,13 @@ class ShopApp {
           if (this.currentView === 'orders') {
             this.renderOrdersList();
           }
+          this.loadOrders(true);
           return;
         }
       }
 
       if (this.currentView === 'orders') {
-        this.loadOrders();
+        this.loadOrders(true);
       }
     } else if (eventType === 'INSERT') {
       if (this.currentView === 'orders') {
@@ -4396,22 +4403,43 @@ class ShopApp {
             <div class="order-card-items">
               ${items.map((item, idx) => {
                 const linkedProd = item.products || (this.products || []).find((p) => p.id === item.product_id) || null;
-                const rawItemTitle = (item.product_title && item.product_title !== 'Товар') ? item.product_title : '';
-                const itemTitle = (linkedProd ? this.getLocalizedProductName(linkedProd) : '')
+                const rawItemTitle = (item.product_title && item.product_title !== 'Товар') ? String(item.product_title).trim() : '';
+                const rawSavedRu = (item.product_name_ru && item.product_name_ru !== 'Товар') ? String(item.product_name_ru).trim() : '';
+                const savedCustomTitle = rawSavedRu || rawItemTitle;
+                const matchesLinkedProd = linkedProd && savedCustomTitle && [
+                  linkedProd.name_ru,
+                  linkedProd.name_en,
+                  linkedProd.name_ua,
+                  linkedProd.name_fr,
+                  linkedProd.name_kh
+                ].some((n) => n && String(n).trim().toLowerCase() === savedCustomTitle.toLowerCase());
+                const isRenamedByBuyer = Boolean(savedCustomTitle && (!linkedProd || !matchesLinkedProd));
+                const replacementCatalogProd = isRenamedByBuyer
+                  ? (this.products || []).find((p) => [p.name_ru, p.name_en, p.name_ua, p.name_fr, p.name_kh].some((n) => n && String(n).trim().toLowerCase() === savedCustomTitle.toLowerCase()))
+                  : null;
+                const itemTitle = (isRenamedByBuyer
+                  ? (replacementCatalogProd ? this.getLocalizedProductName(replacementCatalogProd) : savedCustomTitle)
+                  : (linkedProd ? this.getLocalizedProductName(linkedProd) : ''))
                   || this.getLocalizedProductName(item)
-                  || rawItemTitle
+                  || savedCustomTitle
                   || (window.i18n ? window.i18n.t('common.product') : 'Товар');
                 const itemQty = item.quantity || item.requested_qty || 1;
                 const itemUnit = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
                   ? window.FreshMarketUnits.getUnitLabel(item.unit || 'kg')
                   : (item.unit || 'кг');
+                const isMissing = item.status === 'missing';
+                const isPicked = item.status === 'picked';
+                const statusIcon = isPicked ? '✅ ' : isMissing ? '❌ ' : '';
+                const nameStyle = isMissing ? ' style="text-decoration: line-through; color: var(--text-muted);"' : '';
                 const itemUsd = orderFin.itemPricesUsd[idx] || 0;
-                const priceTag = itemUsd > 0
-                  ? `<span style="font-weight: 600; color: var(--text-primary); margin-left: 8px; white-space: nowrap;">$${itemUsd.toFixed(2)}</span>`
-                  : `<span class="order-item-price-unknown">${this.escapeHtml(this.t('cart.by_receipt_short', 'по чеку'))}</span>`;
+                const priceTag = isMissing
+                  ? `<span class="order-item-price-missing" style="color: var(--accent-rose, #ef4444); font-size: 12px; font-weight: 600; margin-left: 8px; white-space: nowrap;">${this.escapeHtml(this.t('product.out_of_stock', 'нет в наличии'))}</span>`
+                  : itemUsd > 0
+                    ? `<span style="font-weight: 600; color: var(--text-primary); margin-left: 8px; white-space: nowrap;">$${itemUsd.toFixed(2)}</span>`
+                    : `<span class="order-item-price-unknown">${this.escapeHtml(this.t('cart.by_receipt_short', 'по чеку'))}</span>`;
                 return `
                 <div class="order-item-mini">
-                  <span class="order-item-mini-name">${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
+                  <span class="order-item-mini-name">${statusIcon}<span${nameStyle}>${this.escapeHtml(itemTitle)} (${this.escapeHtml(itemQty)} ${this.escapeHtml(itemUnit)})</span>${item.customer_comment ? ` <small style="color: var(--text-muted);">[💬 ${this.escapeHtml(item.customer_comment)}]</small>` : ''}</span>
                   <span style="display: inline-flex; align-items: center; gap: 6px;">
                     ${item.receipt_url ? `
                       <a href="${this.sanitizeUrl(item.receipt_url)}" target="_blank" rel="noopener noreferrer" class="receipt-link" title="${receiptTitleText}">${receiptBtnText}</a>
@@ -4535,6 +4563,9 @@ class ShopApp {
     let unknownCount = 0;
 
     const itemPricesUsd = items.map((item) => {
+      if (item.status === 'missing') {
+        return 0;
+      }
       const actualCost = Number(item.actual_cost || 0);
       if (actualCost > 0) {
         const usd = actualCost >= 500 ? Number((actualCost / rate).toFixed(2)) : Number(actualCost.toFixed(2));
@@ -4573,13 +4604,14 @@ class ShopApp {
 
     const dbActualMarket = Number(order?.actual_market_total || 0);
     const dbMarketItems = Number(order?.market_items_total || order?.estimated_total || 0);
+    const hasAssemblyStatuses = items.some((it) => it.status === 'picked' || it.status === 'missing');
     const marketTotalUsd = dbActualMarket > 0
       ? (dbActualMarket >= 500 ? Number((dbActualMarket / rate).toFixed(2)) : dbActualMarket)
-      : (dbMarketItems > 0 && dbMarketItems < 500 ? dbMarketItems : calcItemsUsd);
+      : (hasAssemblyStatuses ? calcItemsUsd : (dbMarketItems > 0 && dbMarketItems < 500 ? dbMarketItems : calcItemsUsd));
 
     const dbServiceFee = Number(order?.service_fee || 0);
     const orderPercent = typeof order?.service_percent === 'number' ? order.service_percent : (typeof this.serviceFeePercent === 'number' ? this.serviceFeePercent : 10);
-    const serviceFeeUsd = dbServiceFee > 0 ? dbServiceFee : Number((marketTotalUsd * (orderPercent / 100.0)).toFixed(2));
+    const serviceFeeUsd = (dbActualMarket > 0 && dbServiceFee > 0) ? dbServiceFee : Number((marketTotalUsd * (orderPercent / 100.0)).toFixed(2));
     const deliveryFeeUsd = Number(order?.delivery_fee || 1.00);
     const grandTotalUsd = Number((marketTotalUsd + serviceFeeUsd + deliveryFeeUsd).toFixed(2));
 
