@@ -548,14 +548,15 @@
 /* Customer Meta Bar */
 .assembly-meta-card {
   background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   font-size: 12.5px;
-  color: var(--text-secondary);
+  color: #475569;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .assembly-meta-top {
@@ -567,9 +568,40 @@
 }
 
 .assembly-customer-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.assembly-meta-details {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.assembly-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.assembly-meta-sep {
+  color: #cbd5e1;
+}
+
+.assembly-meta-note {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 12px;
 }
 
 .assembly-contact-links {
@@ -585,9 +617,9 @@
   gap: 4px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
-  background: var(--bg-card-subtle);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -596,13 +628,16 @@
 
 .assembly-contact-pill:hover {
   border-color: var(--accent-emerald);
+  background: #f0fdf4;
 }
 
 /* Progress & Filter Tabs Bar */
 .assembly-progress-wrap {
-  background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
@@ -610,7 +645,7 @@
   position: sticky;
   top: 0;
   z-index: 6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .assembly-progress-top {
@@ -620,26 +655,26 @@
   gap: 8px;
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #334155;
 }
 
 .assembly-progress-pct {
   font-size: 12.5px;
   font-weight: 800;
-  color: var(--accent-emerald);
+  color: #059669;
 }
 
 .assembly-progress-track {
   width: 100%;
-  height: 7px;
+  height: 6px;
   border-radius: var(--radius-full);
-  background: var(--bg-card-subtle, #e5e7eb);
+  background: #e2e8f0;
   overflow: hidden;
 }
 
 .assembly-progress-fill {
   height: 100%;
-  background: var(--accent-emerald-gradient, linear-gradient(135deg, #10b981, #059669));
+  background: linear-gradient(90deg, #10b981, #059669);
   border-radius: var(--radius-full);
   transition: width 0.22s ease;
 }
@@ -658,19 +693,19 @@
 }
 
 .assembly-filter-tab {
-  min-height: 36px;
-  padding: 5px 11px;
+  min-height: 34px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-card-subtle, #f2f4f7);
-  color: var(--text-secondary);
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
   font-size: 12px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   white-space: nowrap;
   transition: all 0.15s ease;
 }
@@ -683,19 +718,20 @@
   height: 19px;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.07);
+  background: rgba(15, 23, 42, 0.07);
+  color: #334155;
   font-size: 11px;
   font-weight: 800;
 }
 
 .assembly-filter-tab.active {
-  background: var(--text-primary, #111827);
+  background: #0f172a;
   color: #ffffff;
-  border-color: var(--text-primary, #111827);
+  border-color: #0f172a;
 }
 
 .assembly-filter-tab.active .tab-count {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
 }
 
@@ -710,8 +746,8 @@
 }
 
 .assembly-filter-tab.tab-missing.active {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: #e11d48;
+  border-color: #e11d48;
 }
 
 /* ==========================================================================
@@ -728,12 +764,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px 12px 16px;
+  padding: 12px 14px 12px 15px;
   border-radius: 12px;
   background: #ffffff;
-  border: 1.5px solid rgba(245, 158, 11, 0.48);
-  border-left: 6px solid #f59e0b;
-  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.08);
+  border: 1.5px solid #e2e8f0;
+  border-left: 5px solid #f59e0b;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
   transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
@@ -741,48 +777,48 @@
   display: none !important;
 }
 
-/* STATE 1: UNPICKED (is-pending) — High contrast white + Amber indicator */
+/* STATE 1: UNPICKED (is-pending) — Clean neutral white card + warm amber indicator */
 .assembly-item-card.is-pending {
   background: #ffffff;
-  border-color: rgba(245, 158, 11, 0.52);
-  border-left: 6px solid #f59e0b;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.09);
+  border-color: #e2e8f0;
+  border-left: 5px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
-/* STATE 2: PICKED (is-picked) — Distinct Emerald Tint + Settled Contrast */
+/* STATE 2: PICKED (is-picked) — Calm Emerald Surface */
 .assembly-item-card.is-picked {
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.14) 0%, rgba(16, 185, 129, 0.06) 100%), #f2fbf7;
-  border-color: rgba(16, 185, 129, 0.55);
-  border-left: 6px solid #10b981;
+  background: #f0fdf4;
+  border-color: #86efac;
+  border-left: 5px solid #10b981;
   box-shadow: none;
 }
 
-/* STATE 3: MISSING (is-missing) — Rose Tint + Dashed Border + Strikethrough */
+/* STATE 3: MISSING (is-missing) — Soft Muted Rose + Dashed Border */
 .assembly-item-card.is-missing {
-  background: linear-gradient(90deg, rgba(239, 68, 68, 0.09) 0%, rgba(239, 68, 68, 0.03) 100%), #fdf5f5;
-  border: 1.5px dashed rgba(239, 68, 68, 0.45);
-  border-left: 6px solid #ef4444;
+  background: #fff1f2;
+  border: 1.5px dashed #fda4af;
+  border-left: 5px solid #f43f5e;
   box-shadow: none;
-  opacity: 0.78;
+  opacity: 0.85;
 }
 
-/* Left Lead Zone: 44x44 Quick Check + Thumb + Product Details */
+/* Left Lead Zone: 42x42 Quick Check + Thumb + Product Details */
 .assembly-row-lead {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 11px;
   min-width: 0;
   flex: 1;
 }
 
 .assembly-quick-check {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
   border-radius: 10px;
-  border: 2px solid #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
-  color: #b45309;
+  border: 2px solid #cbd5e1;
+  background: #f8fafc;
+  color: transparent;
   font-size: 18px;
   font-weight: 800;
   cursor: pointer;
@@ -794,6 +830,11 @@
   user-select: none;
 }
 
+.assembly-quick-check:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
 .assembly-quick-check:active {
   transform: scale(0.94);
 }
@@ -802,27 +843,27 @@
   background: #10b981;
   border-color: #059669;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.28);
 }
 
 .assembly-item-card.is-missing .assembly-quick-check {
-  background: rgba(239, 68, 68, 0.14);
-  border-color: #ef4444;
-  color: #b91c1c;
+  background: #ffe4e6;
+  border-color: #fb7185;
+  color: #e11d48;
 }
 
 .assembly-item-thumb {
-  width: 46px;
-  height: 46px;
-  border-radius: 8px;
-  background: var(--bg-card-subtle);
-  border: 1px solid var(--border-subtle);
+  width: 44px;
+  height: 44px;
+  border-radius: 9px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 20px;
 }
 
 .assembly-item-thumb img {
@@ -836,92 +877,64 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .assembly-title-line {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* Status Pill inside each row for instant visual recognition */
-.assembly-state-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-}
-
-.assembly-item-card.is-pending .assembly-state-pill {
-  background: rgba(245, 158, 11, 0.16);
-  color: #b45309;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-}
-
-.assembly-item-card.is-picked .assembly-state-pill {
-  background: rgba(16, 185, 129, 0.2);
-  color: #047857;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-}
-
-.assembly-item-card.is-missing .assembly-state-pill {
-  background: rgba(239, 68, 68, 0.15);
-  color: #b91c1c;
-  border: 1px solid rgba(239, 68, 68, 0.35);
-}
-
-.assembly-item-kh {
-  font-size: 14.5px;
-  font-weight: 700;
-  color: var(--text-khmer, #1a6896);
-  line-height: 1.2;
+  gap: 6px 10px;
 }
 
 .assembly-title-display {
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 800;
-  color: var(--text-primary, #111827);
+  color: #0f172a;
   line-height: 1.25;
   word-break: break-word;
 }
 
 .assembly-item-card.is-picked .assembly-title-display {
-  color: #065f46;
+  color: #064e3b;
 }
 
 .assembly-item-card.is-missing .assembly-title-display {
   text-decoration: line-through;
-  color: var(--text-muted, #6b7280);
+  color: #64748b;
+}
+
+.assembly-item-kh {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0369a1;
+  line-height: 1.2;
+}
+
+.assembly-item-card.is-missing .assembly-item-kh {
+  color: #94a3b8;
 }
 
 .assembly-btn-replace-toggle {
   padding: 2px 8px;
   border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--text-secondary);
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
   font-size: 11px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
   transition: all 0.15s ease;
 }
 
 .assembly-btn-replace-toggle:hover,
 .assembly-btn-replace-toggle.active {
-  border-color: var(--accent-emerald);
-  color: var(--accent-emerald);
-  background: #ffffff;
+  border-color: #10b981;
+  color: #047857;
+  background: #ecfdf5;
 }
 
 .assembly-title-edit-wrap {
@@ -946,10 +959,10 @@
   padding: 5px 10px;
   font-size: 13.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #0f172a;
   background: #ffffff;
-  border: 1.5px solid var(--accent-emerald);
-  border-radius: 7px;
+  border: 1.5px solid #10b981;
+  border-radius: 8px;
   font-family: inherit;
 }
 
@@ -963,8 +976,8 @@
   width: 36px;
   height: 36px;
   min-width: 36px;
-  border-radius: 7px;
-  border: 1.5px solid var(--border-subtle);
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
   font-size: 14px;
   font-weight: 800;
@@ -986,82 +999,107 @@
 }
 
 .assembly-title-cancel-btn {
-  color: var(--text-secondary);
+  color: #475569;
 }
 
 .assembly-title-cancel-btn:hover {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.assembly-item-submeta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.assembly-unit-price-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #065f46;
-  border: 1px solid rgba(16, 185, 129, 0.28);
-  font-weight: 700;
-}
-
-.assembly-unit-price-badge.is-by-receipt {
-  background: rgba(245, 158, 11, 0.12);
-  color: #92400e;
-  border-color: rgba(245, 158, 11, 0.28);
+  border-color: #e11d48;
+  color: #e11d48;
 }
 
 .assembly-req-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(17, 24, 39, 0.06);
-  color: var(--text-primary);
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.assembly-item-card.is-picked .assembly-req-badge {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.assembly-unit-price-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.assembly-item-card.is-picked .assembly-unit-price-badge {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.assembly-unit-price-badge.is-by-receipt {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
 }
 
 .assembly-est-badge {
-  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   font-weight: 600;
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
 .assembly-item-wish {
+  display: inline-flex;
+  align-items: center;
   font-size: 11.5px;
   font-weight: 600;
   color: #92400e;
-  background: rgba(245, 158, 11, 0.14);
+  background: #fffbeb;
+  border: 1px solid #fde68a;
   border-radius: 6px;
-  padding: 3px 8px;
-  align-self: flex-start;
+  padding: 2px 8px;
 }
 
-/* Right Controls Zone: Qty + KHR Input + Status Buttons */
+/* Second Row Controls Zone: Qty + KHR Input + Status Buttons in a single row */
 .assembly-row-controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  align-items: flex-end;
+  gap: 10px 12px;
+  width: 100%;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.assembly-item-card.is-picked .assembly-row-controls {
+  border-top-color: rgba(16, 185, 129, 0.18);
+}
+
+.assembly-item-card.is-missing .assembly-row-controls {
+  border-top-color: rgba(244, 63, 94, 0.15);
 }
 
 .assembly-ctrl-qty {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 152px;
+  min-width: 148px;
 }
 
 .assembly-ctrl-khr {
@@ -1069,7 +1107,7 @@
   flex-direction: column;
   gap: 4px;
   flex: 1;
-  min-width: 180px;
+  min-width: 175px;
 }
 
 .assembly-field-label-row {
@@ -1082,7 +1120,7 @@
 .assembly-field-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: #64748b;
 }
 
 .assembly-qty-group {
@@ -1092,38 +1130,40 @@
 }
 
 .assembly-qty-input {
-  width: 68px;
+  width: 66px;
   height: 40px;
   padding: 0 8px;
   border-radius: 8px;
-  border: 1.5px solid var(--border-subtle);
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: var(--text-primary);
+  color: #0f172a;
   font-size: 14px;
   font-weight: 800;
   font-family: inherit;
   text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .assembly-unit-select {
-  min-width: 82px;
+  min-width: 80px;
   height: 40px;
-  padding: 0 28px 0 11px;
+  padding: 0 26px 0 10px;
   border-radius: 8px;
-  border: 1.5px solid var(--border-subtle);
+  border: 1.5px solid #cbd5e1;
   background-color: #ffffff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6e73' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 9px center;
+  background-position: right 8px center;
   background-size: 12px 12px;
   -webkit-appearance: none;
   appearance: none;
-  color: var(--text-primary);
+  color: #0f172a;
   font-size: 13.5px;
   font-weight: 700;
   font-family: inherit;
   line-height: 37px;
   cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .assembly-khr-wrap {
@@ -1137,46 +1177,76 @@
   left: 10px;
   font-size: 14px;
   font-weight: 800;
-  color: var(--text-muted);
+  color: #64748b;
   pointer-events: none;
 }
 
 .assembly-khr-input {
   width: 100%;
   height: 40px;
-  padding: 0 64px 0 26px;
+  padding: 0 66px 0 26px;
   border-radius: 8px;
-  border: 1.5px solid rgba(245, 158, 11, 0.55);
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: var(--text-primary);
+  color: #0f172a;
   font-size: 14.5px;
   font-weight: 800;
   font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.assembly-khr-input::placeholder {
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .assembly-item-card.is-picked .assembly-khr-input {
-  border-color: rgba(16, 185, 129, 0.65);
+  border-color: #34d399;
   background: #ffffff;
+  color: #065f46;
+}
+
+.assembly-item-card.is-missing .assembly-qty-input,
+.assembly-item-card.is-missing .assembly-unit-select,
+.assembly-item-card.is-missing .assembly-khr-input {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: #e2e8f0;
+  color: #94a3b8;
 }
 
 .assembly-khr-usd-hint {
   position: absolute;
-  right: 8px;
-  font-size: 12px;
+  right: 7px;
+  font-size: 11.5px;
   font-weight: 800;
-  color: var(--accent-emerald);
-  background: rgba(16, 185, 129, 0.1);
   padding: 2px 6px;
   border-radius: 5px;
   pointer-events: none;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.assembly-khr-usd-hint.is-active {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.assembly-khr-usd-hint.is-estimate {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.assembly-khr-usd-hint.is-zero {
+  color: #94a3b8;
+  background: transparent;
 }
 
 .assembly-qty-input:focus,
 .assembly-unit-select:focus,
 .assembly-khr-input:focus {
   outline: none;
-  border-color: var(--accent-emerald);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 /* Explicit Status Action Buttons */
@@ -1190,12 +1260,12 @@
 .assembly-status-btn {
   flex: 1;
   min-height: 40px;
-  padding: 7px 10px;
+  padding: 7px 12px;
   border-radius: 8px;
-  border: 1.5px solid var(--border-subtle);
+  border: 1.5px solid #cbd5e1;
   background: #ffffff;
-  color: var(--text-secondary);
-  font-size: 12.5px;
+  color: #475569;
+  font-size: 13px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -1207,16 +1277,28 @@
   transition: all 0.15s ease;
 }
 
+.assembly-status-btn.btn-pick:hover {
+  border-color: #34d399;
+  color: #047857;
+  background: #f0fdf4;
+}
+
+.assembly-status-btn.btn-miss:hover {
+  border-color: #fda4af;
+  color: #be123c;
+  background: #fff1f2;
+}
+
 .assembly-status-btn.btn-pick.active {
   background: #10b981;
   border-color: #059669;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.22);
 }
 
 .assembly-status-btn.btn-miss.active {
-  background: #ef4444;
-  border-color: #dc2626;
+  background: #e11d48;
+  border-color: #be123c;
   color: #ffffff;
 }
 
@@ -1273,7 +1355,7 @@
   font-weight: 800;
 }
 
-/* Tablet & Wide Screen Layout: Strict Single-Column Horizontal Rows */
+/* Tablet & Wide Screen Layout: Strict 2-Row Card (Line 1: Title+Meta, Line 2: Controls+Buttons in 1 Row) */
 @media (min-width: 768px) {
   .order-assembly-header {
     padding-left: 28px;
@@ -1284,7 +1366,6 @@
     padding: 16px 28px 24px 28px;
   }
 
-  /* Keep strict 1-column list of rows, arrange row internals horizontally */
   .assembly-rows-list {
     display: flex;
     flex-direction: column;
@@ -1292,41 +1373,42 @@
   }
 
   .assembly-item-card {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
     padding: 12px 16px 12px 18px;
   }
 
   .assembly-row-controls {
     flex-wrap: nowrap;
-    align-items: center;
-    padding-top: 0;
-    border-top: none;
-    gap: 12px;
-    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 14px;
+    width: 100%;
   }
 
   .assembly-ctrl-qty {
-    min-width: 142px;
+    flex: 0 0 auto;
+    min-width: 152px;
   }
 
   .assembly-ctrl-khr {
-    width: 220px;
-    flex: 0 0 220px;
+    flex: 1 1 auto;
+    min-width: 200px;
   }
 
   .assembly-status-btns {
+    flex: 0 0 auto;
     width: auto;
-    flex-direction: column;
-    gap: 5px;
+    flex-direction: row;
+    gap: 8px;
   }
 
   .assembly-status-btn {
-    min-height: 34px;
-    padding: 5px 12px;
-    width: 132px;
+    flex: 0 0 auto;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 16px;
+    width: auto;
   }
 
   .assembly-sticky-footer {
@@ -1365,22 +1447,6 @@
   .assembly-sticky-footer {
     padding-left: 40px;
     padding-right: 40px;
-  }
-
-  .assembly-ctrl-khr {
-    width: 240px;
-    flex: 0 0 240px;
-  }
-
-  .assembly-status-btns {
-    flex-direction: row;
-    gap: 6px;
-  }
-
-  .assembly-status-btn {
-    min-height: 40px;
-    width: auto;
-    padding: 7px 12px;
   }
 }
 

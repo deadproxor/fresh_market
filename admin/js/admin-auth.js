@@ -18,7 +18,7 @@ class AdminAuth {
   constructor() {
     this.sb = null;
     this.currentUser = null;
-    
+
     // DOM Elements
     this.loginGate = document.getElementById('loginGate');
     this.adminMainApp = document.getElementById('adminMainApp');
@@ -458,7 +458,7 @@ class AdminAuth {
         return;
       }
 
-    listEl.innerHTML = filteredOrders.map(order => {
+      listEl.innerHTML = filteredOrders.map(order => {
         const safeNum = this.escapeHtml(order.order_number || 'RP-ЗАКАЗ');
         const rawStatus = order.status || 'pending';
         const safeStatus = this.escapeHtml(rawStatus);
@@ -484,58 +484,58 @@ class AdminAuth {
           <div class="order-admin-items" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 12px;">
             <div style="font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">🛍️ Состав заказа (${items.length}):</div>
             ${items.map(it => {
-              const linkedProd = it.products || (window.app && Array.isArray(window.app.products) ? window.app.products.find(p => p.id === it.product_id) : null);
-              const rawSavedTitle = (it.product_title && it.product_title !== 'Товар') ? it.product_title : '';
-              const rawSavedRu = (it.product_name_ru && it.product_name_ru !== 'Товар') ? it.product_name_ru : '';
-              const resolvedTitle = rawSavedRu
-                || rawSavedTitle
-                || (linkedProd && linkedProd.name_ru)
-                || it.product_name_en
-                || (linkedProd && linkedProd.name_en)
-                || 'Товар';
-              const resolvedKh = it.product_name_kh || (linkedProd && linkedProd.name_kh) || '';
-              const itTitle = this.escapeHtml(resolvedTitle);
-              const khBadge = resolvedKh ? ` <span class="khmer-font" style="color: var(--text-khmer, #1a6896); font-size: 11px;">(${this.escapeHtml(resolvedKh)})</span>` : '';
-              const rawQty = Number(it.quantity || it.requested_qty || 1) || 1;
-              const itQty = this.escapeHtml(rawQty);
-              const rawUnit = String(it.unit || 'kg').trim();
-              const unitDisplay = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
-                ? window.FreshMarketUnits.getUnitLabel(rawUnit)
-                : rawUnit;
-              const itUnit = this.escapeHtml(unitDisplay);
-              const itComment = it.customer_comment ? ` <i style="color: var(--text-muted); font-size: 11px;">[💬 ${this.escapeHtml(it.customer_comment)}]</i>` : '';
-              const estPrice = Number(it.actual_cost || it.estimated_price || 0);
-              let itemUsd = 0;
-              if (estPrice > 0 && estPrice < 500) {
-                itemUsd = Number(estPrice.toFixed(2));
-              } else if (estPrice >= 500) {
-                if (window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
-                  const calc = window.FreshMarketUnits.calculateCost({ price: estPrice, unit: (linkedProd && linkedProd.unit) || '1_kg' }, rawQty, rawUnit, khrRate);
-                  itemUsd = calc.hasPrice ? calc.usd : 0;
-                } else {
-                  const isGrams = /^(г|g|ក្រាម)$/i.test(rawUnit) || rawQty >= 50;
-                  const mult = isGrams ? (rawQty / 1000) : rawQty;
-                  itemUsd = Number(((estPrice * mult) / khrRate).toFixed(2));
-                }
-              } else if (linkedProd && Number(linkedProd.price) > 0 && window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
-                const calc = window.FreshMarketUnits.calculateCost(linkedProd, rawQty, rawUnit, khrRate);
-                itemUsd = calc.hasPrice ? calc.usd : 0;
-              }
-              if (it.status === 'missing') {
-                itemUsd = 0;
-              } else if (itemUsd > 0) {
-                calcItemsUsd += itemUsd;
-              } else {
-                unknownCount += 1;
-              }
-              const priceLabel = it.status === 'missing'
-                ? ` — <s style="color: var(--accent-rose, #ef4444);">нет в наличии</s>`
-                : itemUsd > 0
-                  ? ` — <b>$${itemUsd.toFixed(2)}</b>`
-                  : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
-              const statusDot = it.status === 'picked' ? '✅ ' : it.status === 'missing' ? '❌ ' : '• ';
-              return `<div style="padding: 2px 0;">${statusDot}<b>${itTitle}</b>${khBadge} (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
-            }).join('')}
+          const linkedProd = it.products || (window.app && Array.isArray(window.app.products) ? window.app.products.find(p => p.id === it.product_id) : null);
+          const rawSavedTitle = (it.product_title && it.product_title !== 'Товар') ? it.product_title : '';
+          const rawSavedRu = (it.product_name_ru && it.product_name_ru !== 'Товар') ? it.product_name_ru : '';
+          const resolvedTitle = rawSavedRu
+            || rawSavedTitle
+            || (linkedProd && linkedProd.name_ru)
+            || it.product_name_en
+            || (linkedProd && linkedProd.name_en)
+            || 'Товар';
+          const resolvedKh = it.product_name_kh || (linkedProd && linkedProd.name_kh) || '';
+          const itTitle = this.escapeHtml(resolvedTitle);
+          const khBadge = resolvedKh ? ` <span class="khmer-font" style="color: var(--text-khmer, #1a6896); font-size: 11px;">(${this.escapeHtml(resolvedKh)})</span>` : '';
+          const rawQty = Number(it.quantity || it.requested_qty || 1) || 1;
+          const itQty = this.escapeHtml(rawQty);
+          const rawUnit = String(it.unit || 'kg').trim();
+          const unitDisplay = (window.FreshMarketUnits && typeof window.FreshMarketUnits.getUnitLabel === 'function')
+            ? window.FreshMarketUnits.getUnitLabel(rawUnit)
+            : rawUnit;
+          const itUnit = this.escapeHtml(unitDisplay);
+          const itComment = it.customer_comment ? ` <i style="color: var(--text-muted); font-size: 11px;">[💬 ${this.escapeHtml(it.customer_comment)}]</i>` : '';
+          const estPrice = Number(it.actual_cost || it.estimated_price || 0);
+          let itemUsd = 0;
+          if (estPrice > 0 && estPrice < 500) {
+            itemUsd = Number(estPrice.toFixed(2));
+          } else if (estPrice >= 500) {
+            if (window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+              const calc = window.FreshMarketUnits.calculateCost({ price: estPrice, unit: (linkedProd && linkedProd.unit) || '1_kg' }, rawQty, rawUnit, khrRate);
+              itemUsd = calc.hasPrice ? calc.usd : 0;
+            } else {
+              const isGrams = /^(г|g|ក្រាម)$/i.test(rawUnit) || rawQty >= 50;
+              const mult = isGrams ? (rawQty / 1000) : rawQty;
+              itemUsd = Number(((estPrice * mult) / khrRate).toFixed(2));
+            }
+          } else if (linkedProd && Number(linkedProd.price) > 0 && window.FreshMarketUnits && typeof window.FreshMarketUnits.calculateCost === 'function') {
+            const calc = window.FreshMarketUnits.calculateCost(linkedProd, rawQty, rawUnit, khrRate);
+            itemUsd = calc.hasPrice ? calc.usd : 0;
+          }
+          if (it.status === 'missing') {
+            itemUsd = 0;
+          } else if (itemUsd > 0) {
+            calcItemsUsd += itemUsd;
+          } else {
+            unknownCount += 1;
+          }
+          const priceLabel = it.status === 'missing'
+            ? ` — <s style="color: var(--accent-rose, #ef4444);">нет в наличии</s>`
+            : itemUsd > 0
+              ? ` — <b>$${itemUsd.toFixed(2)}</b>`
+              : ` — <i style="color: var(--accent-amber, #f59e0b);">по чеку</i>`;
+          const statusDot = it.status === 'picked' ? '✅ ' : it.status === 'missing' ? '❌ ' : '• ';
+          return `<div style="padding: 2px 0;">${statusDot}<b>${itTitle}</b>${khBadge} (${itQty} ${itUnit})${priceLabel}${itComment}</div>`;
+        }).join('')}
           </div>
         ` : '';
 
@@ -733,20 +733,11 @@ class AdminAuth {
 
     const checkBtn = card.querySelector('[data-assembly-toggle-pick]');
     if (checkBtn) {
-      checkBtn.textContent = nextStatus === 'picked' ? '✓' : nextStatus === 'missing' ? '✕' : '○';
+      checkBtn.textContent = nextStatus === 'picked' ? '✓' : nextStatus === 'missing' ? '✕' : '';
       checkBtn.setAttribute(
         'aria-label',
         nextStatus === 'picked' ? 'Отмечено как купленное' : nextStatus === 'missing' ? 'Отмечено как отсутствующее' : 'Отметить как купленное'
       );
-    }
-
-    const statePill = card.querySelector('.assembly-state-pill');
-    if (statePill) {
-      statePill.textContent = nextStatus === 'picked'
-        ? '✅ Куплено'
-        : nextStatus === 'missing'
-          ? '❌ Нет в наличии'
-          : '⏳ Осталось купить';
     }
 
     card.querySelectorAll('[data-assembly-status]').forEach((b) => {
@@ -1078,15 +1069,21 @@ class AdminAuth {
     const safeZone = this.escapeHtml(this.formatZone(order.delivery_zone));
     const safePolicy = this.escapeHtml(this.formatReplacementPolicy(order.replacement_policy || order.replace_rule));
     const notes = order.customer_notes || order.customer_comment || '';
-    const notesHtml = notes ? `<div>💬 Пожелание к заказу: <b>${this.escapeHtml(notes)}</b></div>` : '';
+    const notesHtml = notes ? `<div class="assembly-meta-note">Пожелание к заказу: <b>${this.escapeHtml(notes)}</b></div>` : '';
 
     if (metaCard) {
       metaCard.innerHTML = `
         <div class="assembly-meta-top">
-          <span class="assembly-customer-name">👤 ${safeName}</span>
+          <span class="assembly-customer-name">${safeName}</span>
           <div class="assembly-contact-links">${this.buildCustomerContactLinks(order)}</div>
         </div>
-        <div>📍 <b>${safeZone}</b> • ${safeAddress} • 🔄 Замены: <b>${safePolicy}</b></div>
+        <div class="assembly-meta-details">
+          <span class="assembly-meta-chip"><b>${safeZone}</b></span>
+          <span class="assembly-meta-sep">•</span>
+          <span>${safeAddress}</span>
+          <span class="assembly-meta-sep">•</span>
+          <span>Замены: <b>${safePolicy}</b></span>
+        </div>
         ${notesHtml}
       `;
     }
@@ -1131,7 +1128,7 @@ class AdminAuth {
       // 1. Base Unit Price Badge (from catalog product or derived from estimated_price)
       const baseProdPrice = Number(linkedProd?.price || 0);
       const baseProdUnitRaw = (linkedProd && linkedProd.unit) || '1_kg';
-      let unitPriceBadgeHtml = '<span class="assembly-unit-price-badge is-by-receipt">🏷️ Цена: по чеку</span>';
+      let unitPriceBadgeHtml = '<span class="assembly-unit-price-badge is-by-receipt">Цена: по чеку</span>';
       if (baseProdPrice > 0) {
         const basePriceKey = (window.FreshMarketUnits && typeof window.FreshMarketUnits.normalizePriceUnitKey === 'function')
           ? window.FreshMarketUnits.normalizePriceUnitKey(baseProdUnitRaw)
@@ -1139,7 +1136,7 @@ class AdminAuth {
         const baseUnitLabel = window.FreshMarketUnits?.PRICE_UNIT_META?.[basePriceKey]?.label || baseProdUnitRaw || '1 кг';
         const unitPriceKhr = baseProdPrice < 50 ? Math.round(baseProdPrice * khrRate) : Math.round(baseProdPrice);
         const unitPriceUsd = (unitPriceKhr / khrRate).toFixed(2);
-        unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">🏷️ ${unitPriceKhr.toLocaleString('en-US')} ៛ / ${this.escapeHtml(baseUnitLabel)} ($${unitPriceUsd})</span>`;
+        unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">${unitPriceKhr.toLocaleString('en-US')} ៛ / ${this.escapeHtml(baseUnitLabel)} ($${unitPriceUsd})</span>`;
       }
 
       // 2. Estimated cost for current quantity
@@ -1156,7 +1153,7 @@ class AdminAuth {
         if (baseProdPrice <= 0 && reqQty > 0) {
           const derivedUnitUsd = estUsd / reqQty;
           const derivedUnitKhr = Math.round(derivedUnitUsd * khrRate);
-          unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">🏷️ ${derivedUnitKhr.toLocaleString('en-US')} ៛ / 1 ${this.escapeHtml(reqUnitLabel)} ($${derivedUnitUsd.toFixed(2)})</span>`;
+          unitPriceBadgeHtml = `<span class="assembly-unit-price-badge">${derivedUnitKhr.toLocaleString('en-US')} ៛ / 1 ${this.escapeHtml(reqUnitLabel)} ($${derivedUnitUsd.toFixed(2)})</span>`;
         }
       }
       const estKhr = estUsd > 0 ? Math.round(estUsd * khrRate) : 0;
@@ -1172,13 +1169,11 @@ class AdminAuth {
       }
 
       const stateClass = itemStatus === 'picked' ? 'is-picked' : itemStatus === 'missing' ? 'is-missing' : 'is-pending';
-      const stateBadgeText = itemStatus === 'picked'
-        ? '✅ Куплено'
-        : itemStatus === 'missing'
-          ? '❌ Нет в наличии'
-          : '⏳ Осталось купить';
-      const checkIcon = itemStatus === 'picked' ? '✓' : itemStatus === 'missing' ? '✕' : '○';
-      const initialUsd = initialKhr > 0 ? (initialKhr / khrRate).toFixed(2) : '0.00';
+      const checkIcon = itemStatus === 'picked' ? '✓' : itemStatus === 'missing' ? '✕' : '';
+      const hintKhr = itemStatus === 'picked' ? initialKhr : (itemStatus === 'pending' ? estKhr : 0);
+      const hintUsd = hintKhr > 0 ? (hintKhr / khrRate).toFixed(2) : '0.00';
+      const hintPrefix = itemStatus === 'picked' ? '≈' : (itemStatus === 'pending' && estKhr > 0 ? '~' : '');
+      const hintClass = itemStatus === 'picked' ? 'is-active' : (itemStatus === 'pending' && estKhr > 0 ? 'is-estimate' : 'is-zero');
 
       return `
         <div class="assembly-item-card ${stateClass}"
@@ -1195,14 +1190,15 @@ class AdminAuth {
             </div>
             <div class="assembly-item-info">
               <div class="assembly-title-line">
-                <span class="assembly-state-pill">${stateBadgeText}</span>
-                ${resolvedKh ? `<span class="assembly-item-kh khmer-font">${this.escapeHtml(resolvedKh)}</span>` : ''}
-              </div>
-              <div class="assembly-title-line">
                 <span class="assembly-title-display">${this.escapeHtml(resolvedTitle)}</span>
+                ${resolvedKh ? `<span class="assembly-item-kh khmer-font">${this.escapeHtml(resolvedKh)}</span>` : ''}
                 <button type="button" class="assembly-btn-replace-toggle" data-assembly-edit-title="1" title="Заменить позицию">
-                  ✏️ Замена
+                  Замена
                 </button>
+                <span class="assembly-req-badge">Заказано: ${this.escapeHtml(reqQty)} ${this.escapeHtml(reqUnitLabel)}</span>
+                ${unitPriceBadgeHtml}
+                ${resolvedForm ? `<span class="assembly-est-badge">${this.escapeHtml(resolvedForm)}</span>` : ''}
+                ${it.customer_comment ? `<span class="assembly-item-wish">Пожелание: ${this.escapeHtml(it.customer_comment)}</span>` : ''}
               </div>
               <div class="assembly-title-edit-wrap">
                 <div class="assembly-title-edit-row">
@@ -1214,12 +1210,6 @@ class AdminAuth {
                   <button type="button" class="assembly-title-cancel-btn" data-assembly-cancel-title="1" title="Отмена (Esc)">✕</button>
                 </div>
               </div>
-              <div class="assembly-item-submeta">
-                ${unitPriceBadgeHtml}
-                <span class="assembly-req-badge">Заказано: ${this.escapeHtml(reqQty)} ${this.escapeHtml(reqUnitLabel)}</span>
-                ${resolvedForm ? `<span class="assembly-est-badge">• ${this.escapeHtml(resolvedForm)}</span>` : ''}
-              </div>
-              ${it.customer_comment ? `<div class="assembly-item-wish">💬 ${this.escapeHtml(it.customer_comment)}</div>` : ''}
             </div>
           </div>
 
@@ -1248,16 +1238,16 @@ class AdminAuth {
                        placeholder="${estKhr > 0 ? estKhr : '0'}"
                        ${itemStatus === 'missing' ? 'disabled' : ''}
                        aria-label="Стоимость в риелях" />
-                <span class="assembly-khr-usd-hint">≈ $${initialUsd}</span>
+                <span class="assembly-khr-usd-hint ${hintClass}">${hintPrefix}$${hintUsd}</span>
               </div>
             </div>
 
             <div class="assembly-status-btns">
               <button type="button" class="assembly-status-btn btn-pick ${itemStatus === 'picked' ? 'active' : ''}" data-assembly-status="picked">
-                ✅ Куплено
+                ✓ Куплено
               </button>
               <button type="button" class="assembly-status-btn btn-miss ${itemStatus === 'missing' ? 'active' : ''}" data-assembly-status="missing">
-                ❌ Нет
+                ✕ Нет
               </button>
             </div>
           </div>
@@ -1295,11 +1285,22 @@ class AdminAuth {
       const st = card.dataset.itemStatus || 'pending';
       const khrInput = card.querySelector('.assembly-khr-input');
       const usdHint = card.querySelector('.assembly-khr-usd-hint');
+      const estKhr = Math.max(0, Number(khrInput?.dataset.estKhr || 0));
       const rawKhr = st === 'picked' ? Math.max(0, Number(khrInput?.value || 0)) : 0;
       const itemUsd = Number((rawKhr / khrRate).toFixed(2));
 
       if (usdHint) {
-        usdHint.textContent = `≈ $${itemUsd.toFixed(2)}`;
+        usdHint.classList.remove('is-active', 'is-estimate', 'is-zero');
+        if (st === 'picked') {
+          usdHint.classList.add('is-active');
+          usdHint.textContent = `≈ $${itemUsd.toFixed(2)}`;
+        } else if (st === 'pending' && estKhr > 0) {
+          usdHint.classList.add('is-estimate');
+          usdHint.textContent = `~$${(estKhr / khrRate).toFixed(2)}`;
+        } else {
+          usdHint.classList.add('is-zero');
+          usdHint.textContent = '$0.00';
+        }
       }
 
       if (st === 'picked') {
@@ -1495,7 +1496,7 @@ class AdminAuth {
         if (this.audioContext && this.audioContext.state === 'suspended') {
           this.audioContext.resume();
         }
-      } catch (_) {}
+      } catch (_) { }
       document.removeEventListener('click', unlock);
       document.removeEventListener('keydown', unlock);
       document.removeEventListener('touchstart', unlock);
@@ -1550,7 +1551,7 @@ class AdminAuth {
       if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
         navigator.vibrate([200, 100, 200]);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   updateOrdersBadge(count) {
@@ -1592,7 +1593,7 @@ class AdminAuth {
           this.updateOrdersBadge(count);
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   setupRealtimeOrdersSync() {
@@ -1622,7 +1623,7 @@ class AdminAuth {
     if (this.realtimeOrdersChannel && this.sb) {
       try {
         this.sb.removeChannel(this.realtimeOrdersChannel);
-      } catch (_) {}
+      } catch (_) { }
       this.realtimeOrdersChannel = null;
     }
   }
